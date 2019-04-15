@@ -417,7 +417,7 @@ def are_apps_running(target, app_names):
 
     app_list = rsp.strip().split("\r\n")
     for app in app_list:
-        status, app_name = app.split(" ")
+        status, app_name = app.strip().split(" ")
         if app_name not in app_names:
             continue
         if status != "[running]":
@@ -679,7 +679,7 @@ def restore_golden_legato(target, timeout=60):
     target.reboot(timeout)
     current_system_index = get_current_system_index(target)
     swilog.info("Current system index is %s" % current_system_index)
-    assert current_system_index == 0
+    return current_system_index == 0
 
 
 def get_app_status(target, app_name):
@@ -725,10 +725,11 @@ def reset_probation_timer(target):
 def full_legato_restart(target):
     """!Restart legato framework."""
     cmd = "/legato/systems/current/bin/legato stop"
-    target.run(cmd, withexitstatus=1)
+    exit, _ = target.run(cmd, withexitstatus=1)
     cmd = "/legato/systems/current/bin/legato start"
-    target.run(cmd, withexitstatus=1)
+    exit, _ = target.run(cmd, withexitstatus=1)
     time.sleep(10)  # give time for framework to start
+    return exit
 
 
 def check_current_system_info(target, version="", status="", index=""):
