@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <av_server>
+        <url></url>
+        <username></username>
+        <password></password>
+        <company></company>
+        <client_id></client_id>
+        <client_secret></client_secret>
+    </av_server>
+</test>
