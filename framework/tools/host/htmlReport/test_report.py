@@ -10,6 +10,7 @@ import os
 import sys
 import argparse
 from io import BytesIO
+import html
 from collections import OrderedDict
 import requests
 from jinja2 import FileSystemLoader, Environment
@@ -25,6 +26,7 @@ from junitparser import (
     Result,
     Running,
 )
+
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -214,7 +216,9 @@ class TestCaseResult:
     @property
     def message(self):
         """Property mesage."""
-        all_message = [x.result.message for x in self.xml_element_results]
+        all_message = [
+            html.escape(x.result.message) for x in self.xml_element_results
+        ]
         if any(all_message):
             return "\n".join(all_message)
         return ""
@@ -222,7 +226,9 @@ class TestCaseResult:
     @property
     def capture_log(self):
         """Capture log."""
-        captured_log = [x.result.text() for x in self.xml_element_results]
+        captured_log = [
+            html.escape(x.result.text()) for x in self.xml_element_results
+        ]
         if any(captured_log):
             return "\n".join(captured_log)
         return ""
@@ -231,7 +237,8 @@ class TestCaseResult:
     def system_out(self):
         """System out from all xml elements.."""
         system_out = [
-            x.system_out for x in self.xml_element_results if x.system_out is not None
+            html.escape(x.system_out) for x in self.xml_element_results
+            if x.system_out is not None
         ]
         if any(system_out):
             return "\n".join(system_out)
@@ -241,7 +248,8 @@ class TestCaseResult:
     def system_err(self):
         """System err from all xml elements."""
         system_err = [
-            x.system_err for x in self.xml_element_results if x.system_err is not None
+            html.escape(x.system_err) for x in self.xml_element_results
+            if x.system_err is not None
         ]
         if any(system_err):
             return "\n".join(system_err)
