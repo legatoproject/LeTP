@@ -5,6 +5,7 @@ We store an DB in json format, look up its full information for testing.
 import os
 import collections
 from lxml import etree
+from pytest_test_config import TestConfig
 import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
@@ -56,7 +57,6 @@ def validate(element, iccid, imsi):
             return False
     return True
 
-
 class SimDBParser:
     """!Class for parsing sibdb.xml."""
 
@@ -96,6 +96,16 @@ class SimDBParser:
         """!Get the SIM RF band in sim capability xml file."""
         return self._get_sim_detail(sim_type, "Band")
 
+    @staticmethod
+    def get_sim_carrier(sim_element):
+        """!Get the SIM carrier in sim capability xml file."""
+        site = TestConfig.default_cfg.get_site()
+        carrier = sim_element.tag
+        if "Amarisoft" in carrier:
+            if site is not None:
+                carrier = "Amarisoft_" + site
+        return carrier
+
     def parse_sim_info(self, iccid, imsi):
         """!Parse and set Sim information based on ICCID and IMSI.
 
@@ -128,7 +138,7 @@ class SimDBParser:
         sim_elements = self.root.find("simdb/Operator")
         for element in sim_elements:
             if validate(element, iccid, imsi):
-                carrier = element.tag
+                carrier = self.get_sim_carrier(element)
                 apn = self.get_sim_apn(sim_type=carrier)
                 pdp = self.get_sim_pdp(sim_type=carrier)
                 band = self.get_rf_band(sim_type=carrier)

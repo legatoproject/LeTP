@@ -218,6 +218,37 @@ class TestConfig:
         """Get the target config in xml."""
         return ET.tostring(self._get_xml_root(), encoding="unicode")
 
+    def get_testbed_id(self):
+        """!Get testbed ID from letp configuration.
+
+        Description:
+        Checks and get testbed ID if it is configurated from letp
+
+        Returns:
+            testbed ID if element contains testbed ID
+            None otherwise
+        """
+        try:
+            return self._get_xml_root().find("testbed/id").text
+        except AttributeError:
+            return None
+
+    def get_site(self):
+        """!Get site ID from letp configuration.
+
+        Descriptions:
+        Parse site ID from testbed ID
+
+        Returns:
+            Site ID if element contains testbed ID
+            None otherwise
+        """
+        if self.get_testbed_id() is not None:
+            parse_testbed_id = self.get_testbed_id().split("-")
+            site = parse_testbed_id[len(parse_testbed_id) - 2].upper()
+            return site
+        return None
+
     @staticmethod
     def _create_parent_folder(file_name):
         file_dir_name = os.path.dirname(file_name)
