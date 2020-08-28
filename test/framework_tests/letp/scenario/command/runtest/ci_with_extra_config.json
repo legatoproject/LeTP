@@ -1,0 +1,10 @@
+[
+  {
+    "name": "scenario/command/test_config_stub.py::test_config_value_xml",
+    "config": "scenario/config/foo.xml"
+  },
+  {
+    "name": "scenario/command/test_config_stub.py::test_config_value_multi_xml",
+    "config": "scenario/config/foo_2.xml"
+  }
+]

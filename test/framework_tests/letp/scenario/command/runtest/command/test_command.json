@@ -1,0 +1,12 @@
+[
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_2.py::test_folder_010"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_1.py::test_folder_001"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_1.py::test_folder_002"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_1.py::test_folder_003"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_1.py::test_folder_004"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_1.py::test_folder_005"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_2.py::test_folder_006"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_2.py::test_folder_007"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_2.py::test_folder_008"},
+ { "name":"$LETP_TESTS/scenario/command/folder/test_folder_2.py::test_folder_009"}
+]

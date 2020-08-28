@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <host>
+        <ip_address></ip_address>
+        <!-- host network interface (eth0, ecm0, enp2s0, ...) -->
+        <network_if>ecm0</network_if>
+        <root_password></root_password>
+        <nfs_mount>/tmp</nfs_mount>
+        <!--Create up to 4 TCP and UDP servers-->
+        <socket_server>
+            <!--addr is optional : Default addr is host/ip_address-->
+            <tcp_1 used="1">
+                <addr></addr>
+                <port>6000</port>
+            </tcp_1>
+            <tcp_2 used="0">
+                <addr></addr>
+                <port></port>
+            </tcp_2>
+            <tcp_3 used="0">
+                <addr></addr>
+                <port></port>
+            </tcp_3>
+            <tcp_4 used="0">
+                <addr></addr>
+                <port></port>
+            </tcp_4>
+            <udp_1 used="1">
+                <addr></addr>
+                <port>6001</port>
+            </udp_1>
+            <udp_2 used="0">
+                <addr></addr>
+                <port></port>
+            </udp_2>
+            <udp_3 used="0">
+                <addr></addr>
+                <port></port>
+            </udp_3>
+            <udp_4 used="0">
+                <addr></addr>
+                <port></port>
+            </udp_4>
+        </socket_server>
+    </host>
+</test>

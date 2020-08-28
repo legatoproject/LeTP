@@ -1,0 +1,8 @@
+[
+  {
+    "main_config":[
+      "scenario/config/target_wp750x.xml"
+     ]
+  },
+  {"name": "scenario/command/test_config_stub.py::test_config_value"}
+]

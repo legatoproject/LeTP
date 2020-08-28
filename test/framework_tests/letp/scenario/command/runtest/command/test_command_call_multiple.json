@@ -1,0 +1,6 @@
+[
+    { "name":"$LETP_TESTS/scenario/command/runtest/command/test_command_02.json"},
+    { "name":"$LETP_TESTS/scenario/command/runtest/command/test_command_01.json"},
+    { "name":"$LETP_TESTS/scenario/command/test.py::test_command_by_filename"},
+    { "name":"$LETP_TESTS/scenario/command/runtest/command/multiple_test_call.json"}
+]

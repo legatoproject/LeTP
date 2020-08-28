@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <target2>
+        <name>wp7603</name>
+        <include_xml>
+            <file>config/module/$("target2/name").xml</file>
+            <file>config/release2.xml</file>
+        </include_xml>
+
+        <ssh used="0" main_link="1">
+            <ip_address>192.168.2.2</ip_address>
+            <!-- target interface eth0, usb0, ...-->
+            <network_if>usb0</network_if>
+            <!-- when uart is used to get the IP address on ETH  -->
+            <!-- "dhcp" Address set by udhcp on target  -->
+            <!-- "fixed" Address set by ifconfig on target  -->
+            <ip_method>dhcp</ip_method>
+            <!-- Set the eth mac address if needed. Set "auto" to set an address based on FSN  -->
+            <mac_add></mac_add>
+            <port>22</port>
+            <desc>ssh_cli</desc>
+        </ssh>
+
+        <slink1 used="0">
+            <!-- UART CLI -->
+            <!-- /dev/ttyxxx or IP address for raw telnet -->
+            <name>/dev/ttyUSB0</name>
+            <!-- Symbolic link in target fixture. Uart can be used with target."your description" -->
+            <desc>uart_cli</desc>
+            <port>4002</port>
+            <rtscts>0</rtscts>
+            <speed>115200</speed>
+        </slink1>
+
+        <slink2 used="0">
+            <!-- UART AT -->
+            <!-- /dev/ttyxxx or IP address for raw telnet -->
+            <name>/dev/ttyUSB1</name>
+            <!-- Symbolic link in target fixture. Uart can be used with target."your description" -->
+            <desc>at</desc>
+            <port>4002</port>
+            <rtscts>0</rtscts>
+            <speed>115200</speed>
+        </slink2>
+
+    </target2>
+</test>

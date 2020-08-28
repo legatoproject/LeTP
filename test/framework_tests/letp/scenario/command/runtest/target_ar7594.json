@@ -1,0 +1,5 @@
+[
+ { "name":"scenario/command/test_config_stub.py::test_cmd_config_set",
+   "config":"scenario/config/target_ar759x.xml"
+ }
+]

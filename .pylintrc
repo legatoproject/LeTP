@@ -1,0 +1,26 @@
+[General]
+init-hook="import sys;
+ sys.path.insert(0, 'framework/module/lib');
+ sys.path.insert(0, 'framework/module/pytest_plugin/lib')"
+
+# Maximum number of arguments for function / method
+max-args=8
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes=8
+
+[MESSAGES CONTROL]
+disable=locally-disabled,
+    redefined-outer-name,
+    no-else-return,
+    too-few-public-methods,
+     # Enable the following after rafactoring existing violations
+    invalid-name,
+    global-statement,
+    bare-except,
+    protected-access, # violations in swilog.py
+    # pre-commit hook uses private environment, can't find import path
+    # Need to find a way to configure import path correctly.
+    import-error,
+    # Conflicts with black formatter sometimes.
+    bad-continuation

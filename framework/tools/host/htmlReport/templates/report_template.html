@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ title }}</title>
+
+    {% if not basic %}
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    {% endif %}
+
+    <style>
+
+    body {
+        font-family: 'arial', 'sans-serif';
+    }
+
+    .container {
+        min-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .container > h1 {
+        text-align: center;
+    }
+
+    table {
+        border-collapse: collapse;
+        border: 2px solid #dee2e6;
+    }
+
+    tr:nth-child(even) {
+        background-color: rgba(0,0,0,.05);
+    }
+
+    thead th {
+        background-color: #00677A;
+        color: white;
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    tbody th {
+        text-align: left;
+        font-weight: 500;
+    }
+
+    th, td {
+        text-align: center;
+        font-size: 15px;
+        white-space: nowrap;
+        padding: .75rem;
+        vertical-align: top;
+        border-top: 1px solid #dee2e6;
+    }
+
+    @media (min-width: 992px) {
+       .modal-xlg {
+          width: 90%;
+          max-width: none;
+       }
+    }
+
+    .summary {
+        margin-top: 0px;
+    }
+
+    .passed { background-color: #c3e6cb; }
+    .failed { background-color: #f5c6cb; }
+    .error { background-color: #ffeeba; }
+    .aborted { background-color: #fff7ba; }
+    .xpass { background-color: #8dfa77; }
+    .xfail { background-color: #f3ca94;}
+    .running { background-color: #97def0;}
+
+    pre.log {
+        font-size: 75%;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        border-left: 7px solid #95a0a2;
+        background: #002b36;
+        color: #93a1a1;
+        padding: 10px;
+    }
+
+    pre.message    { border-left-color: #828992; }
+    pre.system_out { border-left-color: #009ac1; }
+    pre.system_err { border-left-color: #a02929; }
+
+    pre.log font.bold       { font-weight: bold; }
+    pre.log font.yellow     { color: #b58900; }
+    pre.log font.orange     { color: #cb4b16; }
+    pre.log font.red        { color: #dc322f; }
+    pre.log font.magenta    { color: #d33682; }
+    pre.log font.violet     { color: #6c71c4; }
+    pre.log font.blue       { color: #268bd2; }
+    pre.log font.cyan       { color: #2aa198; }
+    pre.log font.green      { color: #859900; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ title }}</h1>
+
+        {% if online_link and basic %}
+            <a href="{{ online_link }}">Detailed report</a>
+        {% endif %}
+
+        <!-- Summary -->
+        <div style="margin-top: 50px">
+            <h4 style="text-align: center">Summary</h4>
+            <table align="center" class="summary">
+                <thead>
+                    <tr>
+                    {% for entry in summary_headers %}
+                        <th>{{entry}}</th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary.values() %}
+                        <tr>
+                            {% for entry in summary_headers %}
+                                {% if entry == "Passed" and row[entry] != 0 %}
+                                    {% set summary_class = "passed" %}
+                                {% elif entry == "Failures" and row[entry] != 0 %}
+                                    {% set summary_class = "failed" %}
+                                {% elif entry == "Errors" and row[entry] != 0 %}
+                                    {% set summary_class = "error" %}
+
+                                {% endif %}
+                                {% if entry == "Config" %}
+                                    <th>{{ row[entry] }}</th>
+                                {% elif entry == "Status" %}
+                                    <td class="status {{ row[entry] | lower }}">
+                                        {{ row[entry] }}
+                                    </td>
+                                {% else %}
+                                    <td class="{{ summary_class }}">{{ row[entry]["count"] }}
+                                        {% if entry != "Testcases" %}
+                                            <small>({{ '%.2f' % row[entry]["percentage"]|float }} %)</small>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Environment -->
+        <div style="margin-top: 50px">
+            <h4 style="text-align: center">Environment</h4>
+
+            <!-- Common -->
+            {% if env_global_list | length > 0 %}
+                <h6 style="text-align: center; font-variant: small-caps;">Common</h6>
+                <table align="center">
+                    <thead>
+                        <tr>
+                            <th>Env.</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in env_global_list | dictsort %}
+                            <tr>
+                                <th>{{ k[0] }}</th>
+                                {% if 'url' in k[1] %}
+                                    <td><a href="{{ k[1].url }}">{{ k[1].text }}</a></td>
+                                {% else %}
+                                    <td>{{ k[1].text }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <!-- Per test env -->
+            <h6 style="text-align: center; font-variant: small-caps; margin-top: 10px;">Per test env.</h6>
+            <table align="center">
+                <thead>
+                    <tr>
+                        {% for entry in env_list_headers %}
+                            {% if entry != 'job.url' %}
+                                <th>{{ entry }}</th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in env_list.values() %}
+                    <tr>
+                        {% for k in env_list_headers %}
+                            {% if k == "tb.id" %}
+                                <td>
+                                    <a href="https://farm.legato/testbench/testbeds/{{ row[k] }}">{{ row[k] }}</a>
+                                </td>
+                            {% elif k != "job.url" %}
+                                {% if "https://" in row[k] or "http://" in row[k] %}
+                                    <td>
+                                        <a href="{{ row[k] }}">{{ row[k] }}</a>
+                                    </td>
+                                {% else %}
+                                    <td>
+                                        {{ row[k] }}
+                                    </td>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% macro render_results(title, headers, results) -%}
+            <div style="margin-top: 50px">
+                <h4 style="text-align: center">{{ title }}</h4>
+                <table align="center">
+                    <thead>
+                        <tr>
+                            {% for entry in headers %}
+                                <th scope="col">{{ entry }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test_case_views in results %}
+                        <tr>
+                            <th scope="row">{{ test_case_views[0].test_name }}</th>
+                            {% for test_case_view in test_case_views %}
+                                <td class="{{ test_case_view.html_class }}">
+                                    {% if not basic %}
+                                        <a data-toggle="modal" href="#info-{{ test_case_view.id|clean_pytest_name }}" data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
+                                            {{ test_case_view.result }}
+                                        </a>
+                                    {% else %}
+                                        {{ test_case_view.result }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {{ caller() }}
+            </div>
+        {%- endmacro %}
+
+        <!-- Results (failed) -->
+        {% call render_results('Test Results (failed)', results_headers, results_failed) %}
+        {% endcall %}
+
+        <!-- Results (all) -->
+        {% call render_results('Test Results (all)', results_headers, results_all) %}
+        {% endcall %}
+
+        {% macro render_logs(title, content, cls) -%}
+            <div>
+                <h4>{{ title }}</h4>
+                <pre class="log {{ cls }}">{{ content|convert_colors }}</pre>
+                {{ caller() }}
+            </div>
+        {% endmacro %}
+
+        <!-- Results # sections. -->
+        {% if not basic %}
+            <div>
+                {% for test_case_views in results_all %}
+                    {% for test_case_view in test_case_views %}
+                        <div class="modal fade" id="info-{{ test_case_view.id|clean_pytest_name }}" role="dialog" aria-labelledby="#info-{{ test_case_view.id }}-title" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-xlg" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="info-{{ test_case_view.id }}-title">{{ test_case_view.test_name }} :: {{ test_case_view.target_name }}</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <table class="table table-bordered">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Result</th><td class="{{ test_case_view.html_class }}">{{ test_case_view.result }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Configuration</th><td>{{ test_case_view.target_name }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+
+                                        {% if test_case_view.test_case %}
+                                            {% if test_case_view.test_case.result.result and test_case_view.test_case.message %}
+                                                {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
+                                                {% endcall %}
+                                            {% endif %}
+
+                                            {% if test_case_view.test_case.result.result and test_case_view.test_case.capture_log %}
+                                                {% call render_logs('Log', test_case_view.test_case.capture_log, 'log') %}
+                                                {% endcall %}
+                                            {% endif %}
+
+                                            {% if test_case_view.test_case.system_out %}
+                                                {% call render_logs('Output Stream', test_case_view.test_case.system_out, 'system_out') %}
+                                                {% endcall %}
+                                            {% endif %}
+
+                                            {% if test_case_view.test_case.system_err %}
+                                                {% call render_logs('Error Stream', test_case_view.test_case.system_err, 'system_err') %}
+                                                {% endcall %}
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if not basic %}
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    {% endif %}
+</body>
+</html>

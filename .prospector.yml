@@ -1,0 +1,57 @@
+# Setup Reference:
+# https://prospector.readthedocs.io/en/master/profiles.html
+strictness: none
+test-warnings: true
+doc-warnings: true
+autodetect: true
+max-line-length: 88
+
+pep8:
+    full: true
+    disable:
+      # Error Code reference:
+      # https://pep8.readthedocs.io/en/latest/intro.html#configuration
+      - N803 # argument name should be lowercase
+      - N806 # variable in function should be lowercase
+      - N812 # lowercase imported as non lowercase
+      - N802 # function name should be lowercase
+      - E402 # module level import not at top of file (Using pylint)
+      - E722 # do not use bare 'except' (Checked by pylint)
+      - E266 # too many leading '#' for block comment (doxygen may use ##@)
+
+pylint: # Just a example. This will be overwritten if .pylintrc exists.
+    run: true
+    disable:
+      # Message reference:
+      # https://docs.pylint.org/en/1.6.0/features.html
+      - arguments-differ
+      - useless-object-inheritance
+    options:
+      max-args: 7
+
+pep257:
+    run: true
+    disable:
+      # Error code reference:
+      # http://www.pydocstyle.org/en/latest/error_codes.html
+      # Error code convention:
+      # https://github.com/PyCQA/pydocstyle/blob/4.0.0/src/pydocstyle/violations.py
+      # Using some of google convention
+      - D203 # 1 blank line required before class docstring
+      - D213 # Multi-line docstring summary should start at the second line
+      - D413 # Missing blank line after last section
+      - D404 # First word of the docstring should not be `This`
+      - D406 # Section name should end with a newline
+      - D407 # Missing dashed underline after section
+      - D105 # Missing docstring in magic method e.g. __str__
+      # duplicate of pylint: missing-module-docstring
+      - D100 # Missing docstring in public module
+      - D107 # Missing docstring in __init__
+      # duplicate of pylint: missing-function-docstring
+      - D103 # Missing docstring in public function
+      # Not compatible with doxygen
+      - D301 # Use r""" if any backslashes in a docstring
+mccabe:
+    # https://github.com/PyCQA/mccabe
+    options:
+        max-complexity: 15

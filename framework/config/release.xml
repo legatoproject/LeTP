@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <module>
+        <legato_version></legato_version>
+        <os_version></os_version>
+        <fw_version></fw_version>
+    </module>
+</test>

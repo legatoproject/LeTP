@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <module>
+        <generic_name>wp77xx</generic_name>
+        <hardware_platform>mdm9x06</hardware_platform>
+        <cap>
+            <band></band>
+        </cap>
+    </module>
+</test>

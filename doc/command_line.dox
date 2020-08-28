@@ -1,0 +1,119 @@
+/** @page command_line Command line
+
+@tableofcontents
+
+
+@section command LeTP command line
+
+<table>
+<tr><td><b> letp run [LeTP options] test_selection [pytest options]</b>
+</table>
+
+@subsection letp_options LeTP options
+<table>
+<tr><th> LeTP Option<th>Description
+<tr><td>-d or --dbg-lvl debug_level</td>
+<td>swilog debug level from 0 to 4: <br>
+<table>
+<tr><td>0</td><td>DEBUG</td>
+<tr><td>1</td><td>INFO (default)</td>
+<tr><td>2</td><td>WARNING</td>
+<tr><td>3</td><td>ERROR</td>
+<tr><td>4</td><td>CRITICAL</td>
+</table>
+<tr><td>--log_file path_and_name_of_log_file</td>
+<td>Give the path and the name of the log file. A timestamp will be automatically prepended.<br>
+If not set, the default log file will be : log/< timestamp >_< test name >.log<br>
+Warning: set this option before the test path such as
+letp -o run –log_file /tmp/letp.log test_helloworld.py -config config/wp85.xml
+<tr><td>--html</td>
+<td>Create a html report
+@image html test_report_html.png
+@image latex test_report_html.eps
+</td>
+<tr><td>--html_file path_and_name_of_html_file</td>
+<td>The default name is the same as the log file (see --log_file) with html extension. To change this name, use html_file : –html_file my_html_report.html.
+Note: The stdout is not shown with this option. To see it, use --capture=no
+</table>
+@subsection test_selection Test selection
+<table>
+<tr><th> Test selection<th>Description
+<tr><td>test_selection</td>
+<td>test_selection can be a mix of these parameters:
+<br>
+<ul>
+    <li>a folder<br>
+        The following command starts all the tests in legato/services/airvantage/host/ and its subfolders: <br>
+        <em>letp run legato/services/airvantage/host/</em>
+    <li>a python file<br>
+        The following command starts all the tests in legato/services/airvantage/host/test_atcmd.py: <br>
+        <em>letp run legato/services/airvantage/host/test_atcmd.py</em>
+    <li>a test function<br>
+        The following command starts the test L_AVC2_AtCommand_0001 in test_atcmd.py: <br>
+        <em>letp run legato/services/airvantage/host/test_atcmd.py:: L_AVC2_AtCommand_0001 </em>
+    <li>a test set in json format<br>
+        The following command starts all the tests referred in sandbox.json: <br>
+        <em>letp  run  legato/security/sandbox/runtest/sandbox.json</em>
+        [ { "name": "legato/security/sandbox/host/test_basic.py" }, <br>
+        { "name": "legato/security/sandbox/host/test_limitation.py" } ]
+</table>
+@subsection pytest_options Pytest options
+<table>
+<tr><th> Pytest Option<th>Description
+<tr><td>--config [< config_file.xml >][,< xml_key >=< val >]</td>
+<td>XML configuration file of the target (IP address, Name, tty...). It is optional as it searches for config/testbench.xml by default. <br>
+    It can be called multiple times:<br>
+    <em>--config ar758x.xml --config fota.xml</em><br>
+    or can be separated with comma:<br>
+    <em>--config ar758x.xml,fota.xml</em><br>
+    It is also possible to set/override a specific value with this syntax: --config key="value". <br>
+    key is the path of the element in the xml tree (xpath format): <br>
+    <em>--config config/ima2.xml,config/tester.xml,tester/slink1/name="/dev/ttyUSB1"</em>
+
+    The syntax to override the attribute is: key(attribute)=value such as: --config module/ssh(used)=1 to activate ssh
+
+    All the files declared with --config override the values in the default file testbench.xml.
+<tr><td>--ci</td>
+<td>For continuous integration. Do not start the tests. <br>
+Create a jenkins.json file containing the tests to execute and the xml configuration.
+
+<b>Note:</b> you can also use this command to check if you have correctly set all the xml parameters.
+<tr><td>--html path_and_name_of_html_file</td>
+<td>It generates a html report.<br>
+<b>Note:</b> To use with --capture=sys option to also show the stdout in the html report (--html log/test.html --capture=sys).
+<tr><td>--use_uart</td>
+<td>By default, ssh is used to communicate with the target with the IP address given in the config file.
+    Use --use_uart to communicate with uart and also use the SSH link to update the target for example.
+    it is also possible to do the same by setting the "main_link" parameter of ssh to 0 in target.xml.
+<tr><td>other pytest options</td>
+<td>Pass here all the standard pytest options.
+<br>To see the pytest options, type: letp run . --help
+<br>Here are some useful options:
+<ul>
+<li> --collect-only : do not execute tests. Simply see all the available tests.
+<li> --junit-xml : generate a junit xml file. Add --capture=sys to also put the stdout inside the report
+<li> --tb=no : no backtrace. It can be also auto/long/short/line/native/no
+</table>
+
+@subsection cliExample Examples
+
+Log file to /tmp/letp.log
+
+    letp run --log_file /tmp/letp.log test_helloworld.py
+
+Activation of the log debug level
+
+    letp run -d 0 /tmp/letp.log test_helloworld.py
+
+
+@section var_env Environment variables
+
+Some environment variables are read by LeTP and taken into account if they exist.
+The environment variables have more priority than the values in the xml file.
+<table>
+<tr><th>Variable<th>Description<th>corresponding xml element
+<tr><td>TARGET_IP<td>IP address of the target<td>module/ssh/ip_address
+<tr><td>TARGET_SSH_PORT<td>SSH port used by the target<td>module/ssh/port
+</table>
+
+**/

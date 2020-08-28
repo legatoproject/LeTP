@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <module>
+        <!-- [create_cfg_xml example] -->
+        <!-- put here the exact name of your board (ar7584, wp8548, ...)
+             or the generic name (ar758x, wp750x...).
+             It must corresponds to a file located in config/module -->
+        <name>wp76xx</name>
+        <include_xml>
+            <file>config/module/$("module/name").xml</file>
+            <file>config/release.xml</file>
+        </include_xml>
+        <!-- [create_cfg_xml example] -->
+        <ssh used="0" main_link="1">
+            <ip_address>192.168.2.2</ip_address>
+            <!-- target interface eth0, ecm0, ...-->
+            <network_if>ecm0</network_if>
+            <!-- when uart is used to get the IP address on ETH  -->
+            <!-- "dhcp" Address set by udhcp on target  -->
+            <!-- "fixed" Address set by ifconfig on target  -->
+            <ip_method>dhcp</ip_method>
+            <!-- Set the eth mac address if needed. Set "auto" to set an address based on FSN  -->
+            <mac_add></mac_add>
+            <port>22</port>
+            <desc>ssh_cli</desc>
+        </ssh>
+
+        <slink1 used="0">
+            <!-- UART CLI -->
+            <!-- /dev/ttyxxx or IP address for raw telnet -->
+            <name>/dev/ttyUSB0</name>
+            <!-- Symbolic link in target fixture. Uart can be used with target."your description" -->
+            <desc>uart_cli</desc>
+            <port>4002</port>
+            <rtscts>0</rtscts>
+            <speed>115200</speed>
+        </slink1>
+
+        <slink2 used="0">
+            <!-- UART AT -->
+            <!-- /dev/ttyxxx or IP address for raw telnet -->
+            <name>/dev/ttyUSB1</name>
+            <!-- Symbolic link in target fixture. Uart can be used with target."your description" -->
+            <desc>at</desc>
+            <port>4002</port>
+            <rtscts>0</rtscts>
+            <speed>115200</speed>
+        </slink2>
+
+    </module>
+</test>

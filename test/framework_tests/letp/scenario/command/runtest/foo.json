@@ -1,0 +1,5 @@
+[
+  {"name":"scenario/command/test_config_stub.py::test_config_same_test_with_2_cfg",
+   "config":"scenario/config/foo.xml"
+  }
+]

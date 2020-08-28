@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <module>
+        <generic_name>ar759x</generic_name>
+        <hardware_platform>mdm9x40</hardware_platform>
+        <cap>
+            <band></band>
+        </cap>
+    </module>
+</test>

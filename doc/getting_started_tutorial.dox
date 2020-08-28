@@ -1,0 +1,81 @@
+/** @page getting_start_tutorial Getting Started
+
+<A HREF="https://legato.io/quickstart">Getting started</A> with Legato
+@section prerequisite Prerequisite
+
+The Legato development environment must be functional in order to build the helloWorld application. <br>
+
+- Install Toolchain:
+
+    Toolchains include all the tools and libraries needed to build the runtime environment for a target device. The toolchain is specific to the Linux Distribution and the Module so each module that you are building must have its own toolchain installed. <A HREF="https://docs.legato.io/20_04/basicBuildToolchain.html">Install the Toolchain </A> can be downloaded from your vendor, or are automatically installed and configured with <A HREF="https://docs.legato.io/latest/confLeaf.html"> Leaf Workspace Manager </A>. <br>
+
+- Add environment variable:
+
+    Set the path of toolchain for different platform into environment variable, so that source code for specific hardware can be compile properly.<br>
+    Example toolchain for wp76xx: <br>
+    <em> export WP76XX_TOOLCHAIN_DIR=/opt/swi/SWI9X07Y_02.18.06.00/sysroots/x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi </em> <br>
+
+- Make legato for Target:
+
+    The Legato build tools rely on a Linux environment to make the system and app images for your target. <br>
+    Go to your legato repository:<br>
+    <b> <em> cd legato </em> </b> <br>
+    Run make to build the framework for the target:<br>
+    <b> <em>$make wp76xx</em> </b>. <em> // Replace wp76xx with the target type ID you're building (eg: wp77xx, wp85,...).</em> <br>
+    Then you need to set up your shell environment to use the Legato command-line tools:<br>
+    <b> <em> $bin/legs </em> </b> .<br>
+
+- Install and configure LeTP as described in \ref installation. <br>
+
+@section test_file Test scripts creation
+
+Go to your test repository:<br>
+<em>cd $LETP_TESTS</em>
+
+Copy the tutorial test_helloworld source file (letp/testing_target/scenario/test_helloworld.py) to $LETP_TESTS
+@include test_helloworld.py
+
+@section execution Test execution
+- Set the name of your module in config/@ref target_xml . <br>
+~~~~~~~~~~~~~{.xml}
+        <name>wp7607</name>
+~~~~~~~~~~~~~
+The ssh link will be used for the test.
+The serial link is optional but if ssh and serial link are
+used together, the serial link is used to determine the ip
+address at startup or after each reboot.
+This is useful when the IP address changes after reboot.
+Moreover, it removes the firewall rules at startup.
+
+- Set SSH setting<br>
+Always in config/target.xml, set at least the target ip
+address in the ssh section.Activate it by setting "used=1"<br>
+
+ssh settings:
+~~~~~~~~~~~~~{.xml}
+        <ssh used="1" main_link="1">
+            <ip_address>192.168.2.2</ip_address>
+            <network_if>ecm0</network_if>
+~~~~~~~~~~~~~
+- Set up Serial link for CLI in slink1 section
+Fill the port name (/dev/ttyxxx), the baudrate in speed (default 115200).
+Activate it by setting "used=1".<br>
+Serial settings:
+~~~~~~~~~~~~~{.xml}
+        <slink1 used="0">
+            <name>/dev/ttyS1</name>
+            <rtscts>0</rtscts>
+            <speed>115200</speed>
+        </slink1>
+~~~~~~~~~~~~~
+Ssh is used to send commands by default.
+
+- Start the test <br>
+<em>letp run $LETP_TESTS/test_helloworld.py</em>
+
+- The result is displayed at the end with the number of PASSED/FAILED/ERROR. ERROR means that the test failed at setup or in the teardown.<br>
+The name of the created log file is also found in the last lines.
+
+Copyright (C) Sierra Wireless Inc. </center>
+
+**/

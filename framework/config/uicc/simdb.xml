@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <simdb>
+        <Operator>
+            <Telus>
+                <APN>sp.telus.com</APN>
+                <PDP>IP</PDP>
+                <!-- band 12 -->
+                <Band>800</Band>
+                <ICCID_prefix>891223</ICCID_prefix>
+                <IMSI_prefixes>302220,302221,302222</IMSI_prefixes>
+            </Telus>
+            <Rogers>
+                <APN>ltemobile.apn</APN>
+                <PDP>IP</PDP>
+                <!-- band 12 -->
+                <Band>800</Band>
+                <ICCID_prefix>893027</ICCID_prefix>
+                <IMSI_prefixes>302720</IMSI_prefixes>
+            </Rogers>
+            <SierraWireless>
+                <APN>lp.swir</APN>
+                <PDP>ipv4v6</PDP>
+                <!-- band 12 -->
+                <Band>800</Band>
+                <ICCID_prefix>893324</ICCID_prefix>
+                <IMSI_prefixes>222013,424020,208240,206018,234500</IMSI_prefixes>
+            </SierraWireless>
+        </Operator>
+        <!-- example sim -->
+        <!-- <uicc>
+            <office></office>
+            <carrier>Telus</carrier>
+            <name>Example SIM</name>
+            <iccid>8912230000000000000</iccid>
+            <imsi>302220000000000</imsi>
+            <mcc>302</mcc>
+            <mnc>220</mnc>
+            <tel>1231231234</tel>
+            <pin>1234</pin>
+            <puk>12345678</puk>
+            <sms_capable>1</sms_capable>
+            <data_capable>1</data_capable>
+        </uicc> -->
+    </simdb>
+</test>

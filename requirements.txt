@@ -1,0 +1,19 @@
+# Install lxml by apt-get as it requires some compilation and extra packages (python-dev, ...)
+pytest==5.3.2
+
+# pytest-plugin
+pytest-json-report
+pytest-timeout
+
+# For modules
+colorama
+pyserial
+pexpect
+ptyprocess
+colorlog
+
+# For html generation
+future
+jinja2
+junitparser
+requests

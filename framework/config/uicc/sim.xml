@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <sim>
+        <name></name>
+        <iccid></iccid>
+        <imsi></imsi>
+        <tel></tel>
+        <mcc></mcc>
+        <mnc></mnc>
+        <pin></pin>
+        <pin2></pin2>
+        <puk></puk>
+        <puk2></puk2>
+    </sim>
+</test>

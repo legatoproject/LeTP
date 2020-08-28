@@ -1,0 +1,10 @@
+inherited: true
+owners:
+- group/LeTp-Admin
+matchers:
+- regex: test/*
+  owners:
+      [wwang]
+- regex: framework/*
+  owners:
+      [wwang]

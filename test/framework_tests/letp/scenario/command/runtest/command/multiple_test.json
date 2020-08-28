@@ -1,0 +1,11 @@
+[
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_001"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_002"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_003"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_004"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_005"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_006"},
+  {"name":"$LETP_TESTS/command/test_command_stub.py::test_command_json_007"}
+]

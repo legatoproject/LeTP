@@ -1,0 +1,8 @@
+[
+  {"name":"scenario/command/test_config_stub.py::test_config_two_xml_with_json_file",
+   "config":"scenario/config/foo.xml"
+  },
+  {"name":"scenario/command/test_config_stub.py::test_config_two_xml_with_json_file_2",
+   "config":"scenario/config/foo_2.xml"
+  }
+]

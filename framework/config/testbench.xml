@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <include_xml>
+        <file>config/host.xml</file>
+        <file>config/target.xml</file>
+        <file>config/test_run.xml</file>
+    </include_xml>
+</test>

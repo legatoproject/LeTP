@@ -1,0 +1,12 @@
+/** @page test_scripts_samples Test scripts samples
+
+LeTP is coming with a set of sample test cases for Legato.
+
+@ref test_at <br>
+@ref test_swilog <br>
+@ref test_target2 <br>
+@ref test_helloworld <br>
+
+Copyright (C) Sierra Wireless Inc.
+
+**/

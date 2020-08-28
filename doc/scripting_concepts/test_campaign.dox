@@ -1,0 +1,7 @@
+/** @page test_campaign Test campaign
+
+A test campaign contains test cases and their dynamic configs.
+
+- @ref pytest_test_campaign
+- @ref pytest_test_config
+**/

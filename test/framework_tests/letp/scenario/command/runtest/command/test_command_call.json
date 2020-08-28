@@ -1,0 +1,4 @@
+[
+    { "name":"$LETP_TESTS/scenario/command/runtest/command/test_command.json"},
+    { "name":"$LETP_TESTS/scenario/command/test.py::test_command_by_filename"}
+]
