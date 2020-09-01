@@ -26,8 +26,6 @@ export LETP_PATH=$PWD
 DEFAULT_TEST_DIR="$LETP_PATH/test"
 letp_tests=$1
 
-# try to find qa testbase with relative path
-[ -d ../../../qa/letp ] && DEFAULT_TEST_DIR=$(cd ../../../qa/letp; pwd); export QA_ROOT=$DEFAULT_TEST_DIR/..
 if [ -z "$LEGATO_ROOT" ]; then
     echo -e "\e[31mWARNING\e[0m: LEGATO_ROOT is not defined.You won't be able to compile a legato application"
 fi
@@ -40,6 +38,12 @@ fi
 # Be sure that it is the absolute path
 export LETP_TESTS=$(cd $letp_tests; pwd)
 echo "Set LETP_TESTS to $LETP_TESTS"
+
+# try to find qa testbase with relative path
+if [[ $letp_tests == *"qa/letp"* ]]; then
+    export QA_ROOT=${letp_tests/qa*/qa}
+    echo "Set QA_ROOT to $QA_ROOT"
+fi
 
 chmod +x $LETP_PATH/framework/tools/letp.py
 # Add letp in the system path
