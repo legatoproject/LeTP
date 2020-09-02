@@ -16,7 +16,7 @@ import swilog
 import pexpect
 import pexpect.fdpexpect
 import pexpect.pxssh
-
+from com_exceptions import ComException
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -316,7 +316,9 @@ def run_at_cmd_and_check(
         return before + after
     except Exception as e:
         if check:
-            raise e
+            raise ComException(
+                "{} didn't return after {} is sent".format(expect_rsp, at_cmd)
+            )
         if getattr(target, "before"):
             swilog.debug("Received:\n%s" % list(target.before))
         return None
@@ -493,8 +495,7 @@ class ttyspawn(pexpect.fdpexpect.fdspawn):
         try:
             return super(ttyspawn, self).expect(*args, **kwargs)
         except Exception as e:
-            swilog.warning(e)
-            raise e
+            raise ComException(e)
 
     def expect_exact(self, *args, **kwargs):
         """Intermediate function to expect_exact.
@@ -504,8 +505,7 @@ class ttyspawn(pexpect.fdpexpect.fdspawn):
         try:
             return super(ttyspawn, self).expect_exact(*args, **kwargs)
         except Exception as e:
-            swilog.warning(e)
-            raise e
+            raise ComException(e)
 
     def expect_in_order(self, expected_list, timeout=5):
         """Wait for patterns in a list in the order of the list.
@@ -776,7 +776,7 @@ class target_qct:
                 # Add the data to the future self.expect()
                 rsp += self.before
         if not self.prompt(timeout=timeout):
-            raise Exception("Unable to get prompt after %ss" % timeout)
+            raise ComException("Unable to get prompt after %ss" % timeout)
         rsp += self.before
 
         # Get the command exit code
@@ -797,7 +797,7 @@ class target_qct:
         try:
             return self.run_main(cmd, timeout, local_echo, withexitstatus, check)
         except Exception as e:
-            raise e
+            raise ComException(e)
 
     def login(self, attempts=10):
         """Login to target cli."""
@@ -962,7 +962,7 @@ class target_at:
             rsp = run_at_cmd_and_check(self, at_cmd, timeout, expect_rsp, check, eol)
         except Exception as e:
             # Try/except to limit the backtrace
-            raise e
+            raise ComException(e)
         return rsp
 
 
@@ -1024,7 +1024,7 @@ class target_serial_at(target_at, ttyspawn):
         bd = baudrate if baudrate else self.baudrate
         self.tty = SerialPort.open(self.dev_tty, bd, rtscts=self.rtscts)
         if not self.tty:
-            raise Exception(
+            raise ComException(
                 "Unable to open tty %s baudrate[%d] rtscts[%s]"
                 % (self.dev_tty, bd, self.rtscts)
             )
@@ -1194,7 +1194,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
             setup_linux_login(self)
         except Exception as inst:
             if not setup_linux_login(self):
-                raise inst
+                raise ComException("Unable to login")
         exit_code = 1
         count = 0
         while exit_code != 0:
@@ -1251,7 +1251,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
             swilog.warning(e)
 
             if self.closed:
-                swilog.warning("Connection to the device is lost")
+                raise ComException("Connection to the device is lost")
 
     def _read_exit_code(self, timeout, retry=2):
         self.sendline('echo "\n$?"')
@@ -1284,6 +1284,8 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         # Sometimes, when using send, sendline or expect, there is stuff in the buffer
         # Flush it. Cleaning self.buffer does not seem to work. So expect characters.
         while not self.expect([r".+", pexpect.TIMEOUT], timeout=0.001):
+            if not self.match:
+                break
             self.match.group(0)
 
         self.sendline(cmd)
@@ -1301,7 +1303,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
                 rsp += self.before
         try:
             if not self.prompt(timeout=timeout):
-                raise Exception("Unable to get prompt")
+                raise ComException("Unable to get ssh prompt")
             rsp += self.before
 
             if withexitstatus or check:
@@ -1327,7 +1329,9 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
                         % (inst)
                     )
                 else:
-                    raise inst
+                    raise ComException(
+                        "Communication to the device is lost after reboot"
+                    )
 
     def run(self, cmd, timeout=-1, local_echo=True, withexitstatus=False, check=True):
         """Run a command, check the exit status by default and returns the
@@ -1364,7 +1368,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
             return self.run_main(cmd, timeout, local_echo, withexitstatus, check)
         except Exception as e:
             swilog.warning(e)
-            raise e
+            raise ComException("Unable to send the cmd {} through ssh link".format(cmd))
 
     def reboot(self, timeout=60, power_supply=None):
         """Reboot the device.
@@ -1438,7 +1442,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         @ingroup targetGroup
         """
         if self.reinit_in_progress:
-            raise Exception("A reinit is already in progress")
+            raise ComException("A reinit is already in progress")
         self.reinit_in_progress = True
         swilog.debug("Reinit the ssh connection with %s" % (self.target_ip))
         self.pid = None
