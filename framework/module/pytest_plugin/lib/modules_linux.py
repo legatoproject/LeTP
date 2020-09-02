@@ -15,6 +15,7 @@ import com
 import app
 from modules import SwiModule, SlinkInfo, ModuleLink
 from module_exceptions import SlinkException, TargetException
+from versions_linux import LinuxVersions
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -81,6 +82,14 @@ def configure_ssh_env(read_config, inst_name):
 class ModuleLinux(SwiModule):
     # pylint: disable=too-many-instance-attributes, too-many-public-methods
     """Generic class for Linux based modules."""
+
+    linux_pattern = {
+        "full": r".*?(?P<version>(SWI.+\_|LXSWI.+\-).+$)",
+        "parsed": (
+            r".*?(?P<version>"
+            r"(SWI.+\_|LXSWI.+\-)\d+\.\d+(\.\d+\.\d+)?(\.rc\d{1,2})?).*?"
+        ),
+    }
 
     def __init__(
         self, target_name, target_ip, ssh_add, ssh_port, config_target, inst_name
@@ -288,6 +297,12 @@ class ModuleLinux(SwiModule):
 
         return super().com_port_checklist
 
+    @property
+    def linux_version(self):
+        """Return the linux version in the module."""
+        version_obj = LinuxVersions()
+        return version_obj.get_linux_version(console=com.ComPortType.AT)
+
     def wait_for_device_up(self, timeout=0):
         """Wait for the device to be up."""
         if self.slink1:
@@ -372,6 +387,11 @@ class ModuleLinux(SwiModule):
             return self.target.after.strip()
         except Exception:
             return ""
+
+    @staticmethod
+    def get_version_obj():
+        """Return versions obj."""
+        return LinuxVersions()
 
     def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"):
         """Run and check AT commands."""

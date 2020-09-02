@@ -21,6 +21,7 @@ import com
 import com_port_detector
 import swilog
 from module_exceptions import SlinkException, TargetException
+from versions import TargetVersions
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -180,6 +181,16 @@ class ModuleLink:
 class SwiModule:
     """Generic Sierra Wireless module class."""
 
+    legato_pattern = {
+        "full": (r".*?(?P<version>\d{2}\.\d{2}\.\d+?(\.rc\d+)?.*$)"),
+        "parsed": (r".*?(?P<version>\d+\.\d+\.\d+?(\.rc\d+)?.*$)"),
+    }
+
+    modem_pattern = {
+        "full": r".*?(?P<version>SWI.+\_.+$)",
+        "parsed": r".*?(?P<version>SWI.+\_\d+\.\d+(\.\d+\.\d+)?(\.rc\d{1,2})?).*?",
+    }
+
     def __init__(self, target_name):
         self.slink1 = self.slink2 = self.ssh = self._ssh_port = None
         self.target = self._com_port_info = None
@@ -240,6 +251,18 @@ class SwiModule:
 
         return self._com_port_checklist
 
+    @property
+    def legato_version(self):
+        """Return the legato version in the module."""
+        version_obj = self.get_version_obj()
+        return version_obj.get_legato_version(console=com.ComPortType.CLI)
+
+    @property
+    def modem_version(self):
+        """Return the modem version in the module."""
+        version_obj = self.get_version_obj()
+        return version_obj.get_modem_version(console=com.ComPortType.AT)
+
     def set_link_alias(self, idx, name):
         """Set the link aliases."""
         self.remove_link_alias(name)
@@ -257,6 +280,21 @@ class SwiModule:
             if link.port_type == port_type:
                 return link
         return None
+
+    def get_version_obj(self):
+        """Get versions obj."""
+        raise NotImplementedError
+
+    def get_version(self, cmd, pattern, console):
+        if console == com.ComPortType.CLI:
+            self.send(cmd + "\r")
+            self.expect(pattern)
+            match_obj = self.match
+        else:
+            rsp = self.run_at_cmd(cmd, check=False)
+            match_obj = re.search(pattern, rsp, re.M)
+
+        return TargetVersions._match_version(match_obj)
 
     @property
     def link1(self):
