@@ -92,7 +92,9 @@ def get_version():
         ".git",
     )
     version = subprocess.check_output(
-        "git --git-dir={} describe --tags 2> /dev/null".format(_letp_repo_path),
+        "git --git-dir={} describe --tags --always 2> /dev/null".format(
+            _letp_repo_path
+        ),
         shell=True,
     )
     version_str = version.decode("utf-8")
