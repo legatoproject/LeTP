@@ -1,16 +1,18 @@
+# pylint: disable=missing-function-docstring
 """Test letp target fixture and modules.py.
 
 Using mock module to simulate com connections.
 """
-# pylint: disable=missing-function-docstring
+import os
+import sys
 from unittest.mock import patch
 
 import pytest
 
 import swilog
+from modules import get_swi_module, get_swi_module_files
 from testlib import run_python_with_command
 from testlib.util import check_letp_nb_tests, get_log_file_name
-from modules import get_swi_module
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -148,3 +150,13 @@ def test_define_target_linux_two_links_and_ssh(letp_cmd, module_name):
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_get_swi_module(module_name):
     get_swi_module(module_name.upper())
+
+
+def test_get_swi_module_files():
+    """Test the messed up sys.path."""
+    current_path = os.path.abspath(__file__)
+    if current_path not in sys.path:
+        sys.path.append(current_path)
+    assert get_swi_module_files()
+    if current_path in sys.path:
+        sys.path.remove(current_path)

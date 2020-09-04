@@ -5,21 +5,22 @@
 Set of functions that must be implemented differently depending
 on the module (eth, ecm, imei,...)
 """
+import copy
+import imp
+import ipaddress
+import os
+import re
 import sys
 import time
-import imp
-import re
-import os
-import ipaddress
-import copy
+
 import pexpect
 import pexpect.fdpexpect
 import pexpect.pxssh
-import swilog
+
 import com
 import com_port_detector
+import swilog
 from module_exceptions import SlinkException, TargetException
-
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -29,7 +30,7 @@ def get_swi_module_files():
     modules = set()
     sys_paths = sys.path
     for path in sys_paths:
-        if not os.path.exists(path):
+        if not (os.path.exists(path) and os.path.isdir(path)):
             continue
         tree = os.listdir(path)
         for i in tree:
