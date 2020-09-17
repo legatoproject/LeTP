@@ -21,7 +21,7 @@
 <tr><td>3</td><td>ERROR</td>
 <tr><td>4</td><td>CRITICAL</td>
 </table>
-<tr><td>--log_file path_and_name_of_log_file</td>
+<tr><td>--log-file path_and_name_of_log_file</td>
 <td>Give the path and the name of the log file. A timestamp will be automatically prepended.<br>
 If not set, the default log file will be : log/< timestamp >_< test name >.log<br>
 Warning: set this option before the test path such as
@@ -31,8 +31,8 @@ letp -o run –log_file /tmp/letp.log test_helloworld.py -config config/wp85.xml
 @image html test_report_html.png
 @image latex test_report_html.eps
 </td>
-<tr><td>--html_file path_and_name_of_html_file</td>
-<td>The default name is the same as the log file (see --log_file) with html extension. To change this name, use html_file : –html_file my_html_report.html.
+<tr><td>--html-file path_and_name_of_html_file</td>
+<td>The default name is the same as the log file (see --log-file) with html extension. To change this name, use html_file : –html_file my_html_report.html.
 Note: The stdout is not shown with this option. To see it, use --capture=no
 </table>
 @subsection test_selection Test selection
@@ -91,7 +91,7 @@ Create a jenkins.json file containing the tests to execute and the xml configura
 <br>Here are some useful options:
 <ul>
 <li> --collect-only : do not execute tests. Simply see all the available tests.
-<li> --junit-xml : generate a junit xml file. Add --capture=sys to also put the stdout inside the report
+<li> --junitxml or --junit-xml: generate a junit xml file. Note:--junitxml is documented in pytest docs while --junit-xml is supported in pytest help page. Add --capture=sys to also put the stdout inside the report
 <li> --tb=no : no backtrace. It can be also auto/long/short/line/native/no
 </table>
 
@@ -99,7 +99,7 @@ Create a jenkins.json file containing the tests to execute and the xml configura
 
 Log file to /tmp/letp.log
 
-    letp run --log_file /tmp/letp.log test_helloworld.py
+    letp run --log-file /tmp/letp.log test_helloworld.py
 
 Activation of the log debug level
 

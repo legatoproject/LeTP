@@ -146,21 +146,6 @@ def _config_debug_level(args):
     return args_host_testpath, args_host_pytest_args
 
 
-def _init_html_report(args, log_file, args_host_pytest_args):
-    """Handle html report generation and argument setting."""
-    html_file = args.html_file
-    if not args.html_file:
-        html_file = log_file.replace(".log", ".html")
-        args.html_file = html_file
-
-    args_host_pytest_args.append("--html=%s" % html_file)
-    args_host_pytest_args.append("--junitxml=%s" % html_file.replace(".html", ".xml"))
-    args_host_pytest_args.insert(0, "--capture=sys")
-    print("Create the html file %s" % html_file)
-
-    return args_host_pytest_args
-
-
 def _collect_tests(args):
     if ".json" in args.testpath:
         tests = _json_collect_tests(args.testpath)
@@ -200,7 +185,7 @@ def _build_log_file_name(args):
 
         default_name = testpathmanager.get_default_name()
 
-        args.log_file = "log/%s.log" % default_name.replace(".", "_")
+        default_log_file = "log/%s.log" % default_name.replace(".", "_")
 
         dt = datetime.now()
         timestamp = "%02d%02d%02d_%02d%02d%02d_%06d" % (
@@ -213,10 +198,11 @@ def _build_log_file_name(args):
             dt.microsecond,
         )
 
-        basename = os.path.basename(args.log_file)
+        basename = os.path.basename(default_log_file)
         suffix = basename.split(".")[1]
         log_file_name = "%s_%s.%s" % (timestamp, basename.split(".")[0], suffix)
-        log_file = os.path.join(os.path.dirname(args.log_file), log_file_name)
+        log_file = os.path.join(os.path.dirname(default_log_file), log_file_name)
+        args.log_file = log_file
         return log_file
     else:
         log_file = args.log_file
@@ -357,27 +343,27 @@ def _get_arguments():
         nargs=argparse.REMAINDER,
         help="Arguments after the test path are directly passed on to pytest",
     )
-    # No logs
+
+    # Generate test execution log
     run_parser.add_argument(
-        "--no-logs", action="store_true", help="tell target not to send any logs"
-    )
-    # Specify log file
-    run_parser.add_argument(
-        "--log_file",
+        "--log-file",
+        dest="log_file",
         help="path and name of the log file, "
         "such as /tmp/letp.log."
         "A timestamp will be added to the name. "
-        "Default is log/timestamp_test_name.log",
+        "Default is log/<timestamp>_<testname>.log",
     )
+
     # Generate HTML output
     run_parser.add_argument("--html", action="store_true", help="Generate html output")
     # Path/Name to HTML file
     run_parser.add_argument(
-        "--html_file",
+        "--html-file",
+        dest="html_file",
         help="path and name of the html file, "
         "such as /tmp/letp.log. "
         "A timestamp will be added to the name. "
-        "Default is log/timestamp_test_name.html",
+        "Default is log/<timestamp>_<testname>.html",
     )
 
     return parser.parse_args()
@@ -391,8 +377,6 @@ def run(args):
     outputlog, stderrsav, stdoutsav = _init_logging(log_file)
 
     args_host_testpath, args_host_pytest_args = _config_debug_level(args)
-    if args.html:
-        args_host_pytest_args = _init_html_report(args, log_file, args_host_pytest_args)
     _config_capture(args_host_pytest_args)
 
     _pytest_config_file = "pytest.ini"
@@ -417,6 +401,8 @@ def run(args):
                 os.path.join(pytest_root, _pytest_config_file),
                 "-p",
                 "pytest_letp",
+                "--log-file",
+                args.log_file,
             ]
             + args_host_pytest_args
             + [args_host_testpath]
@@ -433,9 +419,6 @@ def run(args):
 
     if args.log_file is not None:
         print("!!!!! Logs can be found here %s!!!!!" % log_file)
-
-    if args.html and os.path.exists(args.html_file):
-        print("!!!!! Html report can be found here %s!!!!!" % args.html_file)
 
     if _rc != pytest.ExitCode.OK:
         sys.exit(_rc)

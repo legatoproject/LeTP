@@ -8,7 +8,6 @@ import random
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-
 import pytest
 
 import socket_server
@@ -60,10 +59,15 @@ def pytest_addoption(parser):
             'corresponding to the xml parameters",
     )
     parser.addoption(
-        "--html",
+        "--html", action="store_true", help="Enable html report generation"
+    )
+
+    parser.addoption(
+        "--html-file",
         action="store",
         help="Create a html report. Indicate the name of the html file",
     )
+
     parser.addoption(
         "--dbg-lvl",
         action="store",
@@ -101,6 +105,52 @@ def get_version():
     return version_str
 
 
+@pytest.mark.tryfirst
+def pytest_cmdline_parse(args):
+    """!Parse customized arguments before passing to pytest."""
+    junitxml = html = False
+    html_file = None
+
+    if "--ci" in args:
+        # Use collect-only option to generate json format.
+        args.append("--collect-only")
+
+    if "--junitxml" in args or "--junit-xml" in args:
+        # --junitxml is documented in pytest docs
+        # --junit-xml is supported in pytest help page
+        junitxml = True
+
+    if "--html" in args:
+        html = True
+
+        if "--html-file" in args:
+            html_file = args[args.index("--html-file") + 1]
+        else:
+            log_file = args[args.index("--log-file") + 1]
+            html_file = log_file.replace(".log", ".html")
+            args.append("--html-file")
+            args.append(html_file)
+
+    if "--json-report" in args:
+        # Set default output for json report.
+        json_report_config = (
+            "--json-report-omit warnings log --json-report-indent 4 ".split()
+        )
+        args.extend(json_report_config)
+
+    if html:
+        # We want to always capture the log for html report.
+        if "--capture" not in args:
+            args.append("--capture=sys")
+
+        if not junitxml:
+            # Add automatically --junitxml if it is not set when using --html
+            # because html report uses junitxml data.
+            junit_file = html_file.replace(".html", ".xml")
+            args.append("--junitxml")
+            args.append(junit_file)
+
+
 @pytest.hookimpl()
 def pytest_report_header():
     """!Put LeTP version in the report header."""
@@ -111,7 +161,6 @@ def pytest_report_header():
 def pytest_load_initial_conftests(early_config, args):
     """!Load initial conftest setups."""
     newArgs = []
-    junitxml = html = False
 
     if os.environ.get("LETP_TEST_SET") is None:
         # Set a default value for LETP_TEST_SET (set of public tests)
@@ -137,22 +186,7 @@ def pytest_load_initial_conftests(early_config, args):
                 newArgs.append("%s" % ",".join(test_list[2]))
         else:
             newArgs.append(arg)
-        if arg == "--ci":
-            # Use collect-only option to generate json format.
-            newArgs.append("--collect-only")
-        if arg == "--junitxml":
-            junitxml = True
-        if arg == "--html":
-            html = True
-        if arg == "--json-report":
-            # Set default output for json report.
-            json_report_config = (
-                "--json-report-omit warnings log --json-report-indent 4 ".split()
-            )
-            newArgs.extend(json_report_config)
-    # Add automatically --junitxml if it is not set when using --html
-    if html and not junitxml:
-        newArgs.append("--junitxml=%s" % "test.xml")
+
     args[:] = newArgs
     args[:] = ["--ignore=%s" % folder for folder in excluded_list] + args
     print("Use default config: %s" % TestConfig.default_cfg_file)
@@ -225,8 +259,14 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session):
     """!Generate a html report."""
     TestConfig.test_list = []
-    html_file = session.config.getoption("--html")
+    html_file = session.config.getoption("--html-file")
     junit_file = session.config.getoption("--junitxml")
+
+    if not junit_file:
+        # --junitxml is documented in pytest docs
+        # --junit-xml is supported in pytest help page
+        junit_file = session.config.getoption("--junit-xml")
+
     if session.config.getoption("--json-report", default=None):
         json_report = session.config.getoption("--json-report-file")
     else:
@@ -237,6 +277,8 @@ def pytest_sessionfinish(session):
             session.default_cfg, html_file, junit_file, json_report
         )
         test_reporter.build()
+
+        print("!!!!! Html report can be found here {}!!!!!".format(html_file))
 
 
 def get_default_cfg():

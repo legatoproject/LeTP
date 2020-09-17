@@ -12,8 +12,11 @@ def get_log_file_name(output, file_type="log"):
     # e.g.
     # Create the log file log/20200413_120544_test_debug_value.log
     # Logs can be found here log/20200413_120544_test_debug_value.log
-    assert len(log_file) == 2
-    assert log_file[0] == log_file[1]
+    if file_type == "html":
+        assert len(log_file) == 1
+    else:
+        assert len(log_file) == 2
+        assert log_file[0] == log_file[1]
     return log_file[0]
 
 
