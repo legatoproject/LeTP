@@ -1,6 +1,6 @@
 @mainpage LeTP
 
-@subpage README.md <br>
+@subpage introduction.md <br>
 @subpage installation <br>
 @subpage getting_start_tutorial <br>
 @subpage command_line <br>
