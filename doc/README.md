@@ -17,7 +17,7 @@ provides an open Source test framework provided along with the Legato solution.
 Users can also easily extend the LeTP framework with 315+ pytest plugins.
 
 # Prerequisites
-python 3.5+ <br>
+python 3.6+ <br>
 ```
 pip3 install -r requirements.txt
 ```

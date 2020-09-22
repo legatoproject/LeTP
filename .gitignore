@@ -55,3 +55,12 @@ testing_target/public/
 
 # requirements.txt run cache
 .requirements
+
+# Tox
+.tox
+.coverage
+prospector-report-log*
+coverage-report
+
+# setuptools
+LeTP.egg-info/

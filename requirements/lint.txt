@@ -1,0 +1,4 @@
+# Packages required for doing linting
+
+-r ../requirements.txt
+prospector==1.3.0

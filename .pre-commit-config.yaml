@@ -27,3 +27,8 @@ repos:
         language: python
         # To enable it to use other config instead of the default config.
         # args: ['--profile=.prospector.yml']
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.1.9
+    hooks:
+    -   id: remove-tabs
+    -   id: forbid-tabs
