@@ -184,6 +184,7 @@ class LeTPConfigPath:
 
 
 class TestConfig:
+    # pylint: disable=too-many-public-methods
     """!Target config object for the test."""
 
     default_cfg_file = "config/testbench.xml"

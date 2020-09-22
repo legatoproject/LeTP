@@ -1,8 +1,8 @@
 """Test pytest fields in the config file."""
+import pytest
+
 import testlib.util as util
 from testlib import run_python_with_command
-
-import pytest
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

@@ -4,12 +4,14 @@ It generates intermediate junit.xml test report. It also generates the
 human friendly HTML test report.
 """
 import os
-import swilog
-from build_configuration import JsonExtender
-import test_report
+
 import pytest
 from _pytest import junitxml
-from junitparser import TestCase
+
+import junitparser
+import swilog
+import test_report
+from build_configuration import JsonExtender
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -34,7 +36,7 @@ def _build_node_reporter_map(log_xml):
         raw_xml = node_reporter.to_xml()
         if not hasattr(raw_xml, "uniobj"):
             continue
-        xml_obj = TestCase.fromstring(raw_xml.uniobj)
+        xml_obj = junitparser.TestCase.fromstring(raw_xml.uniobj)
         node_id = xml_obj._elem.attrib["file"] + "::" + xml_obj.name
         xml_node_map[node_id] = node_reporter
     return xml_node_map

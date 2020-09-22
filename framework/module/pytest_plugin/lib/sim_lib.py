@@ -2,11 +2,13 @@
 
 We store an DB in json format, look up its full information for testing.
 """
-import os
 import collections
+import os
+
 from lxml import etree
-from pytest_test_config import TestConfig
+
 import swilog
+from pytest_test_config import TestConfig
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -56,6 +58,7 @@ def validate(element, iccid, imsi):
         else:
             return False
     return True
+
 
 class SimDBParser:
     """!Class for parsing sibdb.xml."""

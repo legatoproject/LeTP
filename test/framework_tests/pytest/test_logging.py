@@ -1,12 +1,12 @@
 """Test letp logging options."""
+import pytest
+
 from testlib import run_python_with_command
 from testlib.util import (
     get_log_file_name,
     validate_expected_message_in_str,
     validate_no_messages_in_str,
 )
-
-import pytest
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
