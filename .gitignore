@@ -64,3 +64,4 @@ coverage-report
 
 # setuptools
 LeTP.egg-info/
+.eggs
