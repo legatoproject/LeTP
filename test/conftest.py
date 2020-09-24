@@ -38,23 +38,26 @@ def init_letp(letp_cmd):
     print("### Restore LETP_TESTS to {} ###".format(store_letp_test_path))
 
 
+@pytest.fixture(scope="session", autouse=True)
 def load_internal_tests():
-    """Dynamically load internal tests folder."""
-    # Load test stub
-    internal_tests_dir = os.path.join(INTERNAL_TEST_PATH, "test")
-    intenal_tests_stub_name = "internal_stub"
-    src_letp_test_stub = os.path.join(internal_tests_dir, intenal_tests_stub_name)
-    dst_letp_test_stub = os.path.join(LETP_STUBS, intenal_tests_stub_name)
-    if not os.path.exists(dst_letp_test_stub):
-        os.symlink(src_letp_test_stub, dst_letp_test_stub)
+    """Dynamically load internal tests folder.
 
-    # Load internal tests
-    internal_test_dir_name = "internal_tests"
-    src_internal_tests = os.path.join(internal_tests_dir, internal_test_dir_name)
-    dst_internal_tests = os.path.join(CURRENT_PATH, internal_test_dir_name)
-    if not os.path.exists(dst_internal_tests):
-        os.symlink(src_internal_tests, dst_internal_tests)
+    Clean up the symlinks after the test.
+    """
+    if os.path.exists(INTERNAL_TEST_PATH):
+        internal_tests_dir = os.path.join(INTERNAL_TEST_PATH, "test")
+        intenal_tests_stub_name = "internal_stub"
+        src_letp_test_stub = os.path.join(internal_tests_dir, intenal_tests_stub_name)
+        dst_letp_test_stub = os.path.join(LETP_STUBS, intenal_tests_stub_name)
+        if not os.path.exists(dst_letp_test_stub):
+            os.symlink(src_letp_test_stub, dst_letp_test_stub)
 
-
-if os.path.exists(INTERNAL_TEST_PATH):
-    load_internal_tests()
+        # Load internal tests
+        internal_test_dir_name = "internal_tests"
+        src_internal_tests = os.path.join(internal_tests_dir, internal_test_dir_name)
+        dst_internal_tests = os.path.join(CURRENT_PATH, internal_test_dir_name)
+        if not os.path.exists(dst_internal_tests):
+            os.symlink(src_internal_tests, dst_internal_tests)
+        yield
+        os.unlink(dst_letp_test_stub)
+        os.unlink(dst_internal_tests)
