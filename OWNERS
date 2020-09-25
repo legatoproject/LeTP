@@ -1,6 +1,7 @@
 inherited: true
 owners:
-- group/LeTp-Admin
+- wwang
+- broussel
 matchers:
 - regex: test/*
   owners:
