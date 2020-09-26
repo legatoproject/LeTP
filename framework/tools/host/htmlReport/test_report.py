@@ -216,9 +216,7 @@ class TestCaseResult:
     @property
     def message(self):
         """Property mesage."""
-        all_message = [
-            html.escape(x.result.message) for x in self.xml_element_results
-        ]
+        all_message = [html.escape(x.result.message) for x in self.xml_element_results]
         if any(all_message):
             return "\n".join(all_message)
         return ""
@@ -226,9 +224,7 @@ class TestCaseResult:
     @property
     def capture_log(self):
         """Capture log."""
-        captured_log = [
-            html.escape(x.result.text()) for x in self.xml_element_results
-        ]
+        captured_log = [html.escape(x.result.text()) for x in self.xml_element_results]
         if any(captured_log):
             return "\n".join(captured_log)
         return ""
@@ -237,7 +233,8 @@ class TestCaseResult:
     def system_out(self):
         """System out from all xml elements.."""
         system_out = [
-            html.escape(x.system_out) for x in self.xml_element_results
+            html.escape(x.system_out)
+            for x in self.xml_element_results
             if x.system_out is not None
         ]
         if any(system_out):
@@ -248,7 +245,8 @@ class TestCaseResult:
     def system_err(self):
         """System err from all xml elements."""
         system_err = [
-            html.escape(x.system_err) for x in self.xml_element_results
+            html.escape(x.system_err)
+            for x in self.xml_element_results
             if x.system_err is not None
         ]
         if any(system_err):
@@ -459,7 +457,7 @@ class BuildConfiguration:
 
             if comp in self.json_data["components"]:
                 comp_version = self.json_data["components"][comp]
-                env_dict["%s Version" % comp.replace("_", " ")] = comp_version
+                env_dict[comp.replace("_", " ")] = comp_version
 
         info_keys = self.get_info_keys()
         if info_keys:
@@ -578,8 +576,9 @@ class TestReportBuilder:
         self.build_names = []  # Build cfgs may have the same name.
         # Build to differentiate the same name.
         self.build_idx = 1
-        self.env_vars_dict = OrderedDict()  # List of env. info
-        self.test_env_vars = []
+        self.environment_dict = OrderedDict()  # List of env. info
+        self.target_components = []
+        self.testing_env_infos = []
         self.info_keys = []
         self.env_global_list = OrderedDict()
         self.summary = OrderedDict()
@@ -636,11 +635,17 @@ class TestReportBuilder:
                     registered_cfg.consolidate_test_results(build_cfg)
 
     def _add_env_list_header(self):
-        # Environment table
-        self.test_env_vars.append("Config")
-        for comp in ALL_COMPONENTS:
-            self.test_env_vars.append("%s Version" % comp.replace("_", " "))
+        # Environment parts
+        self._add_target_components()
+        self._add_test_env_infos()
 
+    def _add_target_components(self):
+        self.target_components.append("Config")
+        for comp in ALL_COMPONENTS:
+            self.target_components.append(comp.replace("_", " "))
+
+    def _add_test_env_infos(self):
+        self.testing_env_infos.append("Config")
         info_keys = set()
         for build_cfg in self.build_cfg_list:
             assert isinstance(build_cfg, BuildConfiguration)
@@ -652,12 +657,12 @@ class TestReportBuilder:
         self.info_keys = list(info_keys)
         self.info_keys.sort()
         for key in self.info_keys:
-            self.test_env_vars.append(key)
+            self.testing_env_infos.append(key)
 
     def _process_all_build_cfgs(self):
         """Add test summary section."""
         for build_cfg in self.build_cfg_list:
-            self.env_vars_dict[build_cfg.name] = build_cfg.get_env_dict()
+            self.environment_dict[build_cfg.name] = build_cfg.get_env_dict()
             new_summary = build_cfg.process_test_data(self.global_test_data)
             self.test_summary.add_summary(build_cfg.name, new_summary)
 
@@ -804,8 +809,9 @@ class TestReportHTMLBuilder(TestReportBuilder):
             summary_headers=summary_headers,
             summary=self.summary,
             env_global_list=self.env_global_list,
-            env_list_headers=self.test_env_vars,
-            env_list=self.env_vars_dict,
+            target_components=self.target_components,
+            testing_env_infos=self.testing_env_infos,
+            environment_dict=self.environment_dict,
             results_headers=self.results_headers,
             results_failed=results_failed,
             results_all=results_all,
@@ -849,7 +855,7 @@ class TestReportJSONBuilder(TestReportBuilder):
 
         self.content = {
             "status": status,
-            "env": {"common": self.env_global_list, "per_env": self.env_vars_dict},
+            "env": {"common": self.env_global_list, "per_env": self.environment_dict},
             "stats": self.summary,
             "tests": tests,
         }
@@ -883,7 +889,7 @@ def parse_args():
     )
     parser.add_argument(
         "--global-env",
-        action="append",
+        nargs="*",
         help="List of key=value to list in the global environment section",
     )
     parser.add_argument(

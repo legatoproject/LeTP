@@ -147,41 +147,13 @@
             </table>
         </div>
 
-        <!-- Environment -->
-        <div style="margin-top: 50px">
-            <h4 style="text-align: center">Environment</h4>
-
-            <!-- Common -->
-            {% if env_global_list | length > 0 %}
-                <h6 style="text-align: center; font-variant: small-caps;">Common</h6>
-                <table align="center">
-                    <thead>
-                        <tr>
-                            <th>Env.</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for k in env_global_list | dictsort %}
-                            <tr>
-                                <th>{{ k[0] }}</th>
-                                {% if 'url' in k[1] %}
-                                    <td><a href="{{ k[1].url }}">{{ k[1].text }}</a></td>
-                                {% else %}
-                                    <td>{{ k[1].text }}</td>
-                                {% endif %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
-
-            <!-- Per test env -->
-            <h6 style="text-align: center; font-variant: small-caps; margin-top: 10px;">Per test env.</h6>
+        {% macro render_env_table(title, headers, data_dict) -%}
+        <h6 style="text-align: center; font-variant: small-caps; margin-top: 10px;">
+            {{ title }}</h6>
             <table align="center">
                 <thead>
                     <tr>
-                        {% for entry in env_list_headers %}
+                        {% for entry in headers %}
                             {% if entry != 'job.url' %}
                                 <th>{{ entry }}</th>
                             {% endif %}
@@ -189,12 +161,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in env_list.values() %}
+                    {% for row in data_dict.values() %}
                     <tr>
-                        {% for k in env_list_headers %}
+                        {% for k in headers %}
                             {% if k == "tb.id" %}
                                 <td>
-                                    <a href="https://farm.legato/testbench/testbeds/{{ row[k] }}">{{ row[k] }}</a>
+                                    <a href="https://farm.legato/testbench/testbeds/{{ row[k] }}">
+                                        {{ row[k] }}</a>
                                 </td>
                             {% elif k != "job.url" %}
                                 {% if "https://" in row[k] or "http://" in row[k] %}
@@ -211,7 +184,49 @@
                     </tr>
                     {% endfor %}
                 </tbody>
+                {{ caller() }}
             </table>
+        {%- endmacro %}
+
+        <!-- Environment -->
+        <div style="margin-top: 50px">
+            <h4 style="text-align: center">Environment</h4>
+
+            <!-- Common -->
+            {% if env_global_list | length > 0 %}
+                <h6 style="text-align: center; font-variant: small-caps;">
+                    Common</h6>
+                <table align="center">
+                    <thead>
+                        <tr>
+                            <th>Env.</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in env_global_list | dictsort %}
+                            <tr>
+                                <th>{{ k[0] }}</th>
+                                {% if 'url' in k[1] %}
+                                    <td><a href="{{ k[1].url }}">
+                                        {{ k[1].text }}</a></td>
+                                {% else %}
+                                    <td>{{ k[1].text }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <!-- Per test env tables.-->
+            {% call render_env_table('Target Components Versions',
+                target_components, environment_dict) %}
+            {% endcall %}
+
+            {% call render_env_table('Testing environment other information',
+                testing_env_infos, environment_dict) %}
+            {% endcall %}
         </div>
 
         {% macro render_results(title, headers, results) -%}
@@ -232,7 +247,9 @@
                             {% for test_case_view in test_case_views %}
                                 <td class="{{ test_case_view.html_class }}">
                                     {% if not basic %}
-                                        <a data-toggle="modal" href="#info-{{ test_case_view.id|clean_pytest_name }}" data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
+                                        <a data-toggle="modal"
+                                        href="#info-{{ test_case_view.id|clean_pytest_name }}"
+                                        data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
                                             {{ test_case_view.result }}
                                         </a>
                                     {% else %}
@@ -249,11 +266,13 @@
         {%- endmacro %}
 
         <!-- Results (failed) -->
-        {% call render_results('Test Results (failed)', results_headers, results_failed) %}
+        {% call render_results('Test Results (failed)', results_headers,
+            results_failed) %}
         {% endcall %}
 
         <!-- Results (all) -->
-        {% call render_results('Test Results (all)', results_headers, results_all) %}
+        {% call render_results('Test Results (all)', results_headers,
+            results_all) %}
         {% endcall %}
 
         {% macro render_logs(title, content, cls) -%}
@@ -265,58 +284,69 @@
         {% endmacro %}
 
         <!-- Results # sections. -->
-        {% if not basic %}
-            <div>
-                {% for test_case_views in results_all %}
-                    {% for test_case_view in test_case_views %}
-                        <div class="modal fade" id="info-{{ test_case_view.id|clean_pytest_name }}" role="dialog" aria-labelledby="#info-{{ test_case_view.id }}-title" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-xlg" role="document">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="info-{{ test_case_view.id }}-title">{{ test_case_view.test_name }} :: {{ test_case_view.target_name }}</h5>
-                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <table class="table table-bordered">
-                                            <tbody>
-                                                <tr>
-                                                    <th>Result</th><td class="{{ test_case_view.html_class }}">{{ test_case_view.result }}</td>
-                                                </tr>
-                                                <tr>
-                                                    <th>Configuration</th><td>{{ test_case_view.target_name }}</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+        {% if not basic %} <div>
+            {% for test_case_views in results_all %}
+                {% for test_case_view in test_case_views %}
+                    <div class="modal fade"
+                        id="info-{{ test_case_view.id|clean_pytest_name }}"
+                        role="dialog"
+                        aria-labelledby="#info-{{ test_case_view.id }}-title"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-xlg"
+                            role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"
+                                        id="info-{{ test_case_view.id }}-title">
+                                        {{ test_case_view.test_name }} ::
+                                        {{ test_case_view.target_name }}</h5>
+                                    <button type="button" class="close"
+                                    data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Result</th>
+                                                <td class="{{ test_case_view.html_class }}">
+                                                    {{ test_case_view.result }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Configuration</th><td>
+                                                    {{ test_case_view.target_name }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
 
-                                        {% if test_case_view.test_case %}
-                                            {% if test_case_view.test_case.result.result and test_case_view.test_case.message %}
-                                                {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
-                                                {% endcall %}
-                                            {% endif %}
+                    {% if test_case_view.test_case %}
+                        {% if test_case_view.test_case.result.result and test_case_view.test_case.message %}
+                            {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
+                            {% endcall %}
+                        {% endif %}
 
-                                            {% if test_case_view.test_case.result.result and test_case_view.test_case.capture_log %}
-                                                {% call render_logs('Log', test_case_view.test_case.capture_log, 'log') %}
-                                                {% endcall %}
-                                            {% endif %}
+                        {% if test_case_view.test_case.result.result and test_case_view.test_case.capture_log %}
+                            {% call render_logs('Log', test_case_view.test_case.capture_log, 'log') %}
+                            {% endcall %}
+                        {% endif %}
 
-                                            {% if test_case_view.test_case.system_out %}
-                                                {% call render_logs('Output Stream', test_case_view.test_case.system_out, 'system_out') %}
-                                                {% endcall %}
-                                            {% endif %}
+                        {% if test_case_view.test_case.system_out %}
+                            {% call render_logs('Output Stream', test_case_view.test_case.system_out, 'system_out') %}
+                            {% endcall %}
+                        {% endif %}
 
-                                            {% if test_case_view.test_case.system_err %}
-                                                {% call render_logs('Error Stream', test_case_view.test_case.system_err, 'system_err') %}
-                                                {% endcall %}
-                                            {% endif %}
-                                        {% endif %}
-                                    </div>
+                        {% if test_case_view.test_case.system_err %}
+                            {% call render_logs('Error Stream', test_case_view.test_case.system_err, 'system_err') %}
+                            {% endcall %}
+                        {% endif %}
+                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
+                    </div>
                 {% endfor %}
+            {% endfor %}
             </div>
         {% endif %}
     </div>
