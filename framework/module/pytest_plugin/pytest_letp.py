@@ -4,12 +4,12 @@ Pytest fixtures for letp test session.
 """
 import logging
 import os
-import random
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
 import pytest
 
+import _pytest.config
 import socket_server
 import swilog
 from pytest_test_campaign import TestsCampaignJson
@@ -105,31 +105,45 @@ def get_version():
     return version_str
 
 
-@pytest.mark.tryfirst
-def pytest_cmdline_parse(args):
+class ConfigAdapter:
+    """Adapt config to letp needs."""
+
+    def __init__(self, config):
+        assert isinstance(config, _pytest.config.Config)
+        self._config = config
+
+    def set_ini_value(self, name, value):
+        """Set pytest.ini value.
+
+        We may need to change the default ini value for all letp tests.
+        """
+        ini_config = self._config.getini(name)
+        if isinstance(ini_config, list):
+            self._config.addinivalue_line(name, value)
+        else:
+            original_type = type(ini_config)
+            new_value_type = type(value)
+            assert (
+                original_type == new_value_type
+            ), "Cannot set different ini config type from {} to {}".format(
+                original_type, new_value_type
+            )
+            self._config._inicache[name] = value
+
+
+def _is_junitxml_configured(args):
+    # --junitxml is documented in pytest docs
+    # --junit-xml is supported in pytest help page
+    return "--junitxml" in args or "--junit-xml" in args
+
+
+def _cmdline_preparse(args):
     """!Parse customized arguments before passing to pytest."""
-    junitxml = html = False
     html_file = None
 
     if "--ci" in args:
         # Use collect-only option to generate json format.
         args.append("--collect-only")
-
-    if "--junitxml" in args or "--junit-xml" in args:
-        # --junitxml is documented in pytest docs
-        # --junit-xml is supported in pytest help page
-        junitxml = True
-
-    if "--html" in args:
-        html = True
-
-        if "--html-file" in args:
-            html_file = args[args.index("--html-file") + 1]
-        else:
-            log_file = args[args.index("--log-file") + 1]
-            html_file = log_file.replace(".log", ".html")
-            args.append("--html-file")
-            args.append(html_file)
 
     if "--json-report" in args:
         # Set default output for json report.
@@ -138,17 +152,33 @@ def pytest_cmdline_parse(args):
         )
         args.extend(json_report_config)
 
-    if html:
+    if "--html" in args:
+        if "--html-file" in args:
+            html_file = args[args.index("--html-file") + 1]
+        else:
+            log_file = args[args.index("--log-file") + 1]
+            html_file = log_file.replace(".log", ".html")
+            args.append("--html-file")
+            args.append(html_file)
+
         # We want to always capture the log for html report.
         if "--capture" not in args:
             args.append("--capture=sys")
 
-        if not junitxml:
-            # Add automatically --junitxml if it is not set when using --html
+        if not _is_junitxml_configured(args):
+            # Add automatically --junitxml if it is not
+            # set when using --html
             # because html report uses junitxml data.
             junit_file = html_file.replace(".html", ".xml")
             args.append("--junitxml")
             args.append(junit_file)
+
+    # We use swilog with sys.stdout, disable the logging.
+    # Otherwise, the logging will be captured in both stdout
+    # and logging plugin
+    if "no:logging" not in args:
+        args.append("-p")
+        args.append("no:logging")
 
 
 @pytest.hookimpl()
@@ -157,7 +187,7 @@ def pytest_report_header():
     return "LeTP version: {}".format(get_version())
 
 
-@pytest.mark.tryfirst
+@pytest.hookimpl(tryfirst=True)
 def pytest_load_initial_conftests(early_config, args):
     """!Load initial conftest setups."""
     newArgs = []
@@ -189,9 +219,16 @@ def pytest_load_initial_conftests(early_config, args):
 
     args[:] = newArgs
     args[:] = ["--ignore=%s" % folder for folder in excluded_list] + args
+    _cmdline_preparse(args)
     print("Use default config: %s" % TestConfig.default_cfg_file)
+    if _is_junitxml_configured(args):
+        # Change the default value for junitxml plugin.
+        adapter = ConfigAdapter(early_config)
+        adapter.set_ini_value("junit_logging", "all")
+        adapter.set_ini_value("junit_family", "legacy")
 
 
+@pytest.hookimpl()
 def pytest_configure(config):
     """!Add customized hooks definition for pytest_json_modifyreport."""
     if hasattr(config.option, "json_report") and config.option.json_report:
@@ -202,6 +239,7 @@ def pytest_configure(config):
     config.pluginmanager.add_hookspecs(pytest_jsonreport.plugin.Hooks)
 
 
+@pytest.hookimpl()
 def pytest_json_modifyreport(json_report):
     """!Merge test_base_reports configs into json report."""
     test_base_reports = pytest.default_cfg.test_base_reports
@@ -227,22 +265,7 @@ def pytest_collection_finish(session):
     default_cfg.save_test_report_cache()
 
 
-@pytest.hookimpl()
-@pytest.mark.trylast
-def pytest_collection_modifyitems(items):
-    """!Modify the collected items.
-
-    Will be called after collection has been performed.
-
-    It may filter or re-order the items in-place.
-
-    We shuffle the test running order here to avoid tests logic coupled together.
-
-    @param List[_pytest.nodes.Item] items: list of item objects
-    """
-    random.shuffle(items)
-
-
+@pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart(session):
     """!Read default config when session starts."""
     TestConfig.test_list = session.config.test_list

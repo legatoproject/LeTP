@@ -36,11 +36,9 @@ def check_letp_nb_tests_from_file(
     """
     with open(log_filename, "r") as f:
         content = f.read()
-        if int(number_of_passed) == 0:
-            msg = "no tests ran"
-        else:
+        if int(number_of_passed) > 0:
             msg = "{} passed".format(number_of_passed)
-        assert msg in content
+            assert msg in content
         assert "error in" not in content, "No tests in error should be present"
         assert "failed" not in content, "No failed tests should be present"
 

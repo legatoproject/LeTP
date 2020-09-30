@@ -52,7 +52,9 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
         ),
     ],
 )
-def test_debug_level(letp_cmd, debug_level, expected_msg_sequences, not_expected):
+def test_debug_level_function(
+    letp_cmd, debug_level, expected_msg_sequences, not_expected
+):
     """Test debug level."""
     cmd = (
         "{} -o run -d {} "
@@ -71,13 +73,13 @@ def test_debug_level(letp_cmd, debug_level, expected_msg_sequences, not_expected
         assert validate_no_messages_in_str(not_expected, content)
 
 
-def test_log_capture(letp_cmd):
+def test_log_capture_function(letp_cmd):
     """Test logging capture=sys works.
 
     log file has test running summary only while detailed logs are
     stored in junit.xml.
     """
-    junit_xml_file = "log/test_results_letp.qa.xml"
+    junit_xml_file = "log/test_log_capture.qa.xml"
     cmd = (
         "{} -o run -d 0 "
         "scenario/command/test_logging_stub.py::test_log_capture "
@@ -91,6 +93,7 @@ def test_log_capture(letp_cmd):
     print("Start command:\n%s" % cmd)
     output = run_python_with_command(cmd)
     assert validate_no_messages_in_str(expected_msg_sequences, output)
+    print(f"Validate messages in {junit_xml_file}")
     with open(junit_xml_file, "r") as junit_file:
         content = junit_file.read()
         assert validate_expected_message_in_str(expected_msg_sequences, content)

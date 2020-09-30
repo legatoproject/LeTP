@@ -56,7 +56,7 @@ Commands:
 Run
 ```
 pip3 install tox
-tox
+tox test
 ```
 
 ***

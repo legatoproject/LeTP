@@ -4,16 +4,60 @@ It generates intermediate junit.xml test report. It also generates the
 human friendly HTML test report.
 """
 import os
+import random
+from xml.etree.ElementTree import Element
 
 import pytest
 from _pytest import junitxml
 
-import junitparser
 import swilog
 import test_report
 from build_configuration import JsonExtender
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
+
+
+class LogXMLAdapter:
+    """Log XML adapter to modify junit xml report.
+
+    Reference: junitxml.LogXML
+    """
+
+    def __init__(self, log_xml):
+        self._log_xml = log_xml
+        self._xml_node_map = self._build_node_reporter_map()
+
+    def _build_node_reporter_map(self):
+        xml_node_map = {}
+        for node_reporter in self._log_xml.node_reporters_ordered:
+            assert isinstance(node_reporter, junitxml._NodeReporter)
+            xml_obj = node_reporter.to_xml()
+            assert isinstance(xml_obj, Element), "Not valid xml object from junixml."
+            node_id = xml_obj.attrib["file"] + "::" + xml_obj.attrib["name"]
+            xml_node_map[node_id] = node_reporter
+        return xml_node_map
+
+    def _find_xml_node(self, collected_test_name):
+        for key, node_reporter in self._xml_node_map.items():
+            if key.endswith(collected_test_name):
+                return node_reporter
+        swilog.warning(
+            "{} was not found in junit xml report. "
+            "Use the test running order for test report! ".format(collected_test_name)
+        )
+        return None
+
+    def reorder_tests_junit_results(self, original_ordered_tests):
+        """To reorder junit test results stored in LogXML."""
+        if not self._xml_node_map:
+            # not captured any junit xml results. e.g. capture=no
+            return
+        # reorder the junit xml node report according to collected tests
+        original_ordered_node_reporters = []
+        for test_name in original_ordered_tests:
+            node_reporter = self._find_xml_node(test_name)
+            original_ordered_node_reporters.append(node_reporter)
+        self._log_xml.node_reporters_ordered = original_ordered_node_reporters
 
 
 def _get_log_xml(config):
@@ -22,24 +66,26 @@ def _get_log_xml(config):
     This depends on junitxml. If pytest version upgrade, this code may
     need to change.
     """
-    if hasattr(config, "_xml"):
-        log_xml = config._xml
+    if hasattr(config, "_store"):
+        log_xml = config._store.get(junitxml.xml_key, None)
         assert isinstance(log_xml, junitxml.LogXML)
         return log_xml
     return None
 
 
-def _build_node_reporter_map(log_xml):
-    xml_node_map = {}
-    for node_reporter in log_xml.node_reporters_ordered:
-        assert isinstance(node_reporter, junitxml._NodeReporter)
-        raw_xml = node_reporter.to_xml()
-        if not hasattr(raw_xml, "uniobj"):
-            continue
-        xml_obj = junitparser.TestCase.fromstring(raw_xml.uniobj)
-        node_id = xml_obj._elem.attrib["file"] + "::" + xml_obj.name
-        xml_node_map[node_id] = node_reporter
-    return xml_node_map
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(items):
+    """!Modify the collected items.
+
+    Will be called after collection has been performed.
+
+    It may filter or re-order the items in-place.
+
+    We shuffle the test running order here to avoid tests logic coupled together.
+
+    @param List[_pytest.nodes.Item] items: list of item objects
+    """
+    random.shuffle(items)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -52,26 +98,11 @@ def pytest_sessionfinish(session):
     junit_file = session.config.getoption("--junitxml")
     if not junit_file:
         return
-
-    log_xml = _get_log_xml(session.config)
-    xml_node_map = _build_node_reporter_map(log_xml)
-
-    if not xml_node_map:
-        # not captured any junit xml results. e.g. capture=no
-        return
-    # reorder the junit xml node report according to collected tests
-    original_ordered_tests = session.default_cfg.collected_tests
-    original_ordered_node_reporters = []
-    for test_name in original_ordered_tests:
-        if test_name not in xml_node_map:
-            swilog.warning(
-                "{} was not found in junit xml report. "
-                "Use the test running order for test report! ".format(test_name)
-            )
-            return
-        node_reporter = xml_node_map[test_name]
-        original_ordered_node_reporters.append(node_reporter)
-    log_xml.node_reporters_ordered = original_ordered_node_reporters
+    _log_xml = _get_log_xml(session.config)
+    if _log_xml:
+        LogXMLAdapter(_log_xml).reorder_tests_junit_results(
+            session.default_cfg.collected_tests
+        )
 
 
 class TestReporter:

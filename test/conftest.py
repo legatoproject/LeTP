@@ -40,7 +40,7 @@ def init_letp(letp_cmd):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart():
-    """Dynamically load internal tests folder.
+    """Dynamically load internal tests stub folder.
 
     Clean up the symlinks after the test.
     """
@@ -51,10 +51,3 @@ def pytest_sessionstart():
         dst_letp_test_stub = os.path.join(LETP_STUBS, internal_tests_stub_name)
         if not os.path.exists(dst_letp_test_stub):
             os.symlink(src_letp_test_stub, dst_letp_test_stub)
-
-        # Load internal tests
-        internal_test_dir_name = "internal_tests"
-        src_internal_tests = os.path.join(internal_tests_dir, internal_test_dir_name)
-        dst_internal_tests = os.path.join(CURRENT_PATH, internal_test_dir_name)
-        if not os.path.exists(dst_internal_tests):
-            os.symlink(src_internal_tests, dst_internal_tests)
