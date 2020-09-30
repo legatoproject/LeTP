@@ -1283,7 +1283,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         """
         # Sometimes, when using send, sendline or expect, there is stuff in the buffer
         # Flush it. Cleaning self.buffer does not seem to work. So expect characters.
-        while not self.expect([r".+", pexpect.TIMEOUT], timeout=0.001):
+        while not self.expect([r".+", pexpect.TIMEOUT], timeout=0.1):
             if not self.match:
                 break
             self.match.group(0)
