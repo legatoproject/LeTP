@@ -60,6 +60,7 @@ class JsonBuilder:
         value = entry[value_start_idx:]
         return key, value
 
+
     def get_dict(self):
         """Get JSON dictionary."""
         return self._data
@@ -81,11 +82,11 @@ class JsonBuilder:
             info_key, info_value = self._parse_args_with_equal(entry)
             self._data["info"][info_key] = info_value
 
-    def _add_component_entries(self, components):
+    def _add_component_entries(self, components: list):
         if components is None:
             return
         self._data["components"] = {}
-        for entry in args.components:
+        for entry in components:
             component_name, component_version = self._parse_args_with_colon(entry)
             self._data["components"][component_name] = component_version
 
@@ -159,6 +160,8 @@ class JsonExtender(JsonBuilder):
         self._add_test_campaign(test_compaign)
         self._add_info_entries_from_config(test_config)
         self._add_test_results(test_results)
+        test_components = test_config.get_test_components()
+        self._add_component_entries(test_components)
         self._finalize(self._base_json_file)
 
 

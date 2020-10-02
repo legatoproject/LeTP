@@ -7,6 +7,7 @@ import pprint
 import re
 import xml.etree.ElementTree as ET
 from difflib import SequenceMatcher
+from test_report import ALL_COMPONENTS
 
 import swilog
 
@@ -274,6 +275,21 @@ class TestConfig:
             json.dump(json_content, f_io, indent=4)
         print("File {} was created!".format(file_name))
 
+    def add_test_components(self, components: dict):
+        """!Save the test env components."""
+        if components:
+            new_comp = self._build_component_lst(components)
+
+            if "components" not in self._elem_dict:
+                self._elem_dict["components"] = new_comp
+            else:
+                existing_comp = self._elem_dict["components"]
+                self._elem_dict["components"] = existing_comp + new_comp
+
+    def get_test_components(self):
+        """!Return the test env components."""
+        return self._elem_dict.get("components")
+
     def _get_args_config(self, key):
         """Get test config from element dictionary."""
         if self._elem_dict and key in self._elem_dict:
@@ -284,6 +300,22 @@ class TestConfig:
     def _get_context_key(context_key):
         """Get context key from 'test_run/context(jenkins.job)."""
         return re.sub("[()]", "", context_key.strip("test_run/context"))
+
+    @staticmethod
+    def _build_component_lst(components: dict):
+        comp_lst = []
+
+        if components:
+            assert isinstance(
+                components, dict
+            ), r"components must be a format of {comp_name:comp_value}"
+
+            for comp in ALL_COMPONENTS:
+                if comp in components:
+                    comp_str = "{}:{}".format(comp, components[comp])
+                    comp_lst.append(comp_str)
+
+        return comp_lst
 
     def get_context_configs(self) -> dict:
         """!Get context config dictionary.

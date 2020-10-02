@@ -641,6 +641,7 @@ class TestReportBuilder:
 
     def _add_target_components(self):
         self.target_components.append("Config")
+
         for comp in ALL_COMPONENTS:
             self.target_components.append(comp.replace("_", " "))
 
