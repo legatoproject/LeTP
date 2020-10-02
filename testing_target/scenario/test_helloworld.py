@@ -1,4 +1,7 @@
-"""!@package test_helloworld Test hello world."""
+"""!Test hello world.
+
+@package test_helloworld
+"""
 import os
 import pytest
 import pexpect

@@ -7,6 +7,16 @@ LeTP is coming with a set of sample test cases for Legato.
 @ref test_target2 <br>
 @ref test_helloworld <br>
 
+More tests related to feature coverage and their source codes can be found below:
+
+@ref definitionFileTests <br>
+@ref sampleAppTests <br>
+@ref targetToolsTests <br>
+@ref runtimeTests <br>
+@ref sandboxTests <br>
+@ref secureStorageTests <br>
+@ref updateTests <br>
+
 Copyright (C) Sierra Wireless Inc.
 
 **/

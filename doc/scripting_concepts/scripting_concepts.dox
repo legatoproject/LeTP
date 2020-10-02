@@ -1,7 +1,7 @@
-/**@page scripting_concepts Scripting Concepts
+/**@page scripting_concepts Scripting Concepts and Test Samples
 
 LeTP is based on the Pytest framework.
-Here are some conecpts for scripting.
+Here are some concepts for scripting.
 
 @subpage fixtures <br>
 @subpage pexpect <br>

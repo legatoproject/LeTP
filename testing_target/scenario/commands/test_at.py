@@ -17,10 +17,9 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 # Test functions
 # ======================================================================
 def test_AT_commands_simple_command(target):
-    """Send AT commands. Check for simple intermediate responses.
+    """!Send AT commands. Check for simple intermediate responses.
 
-    Args:
-        target: fixture to communicate with the target
+    @param target: fixture to communicate with the target
     """
     # Print a message
     swilog.info("This is my test")
@@ -37,10 +36,9 @@ def test_AT_commands_simple_command(target):
 
 
 def test_AT_commands_expect(target):
-    """Send a command and expect/search for regexp patterns.
+    """!Send a command and expect/search for regexp patterns.
 
-    Args:
-        target: fixture to communicate with the target
+    @param target: fixture to communicate with the target
     """
     # target.run_at_cmd uses low level functions: send + expect.
     # They can be used to control what to send and what to receive.
@@ -66,10 +64,9 @@ def test_AT_commands_expect(target):
 
 
 def test_AT_commands_expect_in_order(target):
-    """Wait for a list of regexp patterns in the order of the list.
+    """!Wait for a list of regexp patterns in the order of the list.
 
-    Args:
-        target: fixture to communicate with the target
+    @param target: fixture to communicate with the target
     """
     # Expect some patterns in a list (in order of the list)
     # Send ATI9, wait for first Revision, then IMEI, then FSN then OK
@@ -81,7 +78,7 @@ def test_AT_commands_expect_in_order(target):
 
 
 def L_MY_TEST_0001(target):
-    """Test AT port of the target.
+    """!Test AT port of the target.
 
     target is an object received by the test function to communicate
     with the target.
