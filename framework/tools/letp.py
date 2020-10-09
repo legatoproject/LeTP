@@ -167,17 +167,6 @@ def _setup_letp_tests(args_host_testpath, pytest_config_file):
     return pytest_root
 
 
-def _config_capture(args_host_pytest_args):
-    # for pytest_arg in args_host_pytest_args:
-    does_capture_exist = False
-    for pytest_arg in args_host_pytest_args:
-        if "capture" in pytest_arg:
-            does_capture_exist = True
-
-    if not does_capture_exist:
-        args_host_pytest_args.append("--capture=no")
-
-
 def _build_log_file_name(args):
     """Create the log file name from the test given to the script."""
     if not args.log_file:
@@ -377,7 +366,6 @@ def run(args):
     outputlog, stderrsav, stdoutsav = _init_logging(log_file)
 
     args_host_testpath, args_host_pytest_args = _config_debug_level(args)
-    _config_capture(args_host_pytest_args)
 
     _pytest_config_file = "pytest.ini"
     pytest_root = _setup_letp_tests(args_host_testpath, _pytest_config_file)

@@ -332,7 +332,7 @@ def test_config_xml_associated_in_test_module_scope(letp_cmd):
 def test_config_with_json_env_vari(letp_cmd):
     """Test json file having environment variables."""
     json_file = "scenario/command/runtest/env_variable.json"
-    cmd = "%s run %s" % (letp_cmd, json_file)
+    cmd = "%s run %s -s" % (letp_cmd, json_file)
     print("Start command:\n%s" % cmd)
     output = run_python_with_command(cmd)
     log_filename = util.get_log_file_name(output)

@@ -161,10 +161,6 @@ def _cmdline_preparse(args):
             args.append("--html-file")
             args.append(html_file)
 
-        # We want to always capture the log for html report.
-        if "--capture" not in args:
-            args.append("--capture=sys")
-
         if not _is_junitxml_configured(args):
             # Add automatically --junitxml if it is not
             # set when using --html

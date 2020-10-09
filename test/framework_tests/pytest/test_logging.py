@@ -55,10 +55,13 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 def test_debug_level_function(
     letp_cmd, debug_level, expected_msg_sequences, not_expected
 ):
-    """Test debug level."""
+    """Test debug level.
+
+    No capture is done. The log file will include the log printings.
+    """
     cmd = (
         "{} -o run -d {} "
-        "scenario/command/test_logging_stub.py::test_debug_level".format(
+        "scenario/command/test_logging_stub.py::test_debug_level -s".format(
             letp_cmd, debug_level
         )
     )
