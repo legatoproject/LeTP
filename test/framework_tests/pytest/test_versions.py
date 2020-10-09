@@ -6,7 +6,7 @@ import pytest
 from modules import SwiModule, get_swi_module
 from modules_linux import ModuleLinux
 from versions_linux import LinuxVersions
-
+from versions import TargetVersions
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -108,3 +108,13 @@ def test_linux_version(module_name):
         module = get_swi_module(module_name.upper())
         ret_ver = LinuxVersions().get_linux_version(target=module).method()
         assert ret_ver == exp_ver, "Exp: {} but ret: {}".format(exp_ver, ret_ver)
+
+
+@pytest.mark.parametrize("module_name", LINUX_MODULES)
+def test_fw_mismatch(module_name):
+    """Test is_fw_matched."""
+    with patch("versions.TargetVersions.get_version") as mock:
+        instance = mock.return_value
+        instance.method.return_value = "SWI9X07H_00.02.21.00"
+        module = get_swi_module(module_name.upper())
+        assert TargetVersions().is_fw_matched(target=module)

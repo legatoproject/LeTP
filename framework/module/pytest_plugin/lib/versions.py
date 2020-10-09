@@ -105,7 +105,7 @@ class TargetVersions:
         match_obj = re.search(target.modem_pattern["parsed"], version)
         return self._match_version(match_obj)
 
-    def get_fw_image_pair(self):
+    def get_fw_image_pair(self, target=None):
         """Return the fw image pair: (current_fw, preferred_fw).
 
         current fw: the downloaded fw and it is currently running from
@@ -129,12 +129,16 @@ class TargetVersions:
         cmd = {com.ComPortType.AT: "AT!IMPREF?"}
 
         return (
-            self.get_version(cmd, current_fw_pattern, com.ComPortType.AT, False),
-            self.get_version(cmd, preferred_fw_pattern, com.ComPortType.AT, False),
+            self.get_version(
+                cmd, current_fw_pattern, com.ComPortType.AT, False, target
+            ),
+            self.get_version(
+                cmd, preferred_fw_pattern, com.ComPortType.AT, False, target
+            ),
         )
 
-    def is_fw_matched(self):
+    def is_fw_matched(self, target=None):
         """Return if the current fw is matched with the preferred fw."""
-        current_fw, preferred_fw = self.get_fw_image_pair()
+        current_fw, preferred_fw = self.get_fw_image_pair(target=target)
 
         return current_fw == preferred_fw
