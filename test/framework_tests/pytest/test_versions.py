@@ -1,11 +1,12 @@
 """Test versions.py."""
 import re
 from unittest.mock import patch
+import pytest
 
-from modules import get_swi_module, SwiModule
+from modules import SwiModule, get_swi_module
 from modules_linux import ModuleLinux
 from versions_linux import LinuxVersions
-import pytest
+
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

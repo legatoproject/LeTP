@@ -60,7 +60,6 @@ class JsonBuilder:
         value = entry[value_start_idx:]
         return key, value
 
-
     def get_dict(self):
         """Get JSON dictionary."""
         return self._data
