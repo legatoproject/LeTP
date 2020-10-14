@@ -11,7 +11,7 @@
                 <IMSI_prefixes>302220,302221,302222</IMSI_prefixes>
             </Telus>
             <Rogers>
-                <APN>ltemobile.apn</APN>
+                <APN>lteinternet.apn</APN>
                 <PDP>IP</PDP>
                 <!-- band 12 -->
                 <Band>800</Band>
