@@ -43,7 +43,7 @@ class TargetVersions:
         swilog.debug("version: {}".format(version))
         return version
 
-    def parse_version_dict(self, version_dict):
+    def parse_version_dict(self, version_dict, target=None):
         """Parse through version dictionary.
 
         Returns: version dictionary with full and parsed versions.
@@ -51,7 +51,7 @@ class TargetVersions:
         parsed_dict = {}
         for version_type, version in version_dict.items():
             parser = "parse_{}".format(version_type)
-            parsed_dict[version_type] = getattr(self, parser)(version)
+            parsed_dict[version_type] = getattr(self, parser)(version, target)
             parsed_dict[version_type + "_full"] = version
         return parsed_dict
 
