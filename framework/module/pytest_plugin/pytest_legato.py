@@ -101,7 +101,7 @@ def app_leg(request, target, read_config, tmpdir):
     """
     app_name = app_leg_main(request, target, read_config, tmpdir)
     yield
-    app.clean(target, target.target_name, app_name)
+    app.clean(target, app_name)
 
 
 @pytest.fixture()
@@ -117,7 +117,7 @@ def app_leg2(request, target2, read_config, tmpdir):
     """
     app_name = app_leg_main(request, target2, read_config, tmpdir)
     yield
-    app.clean(target2, target2.target_name, app_name)
+    app.clean(target2, app_name)
 
 
 def _logread_main(target):

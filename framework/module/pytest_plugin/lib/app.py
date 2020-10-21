@@ -523,24 +523,28 @@ def remove_all(target):
         assert rsp is False
 
 
-def clean(target, target_type, app_name, remove_only=False):
+def clean(target, app_name, remove_file=True, remove_app=True):
     """!Clean the application on target and the build on host.
 
-    @param target: fixture to communicate with the target
-    @param target_type: type of target (wp85, ar759x, ...)
-    @param app_name: name of the application
-    @param remove_only: only remove the application. Do not clean the build directory
-
+    @param target: fixture to communicate with the target.
+    @param app_name: name of the application.
+    @param remove_file: clean the build directory or not.
+    @param remove_app: remove the application or not.
     @return None
 
     @exception AssertionError
 
     @ingroup legatoGroup
     """
-    if remove_only is False:
+    if remove_file:
         swilog.info("Clean build")
-        os.system(r"rm -rf _build_* *.%s.update" % (target_type))
-    remove(target, app_name)
+        os.system(
+            r"rm -rf _build_%s %s\.%s\.update"
+            % (app_name, app_name, target.target_name)
+        )
+
+    if remove_app:
+        remove(target, app_name)
 
 
 def ssh_to_target(target, cmd, output=False):
@@ -830,7 +834,6 @@ def check_legato_env():
         " legato environment"
     )
 
-
 ## @}
 
 
@@ -1037,7 +1040,7 @@ class LegatoManager:
         """
         return remove_all(self.target)
 
-    def clean(self, app_name, remove_only=False):
+    def clean(self, app_name, remove_file=True, remove_app=True):
         """Clean the application on target and the build on host.
 
         @param app_name: name of the application
@@ -1049,7 +1052,7 @@ class LegatoManager:
 
         @ingroup legatofixGroup
         """
-        return clean(self.target, self.target.target_name, app_name, remove_only)
+        return clean(self.target, app_name, remove_file, remove_app)
 
     def ssh_to_target(self, cmd, output=False):
         """!SSH command to the target."""
