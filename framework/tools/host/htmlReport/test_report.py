@@ -64,11 +64,14 @@ class TestSummary:
 
     def total_collected(self):
         """Total collected cases."""
-        if self.collected_tests_num == 0:
+        if self.cfg == "global":
+            return self.collected_tests_num + sum(
+                [s.total_collected() for s in self.sub_summary.values()]
+            )
+        else:
+            if self.collected_tests_num != 0:
+                return self.collected_tests_num
             return self.total_tcs()
-        return self.collected_tests_num + sum(
-            [s.total_collected() for s in self.sub_summary.values()]
-        )
 
     def total_tcs(self):
         """Get total test cases."""
@@ -415,6 +418,27 @@ class BuildConfiguration:
             else:
                 self.junit_results[test_compaign_name] = result
 
+    def consolidate_summary(self, another_cfg):
+        """!Consolidate summary statistics."""
+        if "test_collected" in self.json_data:
+            self.json_data["test_collected"] += another_cfg.json_data["test_collected"]
+        if "summary" not in self.json_data:
+            return
+        current_summary = self.json_data["summary"]
+        another_summary = another_cfg.json_data["summary"]
+        for k, value in another_summary.items():
+            current_summary.setdefault(k, 0)
+            current_summary[k] += value
+
+    def consolidate(self, another_cfg):
+        """!Consolidate two build configurations.
+
+        If they are in the same build number, share the same
+        environment, consolidate it.
+        """
+        self.consolidate_summary(another_cfg)
+        self.consolidate_test_results(another_cfg)
+
     def build_pytest_results(self):
         """!Build pytest results if any."""
         if "tests" in self.json_data:
@@ -631,8 +655,7 @@ class TestReportBuilder:
                 if registered_cfg == build_cfg:
                     self.build_cfg_list.append(build_cfg)
                 else:
-                    # Consolidate the results for the existing registered cfg.
-                    registered_cfg.consolidate_test_results(build_cfg)
+                    registered_cfg.consolidate(build_cfg)
 
     def _add_env_list_header(self):
         # Environment parts
