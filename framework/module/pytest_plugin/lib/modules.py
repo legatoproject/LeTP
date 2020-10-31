@@ -6,7 +6,7 @@ Set of functions that must be implemented differently depending
 on the module (eth, ecm, imei,...)
 """
 import copy
-import imp
+import importlib
 import ipaddress
 import os
 import re

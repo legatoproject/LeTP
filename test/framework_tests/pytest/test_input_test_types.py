@@ -1,4 +1,8 @@
-"""Test LETP command letp.py."""
+"""Test LETP can handle test paths correctly.
+
+Test path type: .py file folder name json file
+"""
+
 import testlib.util as util
 
 from testlib import run_python_with_command

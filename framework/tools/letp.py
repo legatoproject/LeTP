@@ -200,7 +200,9 @@ def _build_log_file_name(args):
 
 def _get_version():
     """Get the version of LeTP."""
-    version = subprocess.check_output("git describe --tag 2> /dev/null", shell=True)
+    version = subprocess.check_output(
+        "git -C {} describe --tag 2> /dev/null".format(script_dir), shell=True
+    )
     return version.decode("utf-8")
 
 
@@ -275,6 +277,7 @@ def _get_arguments():
     parser = argparse.ArgumentParser(
         description="Connect to the target and start a test."
     )
+
     # Specify host
     parser.add_argument(
         "-o",
@@ -283,16 +286,6 @@ def _get_arguments():
         dest="host",
         help="tests executed on host",
         default=True,
-    )
-
-    # Clean
-    parser.add_argument(
-        "-c",
-        "--clean",
-        action="store_true",
-        dest="clean",
-        help="Clean the compiled python files and the pycache folders",
-        default=False,
     )
 
     if sys.version_info > (3, 7):
@@ -330,10 +323,27 @@ def _get_arguments():
     run_parser.add_argument(
         "pytest_args",
         nargs=argparse.REMAINDER,
-        help="Arguments after the test path are directly passed on to pytest",
+        help="Arguments after the test path are directly passed on to pytest. "
+        "Use pytest --help to see those options",
     )
-
-    # Generate test execution log
+    # Create group for Pytest arguments
+    pytest_arguments = run_parser.add_argument_group("Pytest Extention Arguments")
+    # Pytest argument "--collect-only"
+    pytest_arguments.add_argument(
+        "--collect-only",
+        help="""Do not execute tests.
+                                                Simply see all the available tests.""",
+    )
+    # Pytest argument "--junit-xml" to generate .xml file
+    pytest_arguments.add_argument(
+        "--junit-xml",
+        help="""Generate a xml file.
+                                                        Input a file name.
+                                                        Add '--capture=sys' to
+                                                        also put the stdout
+                                                        inside the report""",
+    )
+    # Specify log file
     run_parser.add_argument(
         "--log-file",
         dest="log_file",

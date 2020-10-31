@@ -84,7 +84,7 @@ The steps:
   <em>cd legato-qa-src<br>
     leaf shell</em>
 - Now letp can be called inside the leaf workspace<br>
-  <em>letp -o run your_test.py</em>
+  <em>letp run your_test.py</em>
 -You can "repo sync" your repository as usual
 
 **/

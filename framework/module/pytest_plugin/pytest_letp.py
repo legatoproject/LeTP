@@ -18,12 +18,7 @@ from pytest_test_report import TestReporter
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
-pytest_plugins = [
-    "pytest_target",
-    "pytest_legato",
-    "pytest_hardware",
-    "pytest_test_report",
-]
+pytest_plugins = ["pytest_target", "pytest_legato", "pytest_hardware"]
 
 # List containing tuples of all the tests and their configuration
 test_list = []

@@ -25,7 +25,7 @@
 <td>Give the path and the name of the log file. A timestamp will be automatically prepended.<br>
 If not set, the default log file will be : log/< timestamp >_< test name >.log<br>
 Warning: set this option before the test path such as
-letp -o run –log_file /tmp/letp.log test_helloworld.py -config config/wp85.xml
+letp run –log_file /tmp/letp.log test_helloworld.py -config config/wp85.xml
 <tr><td>--html</td>
 <td>Create a html report
 @image html test_report_html.png

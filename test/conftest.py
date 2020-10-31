@@ -51,3 +51,9 @@ def pytest_sessionstart():
         dst_letp_test_stub = os.path.join(LETP_STUBS, internal_tests_stub_name)
         if not os.path.exists(dst_letp_test_stub):
             os.symlink(src_letp_test_stub, dst_letp_test_stub)
+
+
+@pytest.fixture
+def log_file_option(request):
+    """Add the function name as the log file name."""
+    return "--log-file log/{}.txt".format(request.node.name)

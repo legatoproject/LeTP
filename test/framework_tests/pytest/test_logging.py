@@ -60,7 +60,7 @@ def test_debug_level_function(
     No capture is done. The log file will include the log printings.
     """
     cmd = (
-        "{} -o run -d {} "
+        "{} run -d {} "
         "scenario/command/test_logging_stub.py::test_debug_level -s".format(
             letp_cmd, debug_level
         )
@@ -84,7 +84,7 @@ def test_log_capture_function(letp_cmd):
     """
     junit_xml_file = "log/test_log_capture.qa.xml"
     cmd = (
-        "{} -o run -d 0 "
+        "{} run -d 0 "
         "scenario/command/test_logging_stub.py::test_log_capture "
         "--capture=sys --junitxml {} ".format(letp_cmd, junit_xml_file)
     )

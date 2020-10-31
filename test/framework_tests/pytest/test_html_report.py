@@ -16,9 +16,7 @@ def get_html_change_file_name(output):
 
 def test_debug_html(letp_cmd):
     """Run test and generate html based report."""
-    cmd = "{} -o run ../letp/scenario/command/test_logging_stub.py --html".format(
-        letp_cmd
-    )
+    cmd = "{} run ../letp/scenario/command/test_logging_stub.py --html".format(letp_cmd)
     output = run_python_with_command(cmd)
     res = get_log_file_name(output, file_type="html")
     assert res, "html file is not found %s" % res
@@ -27,7 +25,7 @@ def test_debug_html(letp_cmd):
 def test_debug_changefilename_html(letp_cmd):
     """Run test and generate a new html based report."""
     expect_html_file = "log/my_html_report.html"
-    cmd = "{} -o run ../letp/scenario/command/test_logging_stub.py ".format(
+    cmd = "{} run ../letp/scenario/command/test_logging_stub.py ".format(
         letp_cmd
     ) + "--html --html-file {} --capture=sys".format(expect_html_file)
     print("Start command:\n%s" % cmd)
@@ -45,7 +43,7 @@ def test_debug_log(letp_cmd):
     """Run test and generate a new letp based report."""
     temp_log = "log/letp.log"
     cmd = (
-        "{} -o run --log-file {} ".format(letp_cmd, temp_log)
+        "{} run --log-file {} ".format(letp_cmd, temp_log)
         + "../letp/scenario/command/test_logging_stub.py "
         "--config config/module/wp85.xml "
         "--capture=sys"

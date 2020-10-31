@@ -8,7 +8,7 @@ def test_letp_new_log_folder(letp_cmd):
     """Test new log folder can be created correctly."""
     new_folder_name = "log/new_folder/new_folder"
     cmd = (
-        "{} -o run --dbg-lvl 0 ".format(letp_cmd)
+        "{} run --dbg-lvl 0 ".format(letp_cmd)
         + "--log-file {new_folder}/test_json_report.log "
         "scenario/command/test.py "
         "--capture=sys "
@@ -24,7 +24,7 @@ def test_letp_new_log_folder(letp_cmd):
 def test_letp_test_folder_arg(letp_cmd):
     """Test letp with a test folder as the argument."""
     cmd = (
-        "{} -o run --dbg-lvl 0 ".format(letp_cmd)
+        "{} run --dbg-lvl 0 ".format(letp_cmd)
         + "--log-file log/test_letp_test_folder_arg.log "
         ". "
     )

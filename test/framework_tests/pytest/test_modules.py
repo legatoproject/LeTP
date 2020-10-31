@@ -40,7 +40,7 @@ def test_module_init(letp_cmd, test_case):
         "com.ComPortDevice", autospec=True
     ):
         cmd = (
-            "{} -o run -d 0 "
+            "{} run -d 0 "
             "scenario/command/test_target_fixtures_stub.py::"
             "{} ".format(letp_cmd, test_case) + "--config module/slink1(used)=1"
         )
@@ -53,7 +53,7 @@ def test_module_init(letp_cmd, test_case):
 
 def _run_test_define_target_with_one_slink(letp_cmd, module_name):
     cmd = (
-        "{} -o run -d 0 ".format(letp_cmd)
+        "{} run -d 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_one_slink "
         "--config module/slink1(used)=1 "
@@ -68,7 +68,7 @@ def _run_test_define_target_with_one_slink(letp_cmd, module_name):
 
 def _run_test_define_target_with_two_slinks(letp_cmd, module_name):
     cmd = (
-        "{} -o run -d 0 ".format(letp_cmd)
+        "{} run -d 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_two_slinks "
         "--config module/slink1(used)=1 "
@@ -84,7 +84,7 @@ def _run_test_define_target_with_two_slinks(letp_cmd, module_name):
 
 def _run_test_define_target_with_only_at(letp_cmd, module_name):
     cmd = (
-        "{} -o run -d 0 ".format(letp_cmd)
+        "{} run -d 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_only_at "
         "--config module/slink2(used)=1 "
@@ -99,7 +99,7 @@ def _run_test_define_target_with_only_at(letp_cmd, module_name):
 
 def _run_test_define_target_with_two_slinks_and_ssh(letp_cmd, module_name):
     cmd = (
-        "{} -o run -d 0 ".format(letp_cmd)
+        "{} run -d 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_two_slinks_and_ssh "
         "--config module/slink1(used)=1 "
