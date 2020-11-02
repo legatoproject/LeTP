@@ -328,7 +328,10 @@ class TestCaseView:
             return "Passed"
         if isinstance(res, Failure):
             return "Failed"
-
+        if res.type == "pytest.xfail":
+            # junitxml plugin named the elem tag for both SKIP & XFAIL test results
+            # the same as "skipped", so we need to distinguish it
+            return "XFail"
         return res.__class__.__name__
 
     @property
