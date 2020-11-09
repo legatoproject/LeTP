@@ -278,16 +278,6 @@ def _get_arguments():
         description="Connect to the target and start a test."
     )
 
-    # Specify host
-    parser.add_argument(
-        "-o",
-        "--host",
-        action="store_true",
-        dest="host",
-        help="tests executed on host",
-        default=True,
-    )
-
     if sys.version_info > (3, 7):
         subparsers = parser.add_subparsers(dest="command_name", required=True)
     else:
