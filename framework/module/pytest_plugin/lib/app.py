@@ -1114,9 +1114,9 @@ class LegatoManager:
         """!Get Legato version."""
         return get_legato_version(self.target)
 
-    def restore_golden_legato(self):
+    def restore_golden_legato(self, timeout=120):
         """!Restore the stable legato."""
-        return restore_golden_legato(self.target)
+        return restore_golden_legato(self.target, timeout)
 
     def get_app_status(self, app_name):
         """!Get the app status."""
