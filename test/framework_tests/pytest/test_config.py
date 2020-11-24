@@ -7,15 +7,6 @@ from testlib import run_python_with_command
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
-@pytest.fixture(scope="session")
-def default_command(letp_cmd):
-    """Have a default command."""
-    return (
-        "{} run --dbg-lvl 0 ".format(letp_cmd)
-        + "scenario/command/test_config_stub.py::test_config_value"
-    )
-
-
 def test_default_value(default_command):
     """Ensure the default value used in the tests."""
     # list with the following: [parameter, value]

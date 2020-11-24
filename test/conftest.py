@@ -6,6 +6,8 @@ import pytest
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
+pytest_plugins = ["pytester"]
+
 CURRENT_PATH = Path(os.path.dirname(__file__))
 INTERNAL_TEST_PATH = os.path.join(CURRENT_PATH.parent, "letp-internal")
 
@@ -16,6 +18,15 @@ LETP_STUBS = os.path.join(CURRENT_PATH, "framework_tests", "letp")
 def letp_cmd():
     """Get letp command path."""
     return os.path.join(CURRENT_PATH.parent, "letp")
+
+
+@pytest.fixture(scope="session")
+def default_command(letp_cmd):
+    """Have a default command."""
+    return (
+        "{} run ".format(letp_cmd)
+        + "scenario/command/test_config_stub.py::test_config_value "
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -49,7 +60,7 @@ def pytest_sessionstart():
         internal_tests_stub_name = "internal_stub"
         src_letp_test_stub = os.path.join(internal_tests_dir, internal_tests_stub_name)
         dst_letp_test_stub = os.path.join(LETP_STUBS, internal_tests_stub_name)
-        if not os.path.exists(dst_letp_test_stub):
+        if not os.path.islink(dst_letp_test_stub):
             os.symlink(src_letp_test_stub, dst_letp_test_stub)
 
 

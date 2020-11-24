@@ -37,8 +37,10 @@ def check_config(request, read_config):
     """Check request's path and expected values."""
     path = request.config.getoption("--path")
     expected_value = request.config.getoption("--expected_value")
-    expected_iter = zip(path, expected_value)
-    validate_config(expected_iter, read_config)
+
+    if path and expected_value:
+        expected_iter = zip(path, expected_value)
+        validate_config(expected_iter, read_config)
 
 
 def test_cmd_config_set(request, read_config):
