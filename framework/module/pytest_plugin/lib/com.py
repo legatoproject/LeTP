@@ -302,7 +302,7 @@ def run_at_cmd_and_check(
             )
             return target.match.group("rsp")
         else:
-            before = after = ""
+            buf = ""
             for expect_pattern in expect_rsp:
                 rsp = target.expect([pexpect.TIMEOUT, expect_pattern], timeout=timeout)
                 if rsp == 0:
@@ -311,9 +311,10 @@ def run_at_cmd_and_check(
                         % (expect_pattern, list(target.before))
                     )
                     assert 0, "timeout from command %s" % raw_cmd
-                before += target.before
-                after += target.after
-        return before + after
+                buf += target.before
+                if isinstance(target.after, str):
+                    buf += target.after
+            return buf
     except Exception as e:
         if check:
             raise ComException(
