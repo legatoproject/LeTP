@@ -5,16 +5,14 @@ Using mock module to simulate com connections.
 """
 import os
 import sys
-import re
 from unittest.mock import patch
 
 import pytest
 
 import swilog
-from modules import SwiModule, get_swi_module, get_swi_module_files
+from modules import get_swi_module, get_swi_module_files
 from testlib import run_python_with_command
 from testlib.util import check_letp_nb_tests, get_log_file_name
-from versions import TargetVersions
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -162,35 +160,3 @@ def test_get_swi_module_files():
     assert get_swi_module_files()
     if current_path in sys.path:
         sys.path.remove(current_path)
-
-
-def test_parsed_legato_version_pattern():
-    """Test parsed legato version pattern."""
-    pattern = SwiModule.legato_pattern["parsed"]
-
-    version_dict = {
-        "20.08.0.rc1": "20.08.0.rc1",
-        "20.08.0.ThreadX.rc1": "20.08.0.ThreadX.rc1",
-        "20.08.0.rc10": "20.08.0.rc10",
-        "20.08.0.m2.rc1": "20.08.0.m2.rc1",
-        "20.10.0.FreeRTOS.rc1-6-gdd343458f3_5fe8799e5": "20.10.0.FreeRTOS.rc1",
-        "20.11.0.rc1_91190a17": "20.11.0.rc1",
-        "20.08.0.RTOS.rc1_123456": "20.08.0.RTOS.rc1",
-        "20.08.0": "20.08.0",
-        "20.08.0.RTOS.rc1-123456": "20.08.0.RTOS.rc1",
-        "20.08.0-123456": "20.08.0",
-        "20.08.0_123456": "20.08.0",
-        "20.08.0.ThreadX.rc1-123456": "20.08.0.ThreadX.rc1",
-        "20.08.0.ThreadX.rc1_123456": "20.08.0.ThreadX.rc1",
-        "20.08.0.rc1custom_d123456": "20.08.0.rc1custom",
-        "20.08.0.rc1custom-d123456": "20.08.0.rc1custom",
-        "20.08.0.rc1custom_d123456_modified": "20.08.0.rc1custom",
-        "20.08.0.rc1custom-d123456_modified": "20.08.0.rc1custom",
-    }
-
-    for version_str, expected_version in version_dict.items():
-        match_obj = re.search(pattern, version_str)
-        version = TargetVersions._match_version(match_obj)
-        assert (
-            version == expected_version
-        ), "{} doesn't match the expected version: {}".format(version, expected_version)

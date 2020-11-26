@@ -7,6 +7,7 @@ from modules import SwiModule, get_swi_module
 from modules_linux import ModuleLinux
 from versions_linux import LinuxVersions
 from versions import TargetVersions
+from testlib.shared_steps import validate_legato_pattern
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -118,3 +119,21 @@ def test_fw_mismatch(module_name):
         instance.method.return_value = "SWI9X07H_00.02.21.00"
         module = get_swi_module(module_name.upper())
         assert TargetVersions().is_fw_matched(target=module)
+
+
+def test_parsed_legato_version_pattern():
+    """Test parsed legato version pattern."""
+    version_dict = {
+        "20.08.0.rc1": "20.08.0.rc1",
+        "20.08.0.rc10": "20.08.0.rc10",
+        "20.08.0.m2.rc1": "20.08.0.m2.rc1",
+        "20.11.0.rc1_91190a17": "20.11.0.rc1",
+        "20.08.0": "20.08.0",
+        "20.08.0-123456": "20.08.0",
+        "20.08.0_123456": "20.08.0",
+        "20.08.0.rc1custom_d123456": "20.08.0.rc1custom",
+        "20.08.0.rc1custom-d123456": "20.08.0.rc1custom",
+        "20.08.0.rc1custom_d123456_modified": "20.08.0.rc1custom",
+        "20.08.0.rc1custom-d123456_modified": "20.08.0.rc1custom",
+    }
+    validate_legato_pattern(version_dict)
