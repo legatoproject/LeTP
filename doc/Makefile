@@ -2,7 +2,11 @@
 default:
 	doxygen doxyfile
 	# Load static setup from legato
-	cp ../../../framework/doc/static/* html
+ifdef LEGATO_ROOT
+	cp $(LEGATO_ROOT)/framework/doc/static/* html
+else
+	cp ../../legato/framework/doc/static/* html
+endif
 	# for scrollbar
 	sed -i -E "s/overflow: *hidden/overflow: auto/g" html/legato.css
 pdf: default
