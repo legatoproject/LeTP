@@ -3,17 +3,11 @@ import pytest
 from testlib import run_python_with_command
 
 
-def test_valid_timeout_config_without_timeout(testdir):
+def test_valid_timeout_config_without_timeout(testdir_stub):
     """Test timeout config."""
-    testdir.makepyfile(
-        """
-    import pytest
-
-    def test_stub():
-        assert "Hello World!"
-    """
+    result = testdir_stub.runpytest(
+        "-p", "pytest_session_timeout", "--session-timeout=10"
     )
-    result = testdir.runpytest("-p", "pytest_session_timeout", "--session-timeout=10")
     result.assert_outcomes(passed=1)
 
 

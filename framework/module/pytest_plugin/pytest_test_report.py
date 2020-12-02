@@ -10,7 +10,6 @@ from xml.etree.ElementTree import Element
 import pytest
 from _pytest import junitxml
 
-import swilog
 import test_report
 from build_configuration import JsonExtender
 
@@ -41,7 +40,7 @@ class LogXMLAdapter:
         for key, node_reporter in self._xml_node_map.items():
             if key.endswith(collected_test_name):
                 return node_reporter
-        swilog.warning(
+        print(
             "{} was not found in junit xml report. "
             "Use the test running order for test report! ".format(collected_test_name)
         )
@@ -125,17 +124,20 @@ class TestReporter:
 
     def build(self):
         """!Build test report into HTML and JSON format."""
-        if not (
-            os.path.exists(self._junit_file)
-            and os.path.exists(self._json_file)
-            and self._html_file
-        ):
+        if not os.path.exists(self._junit_file):
+            print("Need to have {}".format(self._junit_file))
+            return
+        if not os.path.exists(self._json_file):
+            print("Need to have {}".format(self._json_file))
+            return
+        if not self._html_file:
+            print("Need to have html file setup: {}".format(self._html_file))
             return
         jenkins_job = self._test_config.get_jenkins_job()
         target_name = self._test_config.get_target_name()
         test_campaign = self._test_config.get_test_campaign()
         title = "{}  {} {}".format(jenkins_job, target_name, test_campaign)
-        swilog.step("\nGenerating HTML report")
+
         json_extender = JsonExtender(self._json_file)
         json_input = "{}:{}".format(test_campaign, self._junit_file)
         json_extender.extend([json_input], self._test_config)
@@ -143,5 +145,3 @@ class TestReporter:
         test_report.TestReportHTMLBuilder().build(
             title, [self._json_file], self._html_file
         )
-
-        swilog.debug("%s file created" % self._html_file)

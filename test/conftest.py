@@ -68,3 +68,17 @@ def pytest_sessionstart():
 def log_file_option(request):
     """Add the function name as the log file name."""
     return "--log-file log/{}.txt".format(request.node.name)
+
+
+@pytest.fixture
+def testdir_stub(testdir):
+    """Define a stub file in testdir."""
+    testdir.makepyfile(
+        """
+    import pytest
+
+    def test_stub():
+        assert "Hello World!"
+    """
+    )
+    return testdir

@@ -23,6 +23,7 @@ pytest_plugins = [
     "pytest_legato",
     "pytest_hardware",
     "pytest_session_timeout",
+    "pytest_letp_log",
 ]
 
 # List containing tuples of all the tests and their configuration
@@ -137,7 +138,7 @@ def _is_junitxml_configured(args):
     return "--junitxml" in args or "--junit-xml" in args
 
 
-def _cmdline_preparse(args):
+def _cmdline_preparse(args, known_args):
     """!Parse customized arguments before passing to pytest."""
     html_file = None
 
@@ -156,7 +157,7 @@ def _cmdline_preparse(args):
         if "--html-file" in args:
             html_file = args[args.index("--html-file") + 1]
         else:
-            log_file = args[args.index("--log-file") + 1]
+            log_file = known_args.log_file
             html_file = log_file.replace(".log", ".html")
             args.append("--html-file")
             args.append(html_file)
@@ -177,12 +178,6 @@ def _cmdline_preparse(args):
         args.append("no:logging")
 
 
-@pytest.hookimpl()
-def pytest_report_header():
-    """!Put LeTP version in the report header."""
-    return "LeTP version: {}".format(get_version())
-
-
 @pytest.hookimpl(tryfirst=True)
 def pytest_load_initial_conftests(early_config, args):
     """!Load initial conftest setups."""
@@ -201,7 +196,7 @@ def pytest_load_initial_conftests(early_config, args):
         # and pytest finds the conftest.py based on the first test file
         if arg == "test_dummy.py":
             continue
-        if arg.endswith(".json") and os.path.isfile(arg):
+        if arg and arg.endswith(".json") and os.path.isfile(arg):
             test_list = TestsCampaignJson(arg).get_tests()
             early_config.test_list.extend(test_list)
             for test in test_list[0]:
@@ -215,13 +210,19 @@ def pytest_load_initial_conftests(early_config, args):
 
     args[:] = newArgs
     args[:] = ["--ignore=%s" % folder for folder in excluded_list] + args
-    _cmdline_preparse(args)
+    _cmdline_preparse(args, early_config.known_args_namespace)
     print("Use default config: %s" % TestConfig.default_cfg_file)
     if _is_junitxml_configured(args):
         # Change the default value for junitxml plugin.
         adapter = ConfigAdapter(early_config)
         adapter.set_ini_value("junit_logging", "all")
         adapter.set_ini_value("junit_family", "legacy")
+
+
+@pytest.hookimpl()
+def pytest_report_header():
+    """!Put LeTP version in the report header."""
+    return "LeTP version: {}".format(get_version())
 
 
 @pytest.hookimpl()
@@ -276,7 +277,11 @@ def pytest_sessionstart(session):
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session):
-    """!Generate a html report."""
+    """!Generate a html report.
+
+    This needs to be the last because it depends on junit xml file
+    generation.
+    """
     TestConfig.test_list = []
     html_file = session.config.getoption("--html-file")
     junit_file = session.config.getoption("--junitxml")

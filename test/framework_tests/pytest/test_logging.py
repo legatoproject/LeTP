@@ -72,6 +72,7 @@ def test_debug_level_function(
     print("Found log file: %s ", log_file_name)
     with open(log_file_name, "r") as myfile:
         content = myfile.read()
+        print("Validating log file {}".format(log_file_name))
         assert validate_expected_message_in_str(expected_msg_sequences, content)
         assert validate_no_messages_in_str(not_expected, content)
 
@@ -98,5 +99,6 @@ def test_log_capture_function(letp_cmd):
     assert validate_no_messages_in_str(expected_msg_sequences, output)
     print(f"Validate messages in {junit_xml_file}")
     with open(junit_xml_file, "r") as junit_file:
+        print("Validating junit file {}".format(junit_xml_file))
         content = junit_file.read()
         assert validate_expected_message_in_str(expected_msg_sequences, content)

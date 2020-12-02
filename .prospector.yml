@@ -19,6 +19,7 @@ pep8:
       - E722 # do not use bare 'except' (Checked by pylint)
       - E266 # too many leading '#' for block comment (doxygen may use ##@)
       - N817 # camelcase imported as acronym
+      - E203 # whitespace before ':'- (conflict with black formatter)
 
 pylint: # Just a example. This will be overwritten if .pylintrc exists.
     run: true

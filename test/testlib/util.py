@@ -65,6 +65,7 @@ def validate_test_messages_sequence(test_msg_sequences: list, log_file_name):
     """Validate the test message were print sequentially in the log file."""
     with open(log_file_name, "r") as myfile:
         content = myfile.read()
+        print("Validating log file {}".format(log_file_name))
         # print("Read log content:")
         # print(pprint.pformat(content))
         return validate_expected_message_in_str(test_msg_sequences, content)
@@ -78,7 +79,7 @@ def validate_expected_message_in_str(expected_msg_sequences: list, content: str)
         test_msg_name = expected_msg_sequences[message_idx]
         if test_msg_name in each_line:
             message_idx += 1
-            print("Expected {} executed".format(test_msg_name))
+            print("Expected result {} executed".format(test_msg_name))
         if message_idx == len(expected_msg_sequences):
             break
     return message_idx == len(expected_msg_sequences)

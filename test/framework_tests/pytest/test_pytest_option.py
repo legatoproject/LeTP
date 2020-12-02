@@ -54,10 +54,7 @@ def _test_letp_pytest_command(
     ],
 )
 def test_pytest_summary_option(letp_cmd, pytest_option, expected_msg, log_file_option):
-    """Only collect the tests in the folder.
-
-    Don't run the tests.
-    """
+    """Run the tests and show the result."""
     test_name = "scenario/test_pytest_option_stub.py"
     _test_letp_pytest_command(
         letp_cmd,

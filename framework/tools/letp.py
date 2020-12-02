@@ -7,14 +7,11 @@ Run with -h flag to see usage.
 from __future__ import print_function
 
 import argparse
-import codecs
 import json
 import os
 import subprocess
 import sys
 import traceback
-from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -28,125 +25,12 @@ sys.path.insert(0, os.path.join(script_dir, "host", "htmlReport"))
 sys.path.insert(0, os.path.join(script_dir, "../../letp-internal/internal_lib"))
 
 
-class Tee:
-    """!Class to write in 2 different files.
-
-    Typically replace sys.stdout/stderr to write both in stdout/stderr
-    and in a log file.
-    """
-
-    def __init__(self, _fd1, _fd2):
-        self.fd1 = _fd1
-        self.fd2 = _fd2
-        self.encoding = "ascii"
-
-    def __del__(self):
-        if self.fd1 != sys.stdout and self.fd1 != sys.stderr:
-            self.fd1.close()
-        if self.fd2 != sys.stdout and self.fd2 != sys.stderr:
-            self.fd2.close()
-
-    def _write(self, fd, text):
-        try:
-            t = str(text)
-            fd.write(t)
-        except BlockingIOError as ex:
-            # Retry writting but deduce the characters already written
-            self._write(fd, text[ex.characters_written:])
-        except UnicodeEncodeError:
-            t = text.encode(self.encoding, errors="replace")
-            t = t.decode(self.encoding)
-            fd.write(t)
-        except UnicodeDecodeError:
-            t = text.decode(self.encoding, errors="replace")
-            fd.write(t)
-
-    def write(self, text):
-        """Write to the file."""
-        self._write(self.fd1, text)
-        self._write(self.fd2, text)
-
-    def flush(self):
-        """Clean out the file."""
-        self.fd1.flush()
-        self.fd2.flush()
-
-    def isatty(self):
-        """Return true always."""
-        assert self
-        return True
-
-
-class TestPathManager:
-    """!Class for managing test paths and splicing path strings."""
-
-    def __init__(self, testpath, pytest_args):
-        self.testpath = testpath
-        self.pytest_args = pytest_args
-
-    def get_basename(self):
-        """Return the full test passed into the script."""
-        return os.path.basename(self.testpath)
-
-    @staticmethod
-    def get_test_name_from_path(path):
-        """Split the specified test name."""
-        return path.split("::")[-1:][0]
-
-    def get_extra_tests(self):
-        """Get any extra tests in the pytest args and split the test name."""
-        extra_tests = []
-        for test in self.get_tests_in_pytest_args():
-            extra_tests.append(self.get_test_name_from_path(test))
-        return extra_tests
-
-    def get_tests_in_pytest_args(self):
-        """Get the tests in the pytest arguments."""
-        test_list = []
-        for arg in self.pytest_args:
-            if ".py" in arg or ".json" in arg:
-                test_list.append(os.path.basename(arg))
-
-        return test_list
-
-    def get_specified_test(self):
-        """Return the test name that has been specified on runtime."""
-        basename = self.get_basename()
-        return self.get_test_name_from_path(basename)
-
-    def get_default_name(self):
-        """Get the testname for log filename usage."""
-        test = self.get_basename()
-        extra_tests = self.get_extra_tests()
-        if ".py" not in test and ".json" not in test:
-            default_name = "letp"
-        else:
-            extra_name = "" if extra_tests == [] else "_" + "_".join(extra_tests)
-            default_name = self.get_specified_test() + extra_name
-        return default_name
-
-
-def _init_logging(log_file):
-    """Begin logging."""
-    # Ensure the "log" directory exists
-    Path(os.path.dirname(log_file)).mkdir(parents=True, exist_ok=True)
-    stderrsav = sys.stderr
-    stdoutsav = sys.stdout
-    outputlog = codecs.open(log_file, "w", encoding="utf-8")
-    # # Write also sdtout/stderr in the log file
-    sys.stderr = Tee(stderrsav, outputlog)
-    sys.stdout = Tee(stdoutsav, outputlog)
-    print("Create the log file %s" % log_file)
-    return outputlog, stderrsav, stdoutsav
-
-
 def _config_debug_level(args):
     """Configure the debug level for pytest."""
-    args_host_testpath = args.testpath
     args_host_pytest_args = args.pytest_args
     args_host_pytest_args.append("--dbg-lvl")
     args_host_pytest_args.append("%s" % args.dbglvl)
-    return args_host_testpath, args_host_pytest_args
+    return args_host_pytest_args
 
 
 def _collect_tests(args):
@@ -168,37 +52,6 @@ def _setup_letp_tests(args_host_testpath, pytest_config_file):
     pytest_root = os.path.expandvars("$LETP_TESTS")
     print("$LETP_TESTS={}".format(pytest_root))
     return pytest_root
-
-
-def _build_log_file_name(args):
-    """Create the log file name from the test given to the script."""
-    if not args.log_file:
-        testpathmanager = TestPathManager(args.testpath, args.pytest_args)
-
-        default_name = testpathmanager.get_default_name()
-
-        default_log_file = "log/%s.log" % default_name.replace(".", "_")
-
-        dt = datetime.now()
-        timestamp = "%02d%02d%02d_%02d%02d%02d_%06d" % (
-            dt.year,
-            dt.month,
-            dt.day,
-            dt.hour,
-            dt.minute,
-            dt.second,
-            dt.microsecond,
-        )
-
-        basename = os.path.basename(default_log_file)
-        suffix = basename.split(".")[1]
-        log_file_name = "%s_%s.%s" % (timestamp, basename.split(".")[0], suffix)
-        log_file = os.path.join(os.path.dirname(default_log_file), log_file_name)
-        args.log_file = log_file
-        return log_file
-    else:
-        log_file = args.log_file
-        return log_file
 
 
 def _get_version():
@@ -340,6 +193,7 @@ def _get_arguments():
     run_parser.add_argument(
         "--log-file",
         dest="log_file",
+        default="",
         help="path and name of the log file, "
         "such as /tmp/letp.log."
         "A timestamp will be added to the name. "
@@ -365,10 +219,8 @@ def run(args):
     """!Run the the tests when the run argument is used."""
     _collect_tests(args)
 
-    log_file = _build_log_file_name(args)
-    outputlog, stderrsav, stdoutsav = _init_logging(log_file)
-
-    args_host_testpath, args_host_pytest_args = _config_debug_level(args)
+    args_host_testpath = args.testpath
+    args_host_pytest_args = _config_debug_level(args)
 
     _pytest_config_file = "pytest.ini"
     pytest_root = _setup_letp_tests(args_host_testpath, _pytest_config_file)
@@ -385,7 +237,6 @@ def run(args):
                 "-r a",  # (a)ll except passed (p/P) extra summary info
                 "--color=yes",
                 "-v",
-                "test_dummy.py",
                 "--rootdir",
                 pytest_root,
                 "-c",
@@ -395,21 +246,12 @@ def run(args):
                 "--log-file",
                 args.log_file,
             ]
+            + ["test_dummy.py", args_host_testpath]
             + args_host_pytest_args
-            + [args_host_testpath]
         )
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        traceback.print_exception(
-            exc_type, exc_value, exc_traceback, limit=3, file=sys.stdout
-        )
-    finally:
-        outputlog.close()
-        sys.stderr = stderrsav
-        sys.stdout = stdoutsav
-
-    if args.log_file is not None:
-        print("!!!!! Logs can be found here %s!!!!!" % log_file)
+        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
 
     if _rc != pytest.ExitCode.OK:
         sys.exit(_rc)
