@@ -6,22 +6,23 @@ Set of functions that must be implemented differently depending
 on the module (eth, ecm, imei,...)
 """
 import copy
-import importlib
 import ipaddress
 import os
-import re
 import sys
+import re
 import time
+import pathlib
+import importlib
 
 import pexpect
 import pexpect.fdpexpect
 import pexpect.pxssh
 
-import com
-import com_port_detector
-import swilog
-from module_exceptions import SlinkException, TargetException
-from versions import TargetVersions
+from pytest_letp.lib import com
+from pytest_letp.lib import com_port_detector
+from pytest_letp.lib import swilog
+from pytest_letp.lib.module_exceptions import SlinkException, TargetException
+from pytest_letp.lib.versions import TargetVersions
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -29,23 +30,29 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 def get_swi_module_files():
     """Return a list of module types to look for specific module."""
     modules = set()
-    sys_paths = sys.path
-    for path in sys_paths:
-        if not (os.path.exists(path) and os.path.isdir(path)):
+    letp_internal_lib = "letp-internal"
+    pytest_letp_lib = "pytest_letp"
+    for path in sys.path:
+        if not os.path.exists(path):
+            continue
+        if not (letp_internal_lib in path or pytest_letp_lib in path):
             continue
         tree = os.listdir(path)
-        for i in tree:
-            if i.startswith("modules_"):
-                module_name = i.replace(".py", "")
+        for name in tree:
+            if name.startswith("modules_"):
+                module_name = name.replace(".py", "")
                 modules.add(module_name)
-    return set(modules)
+    return modules
 
 
 def get_swi_module(class_name):
-    """Get module from one of the modules files."""
+    """Get module from one of the modules files.
+
+    Use dynamically loading from the module path.
+    """
     for module_file in get_swi_module_files():
         try:
-            __import__(module_file)
+            importlib.import_module(module_file)
             return getattr(sys.modules[module_file], class_name)
         except Exception:
             pass

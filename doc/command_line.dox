@@ -103,7 +103,7 @@ Log file to /tmp/letp.log
 
 Activation of the log debug level
 
-    letp run -d 0 /tmp/letp.log test_helloworld.py
+    letp run --dbg-lvl 0 /tmp/letp.log test_helloworld.py
 
 
 @section var_env Environment variables

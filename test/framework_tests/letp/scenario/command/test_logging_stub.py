@@ -1,5 +1,5 @@
 """Test different debug levels of LETP."""
-import swilog
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

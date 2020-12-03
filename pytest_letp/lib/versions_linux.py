@@ -4,8 +4,8 @@ Set of functions that retrieve the linux platform's versions using
 either legato command line or AT command from the module
 """
 import re
-import com
-from versions import TargetVersions
+from pytest_letp.lib import com
+from pytest_letp.lib.versions import TargetVersions
 
 
 class LinuxVersions(TargetVersions):

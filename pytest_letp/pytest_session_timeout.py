@@ -33,7 +33,8 @@ import pytest_timeout
 
 def pytest_addoption(parser):
     """Add pytest cmd line options."""
-    parser.addoption(
+    group = parser.getgroup("letp")
+    group.addoption(
         "--session-timeout",
         action="store",
         help="The timeout for the whole test session",

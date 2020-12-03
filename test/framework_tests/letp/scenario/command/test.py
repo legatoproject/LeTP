@@ -1,6 +1,6 @@
 """The stub for letp unit tests."""
 import pytest
-import swilog
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

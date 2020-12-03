@@ -7,9 +7,8 @@ import pprint
 import re
 import xml.etree.ElementTree as ET
 from difflib import SequenceMatcher
-from test_report import ALL_COMPONENTS
-
-import swilog
+from pytest_letp.lib import swilog
+from pytest_letp.tools.html_report.test_report import ALL_COMPONENTS
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -166,15 +165,15 @@ class LeTPConfigPath:
         else:
             current_path = pathlib.Path(os.path.abspath(__file__))
             letp_test_config_dir = os.path.expandvars("$LETP_TESTS")
-            letp_internal_config_dir = os.path.join(
-                current_path.parent.parent.parent.parent, "letp-internal"
-            )
-            letp_config_dir = os.path.join(current_path.parent.parent.parent)
+            letp_internal_config_dir = os.path.expandvars("$LETP_INTERNAL_PATH")
+            letp_config_dir = os.path.join(current_path.parent)
             for dir_name in [
                 letp_test_config_dir,
                 letp_internal_config_dir,
                 letp_config_dir,
             ]:
+                if not (dir_name and os.path.exists(dir_name)):
+                    continue
                 xml_file_path = os.path.join(dir_name, self.config_path)
                 resolved_xml_file = self._find_xml_config(xml_file_path)
                 if resolved_xml_file:
@@ -413,7 +412,7 @@ class TestConfig:
     def _get_current_root(config):
         # xml file configuration
         xml_file = LeTPConfigPath(config).resolve_xml()
-        assert xml_file, "xml cannot be found."
+        assert xml_file, "xml {} cannot be found.".format(config)
         cfg = ET.parse(xml_file)
         current_root = cfg.getroot()
         if current_root is None:

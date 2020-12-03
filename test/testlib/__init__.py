@@ -2,7 +2,7 @@
 import io
 import os
 from contextlib import redirect_stdout
-from runpy_adapter import run_python_with_command, exec_command
+from pytest_letp.lib.runpy_adapter import run_python_with_command, exec_command
 from testlib import util
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."

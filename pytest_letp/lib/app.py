@@ -13,7 +13,7 @@ import time
 
 import pexpect
 
-import swilog
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -739,9 +739,9 @@ def check_current_system_info(target, version="", status="", index=""):
 
         # If version does not contains md5 string.
         # Need to get the current_version without md5 string also.
-        search_md5 = re.search("(.*)_([\d\w]{20,})", version)
+        search_md5 = re.search(r"(.*)_([\d\w]{20,})", version)
         if not search_md5:
-            search_current_md5 = re.search("(.*)_([\d\w]{20,})", current_version)
+            search_current_md5 = re.search(r"(.*)_([\d\w]{20,})", current_version)
             if search_current_md5:
                 current_version = search_current_md5.group(1)
 
@@ -833,6 +833,7 @@ def check_legato_env():
         "Please configure your"
         " legato environment"
     )
+
 
 ## @}
 

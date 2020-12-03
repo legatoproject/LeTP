@@ -1,5 +1,6 @@
 # Install lxml by apt-get as it requires some compilation and extra packages (python-dev, ...)
 pytest==6.1.0
+lxml
 
 # pytest-plugin
 pytest-json-report
@@ -16,7 +17,6 @@ colorlog
 # For html generation
 future
 jinja2
-junitparser
 requests
 
 setuptools-scm

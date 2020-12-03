@@ -4,8 +4,8 @@ Using mock module to simulate com connections.
 """
 from unittest.mock import Mock, patch
 
-import com
-import swilog
+from pytest_letp.lib import com
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -16,7 +16,7 @@ def test_run_at_cmd_and_check():
     It should return the buffer in the correct order when we have
     several regexes to be matched.
     """
-    with patch("com.clear_buffer"):
+    with patch("pytest_letp.lib.com.clear_buffer"):
         target = Mock()
         target.expect = Mock(return_value="OK")
         target.before = "ATI"

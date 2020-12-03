@@ -6,11 +6,11 @@ import pytest
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
-pytest_plugins = ["pytester"]
+pytest_plugins = ["pytester", "pytest_letp"]
+
+INTERNAL_TEST_PATH = os.path.expandvars("$LETP_INTERNAL_PATH")
 
 CURRENT_PATH = Path(os.path.dirname(__file__))
-INTERNAL_TEST_PATH = os.path.join(CURRENT_PATH.parent, "letp-internal")
-
 LETP_STUBS = os.path.join(CURRENT_PATH, "framework_tests", "letp")
 
 

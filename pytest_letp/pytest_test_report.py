@@ -9,9 +9,8 @@ from xml.etree.ElementTree import Element
 
 import pytest
 from _pytest import junitxml
-
-import test_report
-from build_configuration import JsonExtender
+from pytest_letp.tools.html_report import test_report
+from pytest_letp.tools.html_report.build_configuration import JsonExtender
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

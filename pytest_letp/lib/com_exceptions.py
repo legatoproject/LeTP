@@ -1,5 +1,5 @@
 """!@package com_exceptions communication exceptions for modules classes."""
-import swilog
+from pytest_letp.lib import swilog
 
 
 class ComException(Exception):

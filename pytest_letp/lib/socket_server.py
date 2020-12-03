@@ -4,7 +4,7 @@
 import sys
 import threading
 import time
-import swilog
+from pytest_letp.lib import swilog
 
 if sys.version_info[0] > 2:
     import socketserver as SocketServer

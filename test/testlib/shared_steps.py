@@ -1,7 +1,7 @@
 """Shared test steps for both public and internal."""
 import re
-from modules import SwiModule
-from versions import TargetVersions
+from pytest_letp.lib.modules import SwiModule
+from pytest_letp.lib.versions import TargetVersions
 
 
 def validate_legato_pattern(version_dict):

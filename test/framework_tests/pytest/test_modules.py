@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
-import swilog
-from modules import get_swi_module, get_swi_module_files
+from pytest_letp.lib import swilog
+from pytest_letp.lib.modules import get_swi_module, get_swi_module_files
 from testlib import run_python_with_command
 from testlib.util import check_letp_nb_tests, get_log_file_name
 
@@ -36,11 +36,11 @@ LINUX_MODULES = "wp76xx", "wp77xx", "wp85", "ar759x", "ar758x"
     ],
 )
 def test_module_init(letp_cmd, test_case):
-    with patch("com.target_serial_qct", autospec=True), patch(
-        "com.ComPortDevice", autospec=True
+    with patch("pytest_letp.lib.com.target_serial_qct", autospec=True), patch(
+        "pytest_letp.lib.com.ComPortDevice", autospec=True
     ):
         cmd = (
-            "{} run -d 0 "
+            "{} run --dbg-lvl 0 "
             "scenario/command/test_target_fixtures_stub.py::"
             "{} ".format(letp_cmd, test_case) + "--config module/slink1(used)=1"
         )
@@ -53,7 +53,7 @@ def test_module_init(letp_cmd, test_case):
 
 def _run_test_define_target_with_one_slink(letp_cmd, module_name):
     cmd = (
-        "{} run -d 0 ".format(letp_cmd)
+        "{} run --dbg-lvl 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_one_slink "
         "--config module/slink1(used)=1 "
@@ -68,7 +68,7 @@ def _run_test_define_target_with_one_slink(letp_cmd, module_name):
 
 def _run_test_define_target_with_two_slinks(letp_cmd, module_name):
     cmd = (
-        "{} run -d 0 ".format(letp_cmd)
+        "{} run --dbg-lvl 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_two_slinks "
         "--config module/slink1(used)=1 "
@@ -84,7 +84,7 @@ def _run_test_define_target_with_two_slinks(letp_cmd, module_name):
 
 def _run_test_define_target_with_only_at(letp_cmd, module_name):
     cmd = (
-        "{} run -d 0 ".format(letp_cmd)
+        "{} run --dbg-lvl 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_only_at "
         "--config module/slink2(used)=1 "
@@ -99,7 +99,7 @@ def _run_test_define_target_with_only_at(letp_cmd, module_name):
 
 def _run_test_define_target_with_two_slinks_and_ssh(letp_cmd, module_name):
     cmd = (
-        "{} run -d 0 ".format(letp_cmd)
+        "{} run --dbg-lvl 0 ".format(letp_cmd)
         + "scenario/command/test_target_fixtures_stub.py::"
         "test_define_target_with_two_slinks_and_ssh "
         "--config module/slink1(used)=1 "
@@ -115,34 +115,34 @@ def _run_test_define_target_with_two_slinks_and_ssh(letp_cmd, module_name):
 
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_define_target_linux_cli_only(letp_cmd, module_name):
-    with patch("com.target_serial_qct", autospec=True), patch(
-        "com.ComPortDevice", autospec=True
+    with patch("pytest_letp.lib.com.target_serial_qct", autospec=True), patch(
+        "pytest_letp.lib.com.ComPortDevice", autospec=True
     ):
         _run_test_define_target_with_one_slink(letp_cmd, module_name)
 
 
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_define_target_linux_at_only(letp_cmd, module_name):
-    with patch("com.target_serial_at", autospec=True), patch(
-        "com.ComPortDevice", autospec=True
+    with patch("pytest_letp.lib.com.target_serial_at", autospec=True), patch(
+        "pytest_letp.lib.com.ComPortDevice", autospec=True
     ):
         _run_test_define_target_with_only_at(letp_cmd, module_name)
 
 
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_define_target_linux_two_links(letp_cmd, module_name):
-    with patch("com.target_serial_at", autospec=True), patch(
-        "com.target_serial_qct", autospec=True
-    ), patch("com.ComPortDevice", autospec=True):
+    with patch("pytest_letp.lib.com.target_serial_at", autospec=True), patch(
+        "pytest_letp.lib.com.target_serial_qct", autospec=True
+    ), patch("pytest_letp.lib.com.ComPortDevice", autospec=True):
         _run_test_define_target_with_two_slinks(letp_cmd, module_name)
 
 
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_define_target_linux_two_links_and_ssh(letp_cmd, module_name):
-    with patch("com.target_serial_at", autospec=True), patch(
-        "com.target_serial_qct", autospec=True
-    ), patch("com.target_ssh_qct", autospec=True), patch(
-        "com.ComPortDevice", autospec=True
+    with patch("pytest_letp.lib.com.target_serial_at", autospec=True), patch(
+        "pytest_letp.lib.com.target_serial_qct", autospec=True
+    ), patch("pytest_letp.lib.com.target_ssh_qct", autospec=True), patch(
+        "pytest_letp.lib.com.ComPortDevice", autospec=True
     ):
         _run_test_define_target_with_two_slinks_and_ssh(letp_cmd, module_name)
 

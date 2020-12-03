@@ -8,7 +8,7 @@ The debug level can be set thanks to the -d option. See @ref letp_options
 @section cologLogs Examples
 
 ~~~~~~~~~~~~~{.python}
-    import swilog
+    from pytest_letp.lib import swilog
 
     swilog.debug("debug message")
     swilog.info("info message")

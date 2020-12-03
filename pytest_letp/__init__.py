@@ -10,21 +10,32 @@ import xml.etree.ElementTree as ET
 import pytest
 
 import _pytest.config
-import socket_server
-import swilog
-from pytest_test_campaign import TestsCampaignJson
-from pytest_test_config import TestConfig
-from pytest_test_report import TestReporter
+from pytest_letp.lib import socket_server
+from pytest_letp.lib import swilog
+from pytest_letp.pytest_test_campaign import TestsCampaignJson
+from pytest_letp.pytest_test_config import TestConfig
+from pytest_letp.pytest_test_report import TestReporter
 
-__copyright__ = "Copyright (C) Sierra Wireless Inc."
+script_dir = os.path.dirname(os.path.realpath(__file__))
+
+sys.path.insert(0, os.path.join(script_dir))
+internal_repo = os.path.expandvars("$LETP_INTERNAL_PATH")
+if internal_repo:
+    sys.path.insert(0, internal_repo)
+
 
 pytest_plugins = [
+    "pytest_letp",
     "pytest_target",
     "pytest_legato",
     "pytest_hardware",
     "pytest_session_timeout",
     "pytest_letp_log",
 ]
+
+
+__copyright__ = "Copyright (C) Sierra Wireless Inc."
+
 
 # List containing tuples of all the tests and their configuration
 test_list = []
@@ -43,38 +54,41 @@ if "LETP_TESTS" in os.environ:
                     excluded_list.append(excluded_test)
 
 
+@pytest.hookimpl
 def pytest_addoption(parser):
     """!Parse the option for this plugin."""
-    parser.addoption("--config", action="append", help="xml configuration file")
-    parser.addoption(
+    group = parser.getgroup("letp", "Sierra Wireless Legato Test Project(LETP)")
+    group.addoption("--config", action="append", help="xml configuration file")
+    group.addoption(
         "--use_uart",
         action="store_true",
         default=False,
         help="Use serial link instead of SSH",
     )
-    parser.addoption(
+    group.addoption(
         "--ci",
         action="store_true",
         default=False,
-        help="For Jenkins CI, create a json file jenkins.json '\
-            'corresponding to the xml parameters",
+        help="For Jenkins CI, create a json file jenkins.json "
+        "corresponding to the xml parameters",
     )
-    parser.addoption(
-        "--html", action="store_true", help="Enable html report generation"
-    )
+    group.addoption("--html", action="store_true", help="Enable html report generation")
 
-    parser.addoption(
+    # Path/Name to HTML file
+    group.addoption(
         "--html-file",
         action="store",
-        help="Create a html report. Indicate the name of the html file",
+        help="Create a html report. "
+        "Indicate the name of the html file"
+        "Default is log/<timestamp>_<testname>.html",
     )
 
-    parser.addoption(
+    group.addoption(
         "--dbg-lvl",
         action="store",
         type=int,
         default=1,
-        help="""legato debug level as an integer
+        help="""legato or swilog debug level as an integer
                                                     0 = DEBUG,
                                                     1 = INFO (default),
                                                     2 = WARN,
@@ -90,11 +104,7 @@ def get_version():
     Need to merge this one with the one in letp.py in refactoring.
     """
     _letp_repo_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)),
-        os.path.pardir,
-        os.path.pardir,
-        os.path.pardir,
-        ".git",
+        os.path.abspath(os.path.dirname(__file__)), os.path.pardir, ".git"
     )
     version = subprocess.check_output(
         "git --git-dir={} describe --tags --always 2> /dev/null".format(
@@ -265,7 +275,9 @@ def pytest_collection_finish(session):
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart(session):
     """!Read default config when session starts."""
-    TestConfig.test_list = session.config.test_list
+    TestConfig.test_list = (
+        session.config.test_list if hasattr(session.config, "test_list") else []
+    )
     default_cfg = TestConfig.read_default_config(session)
     default_cfg.save_test_cfg_cache()
     pytest.default_cfg = default_cfg
@@ -530,7 +542,7 @@ def metrics(request, read_config):
     """
     try:
         # pylint: disable=import-outside-toplevel
-        from metrics import Metrics
+        from letp_internal.metrics import Metrics
     except ModuleNotFoundError:
         swilog.error("metrics module was not implemented.")
         return

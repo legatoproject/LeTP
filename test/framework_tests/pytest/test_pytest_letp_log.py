@@ -4,7 +4,7 @@ import pytest
 
 import testlib.util as util
 from testlib import list_files_tree
-from pytest_letp_log import LogFileNameBuilder
+from pytest_letp.pytest_letp_log import LogFileNameBuilder
 
 
 def test_pytest_letp_log_file(testdir_stub):

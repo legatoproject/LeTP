@@ -45,9 +45,14 @@ if [[ $letp_tests == *"qa/letp"* ]]; then
     echo "Set QA_ROOT to $QA_ROOT"
 fi
 
-chmod +x $LETP_PATH/framework/tools/letp.py
+chmod +x $LETP_PATH/pytest_letp/tools/letp.py
 # Add letp in the system path
 export PATH=$PATH:$LETP_PATH
+export PYTHONPATH=$LETP_PATH:$LETP_PATH/letp-internal:$LETP_PATH/pytest_letp/tools/html_report
+echo "Set PYTHONPATH to $PYTHONPATH"
+
+export LETP_INTERNAL_PATH="$LETP_PATH/letp-internal"
+echo "Set LETP_INTERNAL_PATH to $LETP_INTERNAL_PATH"
 
 REQ_CACHE=${REQ_CACHE:-"$LETP_PATH/.requirements"}
 

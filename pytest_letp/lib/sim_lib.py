@@ -7,8 +7,8 @@ import os
 
 from lxml import etree
 
-import swilog
-from pytest_test_config import TestConfig
+from pytest_letp.lib import swilog
+from pytest_letp.pytest_test_config import TestConfig
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

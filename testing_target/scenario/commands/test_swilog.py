@@ -19,7 +19,7 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 def test_swilog_call():
     """!Activate the debug level to see all the messages.
 
-    letp run -d 0 test/host/scenario/test_swilog.py.
+    letp run --dbg-lvl 0 test/host/scenario/test_swilog.py.
     """
     swilog.debug("debug message")
     swilog.info("info message")

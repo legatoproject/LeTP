@@ -3,10 +3,10 @@ import re
 from unittest.mock import patch
 import pytest
 
-from modules import SwiModule, get_swi_module
-from modules_linux import ModuleLinux
-from versions_linux import LinuxVersions
-from versions import TargetVersions
+from pytest_letp.lib.modules import SwiModule, get_swi_module
+from pytest_letp.lib.modules_linux import ModuleLinux
+from pytest_letp.lib.versions_linux import LinuxVersions
+from pytest_letp.lib.versions import TargetVersions
 from testlib.shared_steps import validate_legato_pattern
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
@@ -76,7 +76,7 @@ def test_linux_version_pattern():
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_legato_version(module_name):
     """Test get_legato_version."""
-    with patch("versions_linux.LinuxVersions.get_version") as mock:
+    with patch("pytest_letp.lib.versions_linux.LinuxVersions.get_version") as mock:
         exp_ver = "20.04.0"
         instance = mock.return_value
         instance.method.return_value = exp_ver
@@ -90,7 +90,7 @@ def test_modem_version(module_name):
     """Test get_modem_version."""
     exp_ver = "SWI9X07H_00.02.21.00"
 
-    with patch("versions_linux.LinuxVersions.get_version") as mock:
+    with patch("pytest_letp.lib.versions_linux.LinuxVersions.get_version") as mock:
         instance = mock.return_value
         instance.method.return_value = exp_ver
         module = get_swi_module(module_name.upper())
@@ -103,7 +103,7 @@ def test_linux_version(module_name):
     """Test get_linux_version."""
     exp_ver = "LXSWI2.5-13.0"
 
-    with patch("versions_linux.LinuxVersions.get_version") as mock:
+    with patch("pytest_letp.lib.versions_linux.LinuxVersions.get_version") as mock:
         instance = mock.return_value
         instance.method.return_value = exp_ver
         module = get_swi_module(module_name.upper())
@@ -114,7 +114,7 @@ def test_linux_version(module_name):
 @pytest.mark.parametrize("module_name", LINUX_MODULES)
 def test_fw_mismatch(module_name):
     """Test is_fw_matched."""
-    with patch("versions.TargetVersions.get_version") as mock:
+    with patch("pytest_letp.lib.versions_linux.TargetVersions.get_version") as mock:
         instance = mock.return_value
         instance.method.return_value = "SWI9X07H_00.02.21.00"
         module = get_swi_module(module_name.upper())

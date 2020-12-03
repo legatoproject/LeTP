@@ -4,8 +4,8 @@ Use the pytest_target pytest plugin to communicate with targets.
 """
 import pytest
 
-import com
-import modules
+from pytest_letp.lib import com
+from pytest_letp.lib import modules
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

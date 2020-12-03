@@ -1,7 +1,5 @@
 [General]
-init-hook="import sys;
- sys.path.insert(0, 'framework/module/lib');
- sys.path.insert(0, 'framework/module/pytest_plugin/lib')"
+# init-hook='import sys; sys.path.insert(0, "pytest_letp/tools/html_report")'
 
 # Maximum number of arguments for function / method
 max-args=8

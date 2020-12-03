@@ -5,8 +5,8 @@ It validates the function calls in target fixture(objects in modules.py)
 from unittest.mock import MagicMock
 
 import pexpect
-import com
-import swilog
+from pytest_letp.lib import com
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

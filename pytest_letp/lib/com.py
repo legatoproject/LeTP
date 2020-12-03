@@ -12,11 +12,11 @@ import fcntl
 import re
 from enum import Enum
 import colorama
-import swilog
 import pexpect
 import pexpect.fdpexpect
 import pexpect.pxssh
-from com_exceptions import ComException
+from pytest_letp.lib import swilog
+from pytest_letp.lib.com_exceptions import ComException
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

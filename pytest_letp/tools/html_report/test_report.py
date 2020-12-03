@@ -505,7 +505,7 @@ class BuildConfiguration:
             return self.json_data["environment"]["BUILD_NUMBER"]
         return "None"
 
-    def lookup_pytest_json_result(self, test_name) -> dict:
+    def _lookup_pytest_json_result(self, test_name) -> dict:
         """!Look up pytest json result dictionary."""
         if test_name not in self.pytest_test_name_array:
             return {}
@@ -513,7 +513,7 @@ class BuildConfiguration:
         return self.pytest_results[idx]
 
     @staticmethod
-    def build_element_name(elmt, prefix):
+    def _build_element_name(elmt, prefix):
         """!Build element name with prefix."""
         if elmt.classname:
             basename = "%s.%s" % (elmt.classname, elmt.name)
@@ -523,7 +523,7 @@ class BuildConfiguration:
         return elmt_name
 
     @staticmethod
-    def get_create_global_test_case(global_test_data, elmt_name):
+    def _get_create_global_test_case(global_test_data, elmt_name):
         """!Create a global test case container."""
         if elmt_name in global_test_data:
             global_test_case = global_test_data[elmt_name]
@@ -531,6 +531,18 @@ class BuildConfiguration:
             global_test_case = GlobalTestCase(elmt_name)
             global_test_data[elmt_name] = global_test_case
         return global_test_case
+
+    @staticmethod
+    def _process_result_in_summary(result, summary):
+        summary.stat_tcs += 1
+        if not result or isinstance(result, XPass):
+            summary.stat_passed += 1
+        elif isinstance(result, Skipped):
+            summary.stat_skipped += 1
+        elif isinstance(result, (Failure, XFail)):
+            summary.stat_failures += 1
+        elif isinstance(result, Error):
+            summary.stat_errors += 1
 
     def _iter_report(self, global_test_data, summary, parent, prefix=""):
         """Iterate test report and collect summary.
@@ -545,24 +557,16 @@ class BuildConfiguration:
                     test_suite_name = ""
                 self._iter_report(global_test_data, summary, elmt, test_suite_name)
                 continue
-            elmt_name = self.build_element_name(elmt, prefix)
-            global_test_case = self.get_create_global_test_case(
+            elmt_name = self._build_element_name(elmt, prefix)
+            global_test_case = self._get_create_global_test_case(
                 global_test_data, elmt_name
             )
-            pytest_result = self.lookup_pytest_json_result(elmt_name)
+            pytest_result = self._lookup_pytest_json_result(elmt_name)
             if not global_test_case.process_new_test_result(
                 self.name, elmt, elmt_name, pytest_result
             ):
                 continue
-            summary.stat_tcs += 1
-            if not elmt.result or isinstance(elmt.result, XPass):
-                summary.stat_passed += 1
-            elif isinstance(elmt.result, Skipped):
-                summary.stat_skipped += 1
-            elif isinstance(elmt.result, (Failure, XFail)):
-                summary.stat_failures += 1
-            elif isinstance(elmt.result, Error):
-                summary.stat_errors += 1
+            self._process_result_in_summary(elmt.result, summary)
 
     def add_running_test_cases(self, xml_ref):
         """!Add running tests."""
@@ -641,32 +645,34 @@ class TestReportBuilder:
             existing_build_cfg = self.build_number_dict[build_id]
             return existing_build_cfg
 
+    @staticmethod
+    def _get_entry_path(entry):
+        entry_split = entry.split("=")
+        if len(entry_split) == 2:
+            entry_path = entry_split[1]
+            entry_name = entry_split[0]
+        elif len(entry_split) == 1:
+            entry_path = entry_split[0]
+            entry_name = None
+        else:
+            print("Too many '=' signs in %s" % entry)
+            sys.exit(1)
+        if os.path.exists(entry_path) is False:
+            print("Could not find JSON file for %s" % (entry_path))
+            sys.exit(1)
+        return entry_name, entry_path
+
     def _add_build_cfgs(self, json_path):
         for entry in json_path:
-            entry_split = entry.split("=")
-
-            if len(entry_split) == 2:
-                entry_path = entry_split[1]
-                entry_name = entry_split[0]
-            elif len(entry_split) == 1:
-                entry_path = entry_split[0]
-                entry_name = None
+            entry_name, entry_path = self._get_entry_path(entry)
+            build_cfg = BuildConfiguration(entry_path, entry_name)
+            print("[%s] %s %s" % (entry_name, entry_path, build_cfg))
+            self.set_unique_name(build_cfg)
+            registered_cfg = self.register_new_build_configuration(build_cfg)
+            if registered_cfg == build_cfg:
+                self.build_cfg_list.append(build_cfg)
             else:
-                print("Too many '=' signs in %s" % entry)
-                sys.exit(1)
-
-            if os.path.exists(entry_path) is False:
-                print("Could not find JSON file for %s" % (entry_path))
-                sys.exit(1)
-            else:
-                build_cfg = BuildConfiguration(entry_path, entry_name)
-                print("[%s] %s %s" % (entry_name, entry_path, build_cfg))
-                self.set_unique_name(build_cfg)
-                registered_cfg = self.register_new_build_configuration(build_cfg)
-                if registered_cfg == build_cfg:
-                    self.build_cfg_list.append(build_cfg)
-                else:
-                    registered_cfg.consolidate(build_cfg)
+                registered_cfg.consolidate(build_cfg)
 
     def _add_env_list_header(self):
         # Environment parts

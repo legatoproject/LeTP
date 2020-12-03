@@ -3,7 +3,7 @@
 Pytest fixtures for external test equipments and hardware.
 """
 import pytest
-import swilog
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

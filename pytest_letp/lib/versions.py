@@ -4,8 +4,8 @@ Set of functions that retrieve the target's versions using
 either legato command line or AT command from the module
 """
 import re
-import com
-import swilog
+from pytest_letp.lib import swilog
+from pytest_letp.lib import com
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

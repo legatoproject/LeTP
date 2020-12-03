@@ -8,8 +8,8 @@ import pexpect
 import pexpect.fdpexpect
 import pexpect.pxssh
 
-import com
-import swilog
+from pytest_letp.lib import com
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

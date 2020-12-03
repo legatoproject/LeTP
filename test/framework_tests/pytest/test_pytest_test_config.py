@@ -2,7 +2,7 @@
 import os
 import pytest
 
-from pytest_test_config import TestConfig, LeTPConfigPath
+from pytest_letp.pytest_test_config import TestConfig, LeTPConfigPath
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

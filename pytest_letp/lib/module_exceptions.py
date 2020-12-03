@@ -1,5 +1,5 @@
 """!@package module_exceptions Module exceptions for modules classes."""
-import swilog
+from pytest_letp.lib import swilog
 
 
 class SlinkException(Exception):

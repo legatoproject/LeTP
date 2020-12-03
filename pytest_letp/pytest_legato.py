@@ -7,8 +7,8 @@ import types
 
 import pytest
 
-import app
-import modules
+from pytest_letp.lib import app
+from pytest_letp.lib import modules
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 

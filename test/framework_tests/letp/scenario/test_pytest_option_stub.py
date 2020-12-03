@@ -1,6 +1,6 @@
 """Stubs for pytest option integration tests."""
 import pytest
-import swilog
+from pytest_letp.lib import swilog
 
 
 def test_failing_case(request):
