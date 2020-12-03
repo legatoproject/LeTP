@@ -50,6 +50,9 @@ class Tee:
         try:
             t = str(text)
             fd.write(t)
+        except BlockingIOError as ex:
+            # Retry writting but deduce the characters already written
+            self._write(fd, text[ex.characters_written:])
         except UnicodeEncodeError:
             t = text.encode(self.encoding, errors="replace")
             t = t.decode(self.encoding)
