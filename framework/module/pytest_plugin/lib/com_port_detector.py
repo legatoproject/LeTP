@@ -66,7 +66,7 @@ class ComPortDetector:
             device = port_obj.device
             device_description = port_obj.description
 
-            if device_description in com_port_desc:
+            if com_port_desc in device_description:
                 possible_devices_lst.append(device)
 
         return possible_devices_lst
