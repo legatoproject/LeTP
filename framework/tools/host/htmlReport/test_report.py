@@ -498,6 +498,11 @@ class BuildConfiguration:
             and "jenkins.build_number" in self.json_data["info"]
         ):
             return self.json_data["info"]["jenkins.build_number"]
+        if (
+            "environment" in self.json_data
+            and "BUILD_NUMBER" in self.json_data["environment"]
+        ):
+            return self.json_data["environment"]["BUILD_NUMBER"]
         return "None"
 
     def lookup_pytest_json_result(self, test_name) -> dict:
@@ -626,12 +631,14 @@ class TestReportBuilder:
 
     def register_new_build_configuration(self, build_cfg):
         """!Register a build configuration for the report."""
-        jenkins_build_number = build_cfg.jenkins_build_number
-        if jenkins_build_number not in self.build_number_dict:
-            self.build_number_dict[jenkins_build_number] = build_cfg
+        build_id = build_cfg.jenkins_build_number
+        if build_id == "None":
+            build_id = build_cfg.name
+        if build_id not in self.build_number_dict:
+            self.build_number_dict[build_id] = build_cfg
             return build_cfg
         else:
-            existing_build_cfg = self.build_number_dict[jenkins_build_number]
+            existing_build_cfg = self.build_number_dict[build_id]
             return existing_build_cfg
 
     def _add_build_cfgs(self, json_path):
@@ -653,6 +660,7 @@ class TestReportBuilder:
                 sys.exit(1)
             else:
                 build_cfg = BuildConfiguration(entry_path, entry_name)
+                print("[%s] %s %s" % (entry_name, entry_path, build_cfg))
                 self.set_unique_name(build_cfg)
                 registered_cfg = self.register_new_build_configuration(build_cfg)
                 if registered_cfg == build_cfg:
