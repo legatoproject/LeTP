@@ -75,7 +75,17 @@ class LogFileNameBuilder:
     def _get_underscore_name(path):
         if path:
             if "::" in path:
-                path = path.split("::")[0]
+                path_names = path.split("::")
+                if len(path_names) == 2:
+                    # test_file.py::method1
+                    return path_names[1]
+                else:
+                    # test_file.py:: or test_file.py::method1::other?
+                    # This looks like not valid name
+                    # But we put the file name as the log path.
+                    # Does not assert here, leave it to pytest
+                    # to decide if the name is valid not not.
+                    return path_names[0]
             return os.path.basename(path).replace(".", "_")
         return ""
 

@@ -32,7 +32,7 @@ def test_pytest_letp_log_default_name(testdir_stub):
     "file_or_dir, log_file_keyword",
     [
         (["test_file.py"], "test_file"),
-        (["test_file.py::method1"], "test_file_py"),
+        (["test_file.py::method1"], "method1"),
         (["test_campaign.json"], "test_campaign_json"),
         (
             ["test_campaign.json", "test_campaign2.json"],
