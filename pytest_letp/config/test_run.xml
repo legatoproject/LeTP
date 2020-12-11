@@ -3,5 +3,6 @@
     <test_run>
         <id></id>
         <context></context>
+        <randomize>false</randomize>
     </test_run>
 </test>

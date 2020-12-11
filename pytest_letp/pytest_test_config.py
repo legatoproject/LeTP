@@ -7,10 +7,14 @@ import pprint
 import re
 import xml.etree.ElementTree as ET
 from difflib import SequenceMatcher
+
 from pytest_letp.lib import swilog
 from pytest_letp.tools.html_report.test_report import ALL_COMPONENTS
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
+
+
+TEST_CONFIG_KEY = "LeTPTestConfig"
 
 
 class ConfigType(enum.Enum):
@@ -190,13 +194,13 @@ class TestConfig:
     default_cfg_file = "config/testbench.xml"
     test_base_report_cache = "log/letp_test_results.json"  # letp_tests_info
     default_cfg_xml_cache = "log/default_test_cfg.xml"
-    last_test_config = "log/last_test_cfg.xml"
+    last_test_config_file = "log/last_test_cfg.xml"
     default_cfg = None
     test_list = []
 
     def __init__(self, cmd_line_cfgs=None):
         self._config_container = ET.ElementTree(ET.Element("test"))
-        self._elem_dict = {}  # Dictinary format of configs.
+        self._elem_dict = {}  # Dictionary format of configs.
         # List with all the xml files to include
         self.xml_file_lists = []
         # List containing the executed tests
@@ -204,8 +208,6 @@ class TestConfig:
         # config_params: parameters from json or command line.
         self.cmd_line_cfgs = cmd_line_cfgs if cmd_line_cfgs else []
         self.test_base_reports = None
-        # default configuration for the tests
-        self.default_cfg = None
 
     def get(self):
         """!Get the target config in xml tree."""
@@ -588,6 +590,10 @@ class TestConfig:
         # Do not suppress this print
         print(pprint.pformat(json_content))
         self.test_base_reports = json_content
+
+    def is_random(self):
+        """!Read the config dict to see if the test run should be random."""
+        return self._elem_dict.get("test_run/randomize")
 
     @staticmethod
     def read_default_config(session):

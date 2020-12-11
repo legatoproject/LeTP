@@ -11,6 +11,7 @@ import pytest
 from _pytest import junitxml
 from pytest_letp.tools.html_report import test_report
 from pytest_letp.tools.html_report.build_configuration import JsonExtender
+from pytest_letp.pytest_test_config import TEST_CONFIG_KEY
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -55,7 +56,10 @@ class LogXMLAdapter:
         for test_name in original_ordered_tests:
             node_reporter = self._find_xml_node(test_name)
             original_ordered_node_reporters.append(node_reporter)
-        self._log_xml.node_reporters_ordered = original_ordered_node_reporters
+        if original_ordered_node_reporters:
+            self._log_xml.node_reporters_ordered = original_ordered_node_reporters
+        else:
+            print("Did not restore the order of {}".format(original_ordered_tests))
 
 
 def _get_log_xml(config):
@@ -72,7 +76,7 @@ def _get_log_xml(config):
 
 
 @pytest.hookimpl(trylast=True)
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(items, session):
     """!Modify the collected items.
 
     Will be called after collection has been performed.
@@ -82,8 +86,12 @@ def pytest_collection_modifyitems(items):
     We shuffle the test running order here to avoid tests logic coupled together.
 
     @param List[_pytest.nodes.Item] items: list of item objects
+    @param session:  Current session
     """
-    random.shuffle(items)
+    default_cfg = session.config._store[TEST_CONFIG_KEY]
+    randomize = "true" in default_cfg.is_random().lower()
+    if randomize:
+        random.shuffle(items)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -96,11 +104,12 @@ def pytest_sessionfinish(session):
     junit_file = session.config.getoption("--junitxml")
     if not junit_file:
         return
+    default_cfg = session.config._store[TEST_CONFIG_KEY]
+    if "true" not in default_cfg.is_random().lower():
+        return
     _log_xml = _get_log_xml(session.config)
     if _log_xml:
-        LogXMLAdapter(_log_xml).reorder_tests_junit_results(
-            session.default_cfg.collected_tests
-        )
+        LogXMLAdapter(_log_xml).reorder_tests_junit_results(default_cfg.collected_tests)
 
 
 class TestReporter:

@@ -13,15 +13,16 @@ import _pytest.config
 from pytest_letp.lib import socket_server
 from pytest_letp.lib import swilog
 from pytest_letp.pytest_test_campaign import TestsCampaignJson
-from pytest_letp.pytest_test_config import TestConfig
+from pytest_letp.pytest_test_config import TestConfig, TEST_CONFIG_KEY
 from pytest_letp.pytest_test_report import TestReporter
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-
-sys.path.insert(0, os.path.join(script_dir))
 internal_repo = os.path.expandvars("$LETP_INTERNAL_PATH")
 if internal_repo:
     sys.path.insert(0, internal_repo)
+
+# Expose the following pytest_* plugins to pytest for collection.
+script_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, os.path.join(script_dir))
 
 
 pytest_plugins = [
@@ -31,6 +32,7 @@ pytest_plugins = [
     "pytest_hardware",
     "pytest_session_timeout",
     "pytest_letp_log",
+    "pytest_test_report",
 ]
 
 
@@ -261,32 +263,6 @@ def pytest_configure(config):
     config.pluginmanager.add_hookspecs(pytest_jsonreport.plugin.Hooks)
 
 
-@pytest.hookimpl()
-def pytest_json_modifyreport(json_report):
-    """!Merge test_base_reports configs into json report."""
-    test_base_reports = pytest.default_cfg.test_base_reports
-    json_report.update(test_base_reports)
-
-
-@pytest.hookimpl()
-def pytest_itemcollected(item):
-    """!Store the collect items and tests."""
-    item.session.default_cfg.store_tests(item)
-    if not item.config.getoption("--ci"):
-        return
-    # Currently CI main_config store one test configs.
-    TestConfig.last_test_cfg = TestConfig.build(item)
-
-
-@pytest.hookimpl()
-def pytest_collection_finish(session):
-    """!Genereate config cache JSON."""
-    # Report the main config of the last test is not good enough.
-    default_cfg = session.default_cfg
-    default_cfg.collect_test_configs()
-    default_cfg.save_test_report_cache()
-
-
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart(session):
     """!Read default config when session starts."""
@@ -295,11 +271,38 @@ def pytest_sessionstart(session):
     )
     default_cfg = TestConfig.read_default_config(session)
     default_cfg.save_test_cfg_cache()
-    pytest.default_cfg = default_cfg
     session.default_cfg = default_cfg
+    session.config._store[TEST_CONFIG_KEY] = default_cfg
     # Class variable will be valid for multiple sessions.
     # Try to use the above session default_cfg if possible.
     TestConfig.default_cfg = default_cfg
+
+
+@pytest.hookimpl()
+def pytest_json_modifyreport(json_report):
+    """!Merge test_base_reports configs into json report."""
+    test_base_reports = TestConfig.default_cfg.test_base_reports
+    json_report.update(test_base_reports)
+
+
+@pytest.hookimpl()
+def pytest_itemcollected(item):
+    """!Store the collect items and tests."""
+    default_cfg = item.session.config._store[TEST_CONFIG_KEY]
+    default_cfg.store_tests(item)
+    if not item.config.getoption("--ci"):
+        return
+    # Currently CI main_config store one test configs.
+    TestConfig.last_test_cfg = TestConfig.build(item)
+
+
+@pytest.hookimpl()
+def pytest_collection_finish(session):
+    """!Generate config cache JSON."""
+    # Report the main config of the last test is not good enough.
+    default_cfg = session.config._store[TEST_CONFIG_KEY]
+    default_cfg.collect_test_configs()
+    default_cfg.save_test_report_cache()
 
 
 @pytest.hookimpl(trylast=True)
@@ -369,7 +372,7 @@ def test_config(request):
     """!Build a test configuration object."""
     target_config = TestConfig.build(request.node)
     assert isinstance(target_config, TestConfig)
-    target_config.save_test_cfg_cache(TestConfig.last_test_config)
+    target_config.save_test_cfg_cache(TestConfig.last_test_config_file)
     return target_config
 
 
@@ -411,7 +414,8 @@ def read_config(test_config):
 def read_config_default(request):
     """!Read the default xml configuration for the whole session."""
     session = request.node.session
-    return session.default_cfg.get()
+    default_cfg = session.config._store[TEST_CONFIG_KEY]
+    return default_cfg.get()
 
 
 @pytest.fixture(autouse=True, scope="function")
