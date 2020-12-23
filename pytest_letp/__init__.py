@@ -98,22 +98,29 @@ def pytest_addoption(parser):
     )
 
 
-def get_version():
-    """!Get LeTP version from its git repo.
+def get_git_info(git_repo_path):
+    """!Get git name and version from its git repo.
 
-    Need to merge this one with the one in letp.py in refactoring.
+    Return: git remote name and its version.
     """
-    _letp_repo_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), os.path.pardir, ".git"
-    )
+    if not os.path.exists(git_repo_path):
+        return "", ""
+    curr_path = os.getcwd()
+    os.chdir(git_repo_path)
+    try:
+        name = subprocess.check_output(
+            "basename $(git remote get-url origin 2> /dev/null) 2> /dev/null",
+            shell=True,
+        )
+    except subprocess.CalledProcessError:
+        return "", ""
+    name_str = name.decode("utf-8").strip("\n")
     version = subprocess.check_output(
-        "git --git-dir={} describe --tags --always 2> /dev/null".format(
-            _letp_repo_path
-        ),
-        shell=True,
+        "git describe --tags --always 2> /dev/null", shell=True
     )
-    version_str = version.decode("utf-8")
-    return version_str
+    version_str = version.decode("utf-8").strip("\n")
+    os.chdir(curr_path)
+    return name_str, version_str
 
 
 class ConfigAdapter:
@@ -229,10 +236,18 @@ def pytest_load_initial_conftests(early_config, args):
         adapter.set_ini_value("junit_family", "legacy")
 
 
-@pytest.hookimpl()
-def pytest_report_header():
-    """!Put LeTP version in the report header."""
-    return "LeTP version: {}".format(get_version())
+@pytest.mark.optionalhook
+def pytest_metadata(metadata):
+    """!Put repo versions in metadata."""
+    git_repo_path = os.path.join(os.path.abspath(os.path.dirname(__file__)))
+    repo_paths = [git_repo_path]
+    # If LeTP_TESTS has git control, add the path.
+    if "LETP_TESTS" in os.environ:
+        repo_paths.append(os.environ["LETP_TESTS"])
+    for git_repo_path in repo_paths:
+        repo_name, repo_version = get_git_info(git_repo_path)
+        if repo_name and repo_name not in metadata:
+            metadata[repo_name] = repo_version
 
 
 @pytest.hookimpl()

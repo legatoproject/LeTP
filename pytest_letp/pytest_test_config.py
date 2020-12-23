@@ -481,7 +481,8 @@ class TestConfig:
         # be relative to the path of execution
         swilog.info("Create config from {}".format(config_files))
         old_path = os.getcwd()
-        os.chdir(os.environ["LETP_TESTS"])
+        if "LETP_TESTS" in os.environ:
+            os.chdir(os.environ["LETP_TESTS"])
         # --config can be called multiple times
         for config in config_files:
             # the xml files can be separated by a comma
@@ -592,7 +593,8 @@ class TestConfig:
     def read_default_config(session):
         """!Read the default configuration file."""
         old_path = os.getcwd()
-        os.chdir(os.environ["LETP_TESTS"])
+        if "LETP_TESTS" in os.environ:
+            os.chdir(os.environ["LETP_TESTS"])
         cmd_line_configs = session.config.getoption("--config")
         default_target_config = TestConfig.build_default_config(cmd_line_configs)
         # Go to previous path
