@@ -18,9 +18,27 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
 # Keep the following for the backward compatability, to be removed later
-sys.path.insert(0, os.path.join(script_dir, "../lib"))
-sys.path.insert(0, os.path.join(script_dir, "../../letp-internal/letp_internal"))
-sys.path.insert(0, os.path.join(script_dir, "html_report"))
+pytest_lib = os.path.abspath(os.path.join(script_dir, "../lib"))
+letp_internal_lib = os.path.abspath(
+    os.path.join(script_dir, "../../letp-internal/letp_internal")
+)
+html_report_lib = os.path.abspath(os.path.join(script_dir, "html_report"))
+LIB_PATHS = [pytest_lib, letp_internal_lib, html_report_lib]
+
+
+def _register_library():
+    for each_lib in LIB_PATHS:
+        if each_lib not in sys.path:
+            sys.path.insert(0, each_lib)
+
+
+_register_library()
+
+
+def _unregister_library():
+    for each_lib in LIB_PATHS:
+        if each_lib in sys.path:
+            sys.path.remove(each_lib)
 
 
 def _get_version():
@@ -107,6 +125,7 @@ def run(args, pytest_args):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
 
+    _unregister_library()
     if _rc != pytest.ExitCode.OK:
         sys.exit(_rc)
 

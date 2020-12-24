@@ -11,8 +11,9 @@ import os
 import sys
 import re
 import time
-import pathlib
 import importlib
+import imp
+import pkgutil
 
 import pexpect
 import pexpect.fdpexpect
@@ -27,36 +28,40 @@ from pytest_letp.lib.versions import TargetVersions
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
-def get_swi_module_files():
-    """Return a list of module types to look for specific module."""
-    modules = set()
-    letp_internal_lib = "letp-internal"
-    pytest_letp_lib = "pytest_letp"
-    for path in sys.path:
-        if not os.path.exists(path):
-            continue
-        if not (letp_internal_lib in path or pytest_letp_lib in path):
-            continue
-        tree = os.listdir(path)
-        for name in tree:
-            if name.startswith("modules_"):
-                module_name = name.replace(".py", "")
-                modules.add(module_name)
-    return modules
+def get_swi_module_namespaces():
+    """Return a list of module namespaces.
+
+    Search through the submodules for the file start with modules_name.
+    """
+    return ["pytest_letp.lib", "letp_internal"]
 
 
 def get_swi_module(class_name):
-    """Get module from one of the modules files.
+    """Get module from one of the modules namespaces.
 
     Use dynamically loading from the module path.
     """
-    for module_file in get_swi_module_files():
+    modules_lib_path = get_swi_module_namespaces()
+    for module_path in modules_lib_path:
+        # import library modules.
         try:
-            importlib.import_module(module_file)
-            return getattr(sys.modules[module_file], class_name)
+            importlib.import_module(module_path)
         except Exception:
-            pass
-    raise TargetException("Target not found: %s" % class_name)
+            continue
+        # iterate submodules.
+        mod = sys.modules[module_path]
+        sub_modules = pkgutil.iter_modules(mod.__path__, prefix=module_path + ".")
+        for importer, candidate_module_name, ispkg in sub_modules:
+            if "modules_" in candidate_module_name:
+                try:
+                    importlib.import_module(candidate_module_name)
+                    candidate_module_obj = sys.modules[candidate_module_name]
+                    return getattr(candidate_module_obj, class_name)
+                except Exception:
+                    continue
+    raise TargetException(
+        "Target not found: {} in module_files {}".format(class_name, modules_lib_path)
+    )
 
 
 def define_target(request, read_config, inst_name="module"):
