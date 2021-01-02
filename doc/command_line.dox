@@ -57,6 +57,7 @@ Note: The stdout is not shown with this option. To see it, use --capture=no
         [ { "name": "legato/security/sandbox/host/test_basic.py" }, <br>
         { "name": "legato/security/sandbox/host/test_limitation.py" } ]
 </table>
+
 @subsection pytest_options Pytest options
 <table>
 <tr><th> Pytest Option<th>Description

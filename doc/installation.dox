@@ -52,7 +52,7 @@ LETP_TESTS can also be given as the first argument of configLeTP.sh
                 Create symbolic link for LeTP
 
 @section requisite Install Prerequisite packages
-Python 3.5+. Check with:
+Python 3.6+. Check with:
 
 python3 --version
 

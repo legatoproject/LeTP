@@ -1,0 +1,52 @@
+/**@page concepts Concepts
+
+Pre-requisite:@ref introduction.md <br>
+
+LeTP is designed to solve the system testing automation problem,
+it uses the pexpect to communicate with the test targets, manage
+devices, do the test report after the tests.
+
+@section LeTP_architecture LeTP architecture:
+Hers is the architecture about our concepts for developing your test scripts.
+
+@image html LeTP-Architecture.png
+
+@section pexpect_testing Pexpect based system testing:
+Using com port to communicate with the testing target, read the output,
+verify the output to see if it matches the expected.
+
+- @subpage pexpect <br>
+
+@section test_configure_management Test configuration management.
+The system tests may require some extra configuration, e.g. target type,
+device port.
+
+- @subpage test_configuration <br>
+
+@section test_campaign Test campaign
+A Test campaign is a test suite with test configurations as the json file.
+- @subpage test_campaign <br>
+
+@section letp_library Pytest LeTP libraries
+pytest_letp provides libraries to facilitate common operations. e.g.
+sim library, socker_server, etc.
+- @subpage libraries <br>
+
+@section letp_fixtures Pytest LeTP fixtures.
+<BLOCKQUOTE>
+Test fixtures provide a fixed baseline so that tests execute reliably and
+produce consistent, repeatable, results. Initialization may setup services,
+state, or other operating environments. These are accessed by test functions
+through arguments; for each fixture used by a test function there is typically
+a parameter (named after the fixture) in the test function’s definition.
+</BLOCKQUOTE>
+
+Users can also use
+<A HREF=https://docs.pytest.org/en/stable/fixture.html>pytest built-in fixtures</A>
+- @subpage fixtures <br>
+
+LeTP can be used as a
+<A HREF=https://docs.pytest.org/en/stable/contents.html#toc>Pytest</A> plugin.
+
+Copyright (C) Sierra Wireless Inc.
+**/

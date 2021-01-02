@@ -779,7 +779,7 @@ WARN_LOGFILE           =
 #                         "../../../apps/leTP/tools" \
 #                         "../../../apps/leTP/doc"
 
-INPUT                  = "../framework/" \
+INPUT                  = "../pytest_letp/" \
                          "../testing_target/" \
                          "."
 
