@@ -741,14 +741,16 @@ class ModuleLinux(SwiModule):
         if full:
             logical_name = self.get_data_partition()
             self.wipe_partition(logical_name)
-            return
+            return True
         try:
             app.legato_stop(self)
         except Exception as e:
             swilog.debug("Unable to stop legato: %s" % e)
+            return False
         self._remove_dirs()
         self._remove_file()
         self.reboot(timeout=300)
+        return True
 
 
 # =====================================================================================
