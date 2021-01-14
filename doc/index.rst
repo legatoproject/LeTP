@@ -7,10 +7,16 @@ Welcome to LeTP's documentation!
 ================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-   pythonguide.rst
+   introduction.rst
+   installation.rst
+   concepts.rst
+   getting_started_tutorial.rst
+   command_line.rst
+   scripting_concepts/test_script_samples.rst
+   references.rst
 
 Indices and tables
 ==================

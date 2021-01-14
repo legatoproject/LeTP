@@ -1,4 +1,8 @@
-/** @page test_configuration Test configurations
+.. _test_configuration:
+
+###################
+Test configurations
+###################
 
 There are four configuration ways.
 
@@ -7,36 +11,50 @@ There are four configuration ways.
 - pytest.mark.config("$LETP_TESTS/scenario/config/target_wp750x.xml")
 - letp command with "--config module/slink2(used)=1"
 
-@section file Configuration files
+Configuration files
+-------------------
 
 The configuration files are in xml format and located in $LETP_TESTS/config.
 
-@subsection select Select a configuration file
+Select a configuration file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are 2 possibilities to use a configuration file:
 
--The configuration files can be passed as an argument of letp with option --config. A specific parameter can also be set with this option.
+    - The configuration files can be passed as an argument of letp with option --config. A specific parameter can also be set with this option.
 
--They can also be added in testbench.xml in the include_xml tag.
+    - They can also be added in testbench.xml in the include_xml tag.
 
-@subsection priority Priority of the files
+Priority of the files
+^^^^^^^^^^^^^^^^^^^^^
 
 All the files declared with --config override the values in the default file testbench.xml (and all the included files).
 
-@section common Common files
-@subsection testbench testbench.xml
+Common files
+------------
+
+testbench.xml
+^^^^^^^^^^^^^
 
 LeTP loads a default file named testbench.xml in $LETP_TESTS/config. By default, it includes host.xml (host IP, NFS, ...) and target.xml (module name, SSH, UART config...).
 You can add more files, or comment all the files to only rely on the command line parameters.
 
-@include testbench.xml
+ `testbench.xml <../../../../test/config/testbench.xml>`_
 
-@subsection target_xml target.xml
+target.xml
+^^^^^^^^^^
 
-parameter            |Description
----------------------|------------
-module/name          |module name (wp7502, wp7607, ...). It should correspond to a file in config/module/specific.
-module/ssh/ip_address|ip address of the target
+.. list-table::
+    :header-rows: 1
+
+    * - parameter
+      - Description
+
+    * - module/name
+      - module name (wp7502, wp7607, ...). It should correspond to a file in config/module/specific.
+
+    * - module/ssh/ip_address
+      - ip address of the target
 
 - At least change the value of the module name (wp7502, wp7607, ...). It should correspond to a file in config/module/specific.
 - Change used=0 to used=1 for all the communication links you want to use (ssh, serial link 1 or 2).
@@ -58,31 +76,33 @@ There are several solutions:
 -    Use slink1 with SSH (recommended).
 -    The new ip address will be read and eth/ecm configuration will be done by uart at init and after each reboot.
 
-@subsection target target.xml
+`target.xml <../../../../test/config/target.xml>`_
 
-@include target.xml
-
-@subsection host host.xml
+host.xml
+^^^^^^^^
 
 Specify the host ip address, interface, root password,  nfs mount, ... if needed in the test.
 
-@include host.xml
+`host.xml <../../../../test/config/host.xml>`_
 
-@subsection test_run test_run.xml
+test_run.xml
+^^^^^^^^^^^^
 We may want to have some run time setting shared by test.
 e.g. test campaign id, context id, host name, etc.
 
-@include test_run.xml
+`test_run.xml <../../../../test/config/test_run.xml>`_
 
-@subsection specific Specific test files
-@ref pytest_test_config.TestConfig.build "Configs from Marker"
+Specific test files
+^^^^^^^^^^^^^^^^^^^
 
-@section xml_inclusion xml inclusion
-@ref pytest_test_config.TestConfig.create_cfg_xml "XML inclusion"
+:meth:`Configs from Marker. <pytest_letp.pytest_test_config.TestConfig.build>`
 
-@section param Parameter access
+xml inclusion
+-------------
 
-See the @ref pytest_letp.read_config "read_config fixture" to
-access the xml tree.
+:meth:`XML inclusion <pytest_letp.pytest_test_config.TestConfig.create_cfg_xml>`
 
-**/
+Parameter access
+----------------
+
+See the :meth:`read_config fixture <pytest_letp.__init__.read_config>` to access the xml tree.

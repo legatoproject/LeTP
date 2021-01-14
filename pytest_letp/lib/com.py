@@ -1,6 +1,6 @@
 # pylint: skip-file
 # Reenable pylint after error fixes.
-"""!@package com Communication links (ssh + serial link)."""
+"""Communication links (ssh + serial link)."""
 import os
 import sys
 import time
@@ -239,7 +239,7 @@ def clear_buffer(target):
 def run_at_cmd_and_check(
     target, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"
 ):
-    r"""Run and check AT commands.
+    """Run and check AT commands.
 
     - If no expected responses, it waits for OK or ERROR.
       ERROR or TIMEOUT cause an assertion.
@@ -247,24 +247,22 @@ def run_at_cmd_and_check(
       in the order declared in the list.
       TIMEOUT is raised if not all the patterns are found.
 
-    Args:
-    target: target fixture
-    at_cmd: AT command. Add \r if \r not in the command.
-             Use target.send to send command without \r.
-    timeout: timeout in seconds
-    expect_rsp: List of expected pattern to catch.
-                 ex. [r"\+WDSI: 1", r"\+WDSI: 6"] or
-                     ["ERROR"] if the command must failed.
-    check: If True, AssertionError if command error or timeout.
-            If True and command error or timeout, return None
-    eol: Specify the end of lince character.
-          Default \r but in le_at_GetTextAsync the \r is not valid and it must be \x1a
+    :param target: target fixture
+    :param at_cmd: AT command. Add \\r if \\r not in the command.
+                   Use target.send to send command without \\r.
+    :param timeout: timeout in seconds
+    :param expect_rsp: List of expected pattern to catch.
+                       ex. [r"\+WDSI: 1", r"\+WDSI: 6"] or
+                       ["ERROR"] if the command must failed.
+    :param check: If True, AssertionError if command error or timeout.
+                  If True and command error or timeout, return None
+    :param eol: Specify the end of lince character.
+                Default \\r but in le_at_GetTextAsync the \\r is not valid and it must be \\x1a
 
-    return: all the data saved during this command
+    :returns: all the data saved during this command
 
-    Raises:
-        AssertionError (only if check is True)
-    @ingroup targetGroup
+
+    :raises: AssertionError (only if check is True)
     """
     # Clear target buffer before running command.
     clear_buffer(target)
@@ -443,7 +441,6 @@ class ttyspawn(pexpect.fdpexpect.fdspawn):
         Returns:
             True if the shell prompt was matched, False if the timeout was
                  reached.
-        @ingroup targetGroup
         """
         i = self.expect([self.PROMPT, pexpect.TIMEOUT], timeout=timeout)
         return i == 0
@@ -463,7 +460,6 @@ class ttyspawn(pexpect.fdpexpect.fdspawn):
         Args:
             char: character to associate with control
 
-        @ingroup targetGroup
         """
         char = char.lower()
         a = ord(char)
@@ -582,10 +578,10 @@ class SerialPort:
     def open(device, baudrate=None, rtscts=False):
         """Open a serial port.
 
-        @param  device      Device name.
-        @param  baudrate    Initial baud rate to set.  Defaults to port's default.
+        :param  device: Device name.
+        :param  baudrate: Initial baud rate to set.  Defaults to port's default.
 
-        @return Port instance, or None if device not found.
+        :returns: Port instance, or None if device not found.
         """
         port = None
         device_stat = None
@@ -605,8 +601,8 @@ class SerialPort:
     def __init__(self, device, baudrate, rtscts=False):
         """Instantiate serial port wrapper.
 
-        @param  device      Device name.
-        @param  baudrate    Initial baud rate to set.
+        :param  device      Device name.
+        :param  baudrate    Initial baud rate to set.
                             Defaults to port's default if None.
         """
         self._device = device
@@ -671,7 +667,7 @@ class SerialPort:
     def baudrate(self):
         """Get current baud rate.
 
-        @return Current baud rate.
+        :returns: Current baud rate.
         """
         return self._baudrate
 
@@ -679,7 +675,7 @@ class SerialPort:
     def baudrate(self, baudrate):
         """Change the baud rate.
 
-        @param  baudrate    New baud rate to set.
+        :param  baudrate    New baud rate to set.
         """
         self._baudrate = baudrate
         swilog.debug("Set baudrate of %s to %d" % (self._device, baudrate))
@@ -702,7 +698,7 @@ class SerialPort:
     def __repr__(self):
         """Get printable representation of port.
 
-        @return Port string representation.
+        :returns: Port string representation.
         """
         return "SerialPort<{0} @ {1} | {2}>".format(
             self._device, self.baudrate, self.fd
@@ -756,12 +752,13 @@ class target_qct:
     ):
         """Run a command. Check the command and assert by default.
 
-        :cmd: command to execute
-        :timeout: timeout of the command in second
-        :local_echo: read the echo of the command before
-        :withexitstatus: return the exit status with the response in a tuple (exit, rsp)
-        :check: If False do not assert if the command exit status is not 0
-        :return: stdout/stderr of the command or a tuple (exit, stdout/stderr of the command) if withexitstatus is set
+        :param cmd: command to execute
+        :param timeout: timeout of the command in second
+        :param local_echo: read the echo of the command before
+        :param withexitstatus: return the exit status with the response in a tuple (exit, rsp)
+        :param check: If False do not assert if the command exit status is not 0
+
+        :returns: stdout/stderr of the command or a tuple (exit, stdout/stderr of the command) if withexitstatus is set
         """
         clear_buffer(self)
         self.sendline(cmd)
@@ -924,10 +921,7 @@ class target_telnet_qct(target_qct):
 
 
 class target_at:
-    """class to send AT commands.
-
-    @ingroup target_serial_at
-    """
+    """class to send AT commands."""
 
     def __init__(self, dev_tty=None, baudrate=115200):
         self.PROMPT = ["OK", "ERROR"]
@@ -968,11 +962,7 @@ class target_at:
 
 
 class target_serial_at(target_at, ttyspawn):
-    """
-    @defgroup target_serial_at Serial AT management
-
-    class to manage an uart to send AT commands, based on pexpect
-    """
+    """Class to manage an uart to send AT commands, based on pexpect."""
 
     @staticmethod
     def open(dev_tty=None, baudrate=115200, rtscts=False, **kwargs):
@@ -1001,8 +991,6 @@ class target_serial_at(target_at, ttyspawn):
         Examples:
             >>> swilog.info("The actual baudrate is %s" % target.at.baudrate)
             'The actual baudrate is 115200'
-
-        @ingroup targetGroup
         """
         return self.tty.baudrate
 
@@ -1015,8 +1003,6 @@ class target_serial_at(target_at, ttyspawn):
 
         Examples:
             >>> target.at.baudrate = 115200
-
-        @ingroup targetGroup
         """
         self.tty.baudrate = baudrate
 
@@ -1033,10 +1019,7 @@ class target_serial_at(target_at, ttyspawn):
         target_at.__init__(self, self.dev_tty, bd)
 
     def set_dtr(self, state):
-        """Set terminal status line: Data Terminal Ready.
-
-        @ingroup targetGroup
-        """
+        """Set terminal status line: Data Terminal Ready."""
         if state:
             fcntl.ioctl(self.fd, TIOCMBIS, TIOCM_DTR_str)
         else:
@@ -1044,37 +1027,25 @@ class target_serial_at(target_at, ttyspawn):
 
     @property
     def cts(self):
-        """Read terminal status line: Clear To Send.
-
-        @ingroup targetGroup
-        """
+        """Read terminal status line: Clear To Send."""
         s = fcntl.ioctl(self.tty.fd, TIOCMGET, TIOCM_zero_str)
         return struct.unpack("I", s)[0] & TIOCM_CTS != 0
 
     @property
     def dsr(self):
-        """Read terminal status line: Data Set Ready.
-
-        @ingroup targetGroup
-        """
+        """Read terminal status line: Data Set Ready."""
         s = fcntl.ioctl(self.tty.fd, TIOCMGET, TIOCM_zero_str)
         return struct.unpack("I", s)[0] & TIOCM_DSR != 0
 
     @property
     def ri(self):
-        """Read terminal status line: Ring Indicator.
-
-        @ingroup targetGroup
-        """
+        """Read terminal status line: Ring Indicator."""
         s = fcntl.ioctl(self.tty.fd, TIOCMGET, TIOCM_zero_str)
         return struct.unpack("I", s)[0] & TIOCM_RI != 0
 
     @property
     def cd(self):
-        """Read terminal status line: Carrier Detect.
-
-        @ingroup targetGroup
-        """
+        """Read terminal status line: Carrier Detect."""
         s = fcntl.ioctl(self.tty.fd, TIOCMGET, TIOCM_zero_str)
         return struct.unpack("I", s)[0] & TIOCM_CD != 0
 
@@ -1127,10 +1098,7 @@ class target_telnet_at(target_at):
 
 
 class target_ssh_qct(pexpect.pxssh.pxssh):
-    """class to connect with ssh based on pexpect.
-
-    @defgroup target_ssh SSH management
-    """
+    """class to connect with ssh based on pexpect."""
 
     def __init__(self, target_ip, ssh_port, config_target, *args, **kwargs):
         self.target_ip = target_ip
@@ -1173,10 +1141,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         return True
 
     def login(self, timeout=90):
-        """Login to the embedded Linux console.
-
-        @ingroup targetGroup
-        """
+        """Login to the embedded Linux console."""
         delay = 10
         count = int(timeout / delay)
         while self.check_communication() != 0:
@@ -1204,11 +1169,9 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
             assert count != 5, "Impossible to send command stty to target"
 
     def expect(self, *args, **kwargs):
-        """Expect function from the pexpect library.
+        r"""Expect function from the pexpect library.
 
         Avoid too much backtraces.
-
-        @ingroup targetGroup
 
         Send a command and expect some patterns (reg exp)
         with target.expect (list of regexp to wait),
@@ -1218,26 +1181,27 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         target.before are the data before the pattern.
         target.after is the found pattern.
 
-        ~~~~~~~~~~~~~{.py}
-        # Timeout of 60s
-        APP_TIMEOUT = 60
+        .. code-block:: python
 
-        # Start the application
-        target.send("app start %s\r" % APP_NAME)
+            # Timeout of 60s
+            APP_TIMEOUT = 60
 
-        # Wait for "Failures: \d+" or timeout
-        id = target.expect([pexpect.TIMEOUT, "Failures: \d+"], APP_TIMEOUT)
+            # Start the application
+            target.send("app start %s\r" % APP_NAME)
 
-        # if id == 0, it is a timeout
-        # if id == 1, "Failures: \d+" was found
-        assert id == 1, "Timeout received!"
-        # Check there is 0 failure in the response
-        assert "Failures: 0" in target.after, "Some tests failed!"
+            # Wait for "Failures: \d+" or timeout
+            id = target.expect([pexpect.TIMEOUT, "Failures: \d+"], APP_TIMEOUT)
 
-        target.sendline("ls \/")
-        # Wait for "data", then "bin", "boot", and at the end "var"
-        rsp = target.expect_in_order(["data", "bin", "boot", "var"], 10)
-        ~~~~~~~~~~~~~
+            # if id == 0, it is a timeout
+            # if id == 1, "Failures: \d+" was found
+            assert id == 1, "Timeout received!"
+            # Check there is 0 failure in the response
+            assert "Failures: 0" in target.after, "Some tests failed!"
+
+            target.sendline("ls \/")
+            # Wait for "data", then "bin", "boot", and at the end "var"
+            rsp = target.expect_in_order(["data", "bin", "boot", "var"], 10)
+
         """
         try:
             return super(target_ssh_qct, self).expect(*args, **kwargs)
@@ -1274,12 +1238,13 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
     ):
         """Run a command. Check the command and assert by default.
 
-        :cmd: command to execute
-        :timeout: timeout of the command in second
-        :local_echo: read the echo of the command before
-        :withexitstatus: return the exit status with the response in a tuple (exit, rsp)
-        :check: If False do not assert if the command exit status is not 0
-        :return: stdout/stderr of the command or a tuple
+        :param cmd: command to execute
+        :param timeout: timeout of the command in second
+        :param local_echo: read the echo of the command before
+        :param withexitstatus: return the exit status with the response in a tuple (exit, rsp)
+        :param check: If False do not assert if the command exit status is not 0
+
+        :returns: stdout/stderr of the command or a tuple
                  (exit, stdout/stderr of the command) if withexitstatus is set
         """
         # Sometimes, when using send, sendline or expect, there is stuff in the buffer
@@ -1335,29 +1300,29 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
                     )
 
     def run(self, cmd, timeout=-1, local_echo=True, withexitstatus=False, check=True):
-        """Run a command, check the exit status by default and returns the
+        r"""Run a command, check the exit status by default and returns the
         response.
 
-        @param cmd: command to execute
-        @param timeout: timeout of the command in second
-        @param local_echo: read the echo of the command before
-        @param withexitstatus: return the exit status with the
-        @param response in a tuple (exit, rsp)
-        @param check: If False do not assert if the command exit status is not 0
+        :param cmd: command to execute
+        :param timeout: timeout of the command in second
+        :param local_echo: read the echo of the command before
+        :param withexitstatus: return the exit status with the
+        :param response: in a tuple (exit, rsp)
+        :param check: If False do not assert if the command exit status is not 0
 
-        @Returns stdout/stderr of the command or a tuple (exit, stdout/stderr of
-            the command) if withexitstatus is set
+        :returns: stdout/stderr of the command or a tuple (exit, stdout/stderr of
+                  the command) if withexitstatus is set
 
-        @ingroup targetGroup
 
-        ~~~~~~~~~~~~~{.py}
-        # Test if "PASSED" is in the logs
-        rsp = target.run("/sbin/logread")
-        assert "PASSED" in rsp, "test returned [FAILED]"
-        # Check that the exit status of the command is not 0. Use withexitstatus.
-        exit, rsp = target.run(" [ -e %s ]" % (testFilePath), withexitstatus=True)
-        assert exit != 0, "[FAILED] file is created after the write operation"
-        ~~~~~~~~~~~~~
+        .. code-block:: python
+
+            # Test if "PASSED" is in the logs
+            rsp = target.run("/sbin/logread")
+            assert "PASSED" in rsp, "test returned [FAILED]"
+            # Check that the exit status of the command is not 0. Use withexitstatus.
+            exit, rsp = target.run(" [ -e %s ]" % (testFilePath), withexitstatus=True)
+            assert exit != 0, "[FAILED] file is created after the write operation"
+
         """
         try:
             return self.run_main(cmd, timeout, local_echo, withexitstatus, check)
@@ -1377,7 +1342,6 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         Args:
             timeout: in second
             power_supply: power supply instance. Reboot with an external power supply
-        @ingroup targetGroup
         """
         if not power_supply:
             # Don't know why the following commented line does not work....
@@ -1390,18 +1354,12 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         self.wait_for_reboot(timeout)
 
     def wait_for_device_up(self, timeout):
-        """Wait for ssh connection to be up.
-
-        @ingroup targetGroup
-        """
+        """Wait for ssh connection to be up."""
         swilog.debug("wait for up (over ssh)")
         return self.wait_for_device(down=False, timeout=timeout)
 
     def wait_for_device_down(self, timeout):
-        """Wait for ssh connection to be down.
-
-        @ingroup targetGroup
-        """
+        """Wait for ssh connection to be down."""
         swilog.debug("wait for down (over ssh)")
         return self.wait_for_device(down=True, timeout=timeout)
 
@@ -1415,7 +1373,6 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
 
         Returns:
             0 if timeout not reached
-        @ingroup targetGroup
         """
         count = timeout
         expected_com = 1 if down else 0
@@ -1431,17 +1388,13 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
 
         Args:
             timeout: timeout in seconds
-        @ingroup targetGroup
         """
         assert self.wait_for_device_down(timeout) == 0, "No shutdown of the target"
         assert self.wait_for_device_up(timeout) == 0, "Device was not started"
         self.reinit()
 
     def reinit(self):
-        """Link reconnection (for example after a reboot).
-
-        @ingroup targetGroup
-        """
+        """Link reconnection (for example after a reboot)."""
         if self.reinit_in_progress:
             raise ComException("A reinit is already in progress")
         self.reinit_in_progress = True
@@ -1465,7 +1418,6 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
 
         Args:
             timeout: timeout in second
-        @ingroup targetGroup
         """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -1501,8 +1453,6 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
 
         Raises:
             Assertion
-
-        @ingroup targetGroup
         """
         data = ""
         for pattern in expected_list:

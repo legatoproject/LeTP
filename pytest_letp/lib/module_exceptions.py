@@ -1,9 +1,9 @@
-"""!@package module_exceptions Module exceptions for modules classes."""
+"""Module exceptions for modules classes."""
 from pytest_letp.lib import swilog
 
 
 class SlinkException(Exception):
-    """!Generic exception for Target definition."""
+    """Generic exception for Target definition."""
 
     def __init__(self, msg=None):
         error_msg = "SlinkException"
@@ -14,7 +14,7 @@ class SlinkException(Exception):
 
 
 class TargetException(Exception):
-    """!Generic exception for Target."""
+    """Generic exception for Target."""
 
     def __init__(self, msg=None):
         error_msg = "TargetException"

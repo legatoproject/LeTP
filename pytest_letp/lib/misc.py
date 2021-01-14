@@ -1,4 +1,4 @@
-"""!@package misc Miscellaneous for testing."""
+"""Miscellaneous for testing."""
 import select
 import sys
 
@@ -8,16 +8,18 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 def input_timeout(msg, timeout):
-    """!Read a user entry in stdin with timeout.
+    """Read a user entry in stdin with timeout.
 
-    @param msg: Message to display
-    @param timeout: in second
+    Args:
+        msg: Message to display
+        timeout: in second
 
-    @Returns Read input
+    Returns:
+         Read input
 
-    ~~~~~~~~~~~~~{.py}
-    msg = misc.input_timeout("Please manually power cycle your target", 30)
-    ~~~~~~~~~~~~~
+    .. code-block:: python
+
+        msg = misc.input_timeout("Please manually power cycle your target", 30)
     """
     swilog.info(msg)
     i, _, _ = select.select([sys.stdin], [], [], timeout)

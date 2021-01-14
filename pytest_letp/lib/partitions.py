@@ -1,4 +1,4 @@
-"""!@package partitions Utility functions to flash partitions."""
+"""Utility functions to flash partitions."""
 import os
 import time
 
@@ -8,11 +8,11 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 def erase(target, partition_name, root_password=None):
-    """!Erase a partition with fastboot.
+    """Erase a partition with fastboot.
 
-    @param target: target fixture
-    @param partition_name: partition to erase
-    @param root_password: optional host root password
+    :param target: target fixture
+    :param partition_name: partition to erase
+    :param root_password: optional host root password
     """
     target.sendline("sys_reboot bootloader")
     swilog.info("wait for bootloader")

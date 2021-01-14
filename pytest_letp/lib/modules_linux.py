@@ -1,6 +1,6 @@
 # pylint: disable=broad-except
 # pylint: disable=no-member
-"""@package targetModules module dependant functions.
+"""module dependant functions.
 
 Set of functions for Linux modules.
 """

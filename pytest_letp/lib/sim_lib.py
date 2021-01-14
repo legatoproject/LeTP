@@ -1,4 +1,4 @@
-"""!@package sim_lib Manage Carrier, APN, PDP, Band for the sim.
+"""Manage Carrier, APN, PDP, Band for the sim.
 
 We store an DB in json format, look up its full information for testing.
 """
@@ -18,7 +18,7 @@ SIM_CONFIG_PATH = os.path.join(LETP_TESTS, "config/uicc/simdb.xml")
 
 
 def get_sim_info(target):
-    """!Use ICCID and IMSI to retrieve correct information.
+    """Use ICCID and IMSI to retrieve correct information.
 
     Retrieves Carrier, APN, PDP, Band.
     """
@@ -30,14 +30,14 @@ def get_sim_info(target):
 
 
 def validate(element, iccid, imsi):
-    """!Validate ICCID and IMSI match the prefix in simdb.
+    """Validate ICCID and IMSI match the prefix in simdb.
 
     Description:
     Checks if element's ICCID/IMSI is in device's ICCID/IMSI
 
-    @param element: Sim Element containing APN, PDP, Band, ICCIDs, IMSIs
-    @param iccid: String containing value of current Device's ICCID
-    @param imsi: String containing value of current Device's IMSI
+    :param element: Sim Element containing APN, PDP, Band, ICCIDs, IMSIs
+    :param iccid: String containing value of current Device's ICCID
+    :param imsi: String containing value of current Device's IMSI
 
     @Return True if element contains ICCID and IMSI
         False otherwise
@@ -61,7 +61,7 @@ def validate(element, iccid, imsi):
 
 
 class SimDBParser:
-    """!Class for parsing sibdb.xml."""
+    """Class for parsing sibdb.xml."""
 
     def __init__(self, xmlfile=SIM_CONFIG_PATH):
         """Parse simdb.xml."""
@@ -88,20 +88,20 @@ class SimDBParser:
         return self.root.findtext(detail_path_in_xml)
 
     def get_sim_apn(self, sim_type="Telus"):
-        """!Get the SIM APN in sim capability xml file."""
+        """Get the SIM APN in sim capability xml file."""
         return self._get_sim_detail(sim_type, "APN")
 
     def get_sim_pdp(self, sim_type="Telus"):
-        """!Get the SIM PDP in sim capability xml file."""
+        """Get the SIM PDP in sim capability xml file."""
         return self._get_sim_detail(sim_type, "PDP")
 
     def get_rf_band(self, sim_type="Telus"):
-        """!Get the SIM RF band in sim capability xml file."""
+        """Get the SIM RF band in sim capability xml file."""
         return self._get_sim_detail(sim_type, "Band")
 
     @staticmethod
     def get_sim_carrier(sim_element):
-        """!Get the SIM carrier in sim capability xml file."""
+        """Get the SIM carrier in sim capability xml file."""
         site = TestConfig.default_cfg.get_site()
         carrier = sim_element.tag
         if "Amarisoft" in carrier:
@@ -110,10 +110,10 @@ class SimDBParser:
         return carrier
 
     def parse_sim_info(self, iccid, imsi):
-        """!Parse and set Sim information based on ICCID and IMSI.
+        """Parse and set Sim information based on ICCID and IMSI.
 
-        @param iccid: Current device's ICCID
-        @param imsi: Current device's IMSI
+        :param iccid: Current device's ICCID
+        :param imsi: Current device's IMSI
 
         @Returns SimInfo object with updated Carrier,APN,PDP,Band if successful.
             None otherwise
@@ -159,4 +159,4 @@ class SimInfo(
         "SimInfo", "Carrier,APN,PDP,Band,Iccid,Imsi,Mcc,Mnc,Tel,Pin,Puk,Smsc"
     )
 ):
-    """!Class for Sim Information."""
+    """Class for Sim Information."""

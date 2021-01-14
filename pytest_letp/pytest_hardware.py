@@ -1,4 +1,4 @@
-"""!@package pytest_hardware Hardware fixtures.
+"""Hardware fixtures.
 
 Pytest fixtures for external test equipments and hardware.
 """
@@ -8,22 +8,20 @@ from pytest_letp.lib import swilog
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
-## @defgroup hardwareFixtureGroup The fixture related to test equipments and hardware
 # Any operation related to external target hardware should be here.
-# @{
 @pytest.fixture(scope="session")
 def power_supply(request, read_config_default):
-    """!Get the power supply object if configured.
+    """Get the power supply object if configured.
 
     Control target power via hardware switch in test.
 
     Example:
-    ~~~~~~~~~~~~~{.py}
-    def L_ps_0001(power_supply):
-        power_supply.cycle()
-    ~~~~~~~~~~~~~
+    Power supply management
 
-    @ref controller.controller
+    .. code-block:: python
+
+        def L_ps_0001(power_supply):
+            power_supply.cycle()
     """
     ret = None
     if read_config_default.findtext("hardware/power_supply") is not None:

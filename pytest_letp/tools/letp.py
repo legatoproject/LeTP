@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""!@package letpCmd Command-liner launcher for LeTP.
+"""Command-liner launcher for LeTP.
 
 Run with -h flag to see usage.
 """
@@ -92,7 +92,7 @@ def _get_arguments():
 
 
 def run(args, pytest_args):
-    """!Run the the tests when the run argument is used."""
+    """Run the the tests when the run argument is used."""
     _pytest_config_file = "pytest.ini"
     pytest_root = os.path.expandvars("$LETP_TESTS")
     print("$LETP_TESTS={}".format(pytest_root))
@@ -131,7 +131,7 @@ def run(args, pytest_args):
 
 
 def main():
-    """!Entry point of LeTP."""
+    """Entry point of LeTP."""
     args, pytest_args = _get_arguments()
     command = args.command_name
 

@@ -1,15 +1,12 @@
-"""!Test multiple target connectivity.
-
-@package testTarget2
-"""
+"""Test multiple target connectivity."""
 import pytest
-import swilog
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 def test_one_target(target):
-    """!Test sending external commands to one target.
+    """Test sending external commands to one target.
 
     Fill target.xml first.
     """
@@ -20,7 +17,7 @@ def test_one_target(target):
 
 @pytest.mark.config("$LETP_TESTS/config/target2.xml")
 def test_two_targets(target, target2):
-    """!Test sending external commands to 2 targets.
+    """Test sending external commands to 2 targets.
 
     Fill target.xml for the first target and target2.xml for the second.
     """

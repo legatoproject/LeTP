@@ -1,4 +1,4 @@
-"""!@package pytest_test_config Test configurations."""
+"""Test configurations."""
 import enum
 import json
 import os
@@ -18,7 +18,7 @@ TEST_CONFIG_KEY = "LeTPTestConfig"
 
 
 class ConfigType(enum.Enum):
-    """!The test configuration type."""
+    """The test configuration type."""
 
     # Configured attributes of the tag. e.g. test_run/context(context2)=456
     XML_ATTR = enum.auto()
@@ -29,17 +29,18 @@ class ConfigType(enum.Enum):
 
 
 class TestConfigsParser:
-    """!Test Configuration parser.
+    """Test Configuration parser.
 
     e.g. --config and the configuration in the json file for the test.
 
     The each configuration item follows xml path related formats:
+
     1. Change the tag:
-        module/name=ar7594
+       module/name=ar7594
     2. Change the attribute of the tag
-        test_run/context(context2)=456
-    3: Use one specific xml file. The whole file will be included.
-        scenario/config/target_ar759x.xml
+       test_run/context(context2)=456
+    3. Use one specific xml file. The whole file will be included.
+       scenario/config/target_ar759x.xml
 
     The item may contains , for multiple configs.
     """
@@ -47,7 +48,8 @@ class TestConfigsParser:
     def __init__(self, cmd_line_cfgs: list):
         """Init a configs parser object.
 
-        cmd_line_cfgs: the configuration array.
+        Args:
+            cmd_line_cfgs: the configuration array.
         """
         assert isinstance(cmd_line_cfgs, list)
         self.cmd_line_cfgs = cmd_line_cfgs if cmd_line_cfgs else []
@@ -57,40 +59,40 @@ class TestConfigsParser:
         self._run()
 
     def get_tag_configs(self):
-        """!Get tags configurations."""
+        """Get tags configurations."""
         return self.config_dict[ConfigType.XML_TAG]
 
     def get_attributes_configs(self):
-        """!Get configs for xml attributes.
+        """Get configs for xml attributes.
 
         e.g. test_run/context(context2)=456
         """
         return self.config_dict[ConfigType.XML_ATTR]
 
     def get_all_set_configs(self):
-        """!Get all set configs with =."""
+        """Get all set configs with =."""
         return self.get_tag_configs() + self.get_attributes_configs()
 
     def get_xml_configs(self):
-        """!Get configs for the tag.
+        """Get configs for the tag.
 
         e.g. test_run/id=test
         """
         return self.config_dict[ConfigType.XML_FILE]
 
     def is_valid(self):
-        """!Check any configuration exists."""
+        """Check any configuration exists."""
         return any(self.config_dict.values())
 
     def _build_cfg_array(self):
-        """!Build configs with no ',' inside."""
+        """Build configs with no ',' inside."""
         # each element may also contain ,
         joined_config = ",".join(self.cmd_line_cfgs)
         simple_configs_array = joined_config.split(",")
         return simple_configs_array
 
     def _run(self):
-        """!Run the parser to fill in configuration dictionary."""
+        """Run the parser to fill in configuration dictionary."""
         simple_configs_array = self._build_cfg_array()
         for config in simple_configs_array:
             assert isinstance(config, str)
@@ -108,7 +110,7 @@ class TestConfigsParser:
 
 
 class LeTPConfigPath:
-    """!LeTP tests may contain several config trees in different folders."""
+    """LeTP tests may contain several config trees in different folders."""
 
     def __init__(self, config_path):
         """Init a relative LeTP config path.
@@ -156,7 +158,7 @@ class LeTPConfigPath:
         return None
 
     def resolve_xml(self):
-        """!Resolve the matched xml files.
+        """Resolve the matched xml files.
 
         Searching order in the configuration trees:
         1. $LETP_TESTS
@@ -189,7 +191,7 @@ class LeTPConfigPath:
 
 class TestConfig:
     # pylint: disable=too-many-public-methods
-    """!Target config object for the test."""
+    """Target config object for the test."""
 
     default_cfg_file = "config/testbench.xml"
     test_base_report_cache = "log/letp_test_results.json"  # letp_tests_info
@@ -210,7 +212,7 @@ class TestConfig:
         self.test_base_reports = None
 
     def get(self):
-        """!Get the target config in xml tree."""
+        """Get the target config in xml tree."""
         return self._config_container
 
     def _get_xml_root(self):
@@ -222,7 +224,7 @@ class TestConfig:
         return ET.tostring(self._get_xml_root(), encoding="unicode")
 
     def get_testbed_id(self):
-        """!Get testbed ID from letp configuration.
+        """Get testbed ID from letp configuration.
 
         Description:
         Checks and get testbed ID if it is configurated from letp
@@ -237,7 +239,7 @@ class TestConfig:
             return None
 
     def get_site(self):
-        """!Get site ID from letp configuration.
+        """Get site ID from letp configuration.
 
         Descriptions:
         Parse site ID from testbed ID
@@ -258,7 +260,7 @@ class TestConfig:
         pathlib.Path(file_dir_name).mkdir(exist_ok=True)
 
     def save_test_cfg_cache(self, file_name=None):
-        """!Save test configuration cache for debugging."""
+        """Save test configuration cache for debugging."""
         if not file_name:
             file_name = self.default_cfg_xml_cache
         self._create_parent_folder(file_name)
@@ -267,7 +269,7 @@ class TestConfig:
             f_io.write(all_xml_config)
 
     def save_test_report_cache(self, file_name=None):
-        """!Save test results cache."""
+        """Save test results cache."""
         if not file_name:
             file_name = TestConfig.test_base_report_cache
         self._create_parent_folder(file_name)
@@ -277,7 +279,7 @@ class TestConfig:
         print("File {} was created!".format(file_name))
 
     def add_test_components(self, components: dict):
-        """!Save the test env components."""
+        """Save the test env components."""
         if components:
             new_comp = self._build_component_lst(components)
 
@@ -288,7 +290,7 @@ class TestConfig:
                 self._elem_dict["components"] = existing_comp + new_comp
 
     def get_test_components(self):
-        """!Return the test env components."""
+        """Return the test env components."""
         return self._elem_dict.get("components")
 
     def _get_args_config(self, key):
@@ -319,7 +321,7 @@ class TestConfig:
         return comp_lst
 
     def get_context_configs(self) -> dict:
-        """!Get context config dictionary.
+        """Get context config dictionary.
 
         e.g. one config entry:
         "test_run/context(jenkins.job):
@@ -345,15 +347,15 @@ class TestConfig:
         return None
 
     def get_jenkins_job(self):
-        """!Read jenkins job config if there is any."""
+        """Read jenkins job config if there is any."""
         return self._get_args_config_value("test_run/context(jenkins.job)")
 
     def get_target_name(self):
-        """!Read target name config if there is any."""
+        """Read target name config if there is any."""
         return self._get_args_config_value("module/name")
 
     def get_test_campaign(self):
-        """!Read test campaign config if there is any."""
+        """Read test campaign config if there is any."""
         return self._get_args_config_value("test_run/context(test.campaign)")
 
     def _search_for_value(self, key, config_container):
@@ -447,7 +449,7 @@ class TestConfig:
             self._include_one_cfg_xml(child_config_file, config_container)
 
     def expand_file_name(self, config_file):
-        """!Expand file name with regex $("KEY").
+        """Expand file name with regex $("KEY").
 
         Treat the case of inclusion
         Replace reference to a xml element.
@@ -463,20 +465,19 @@ class TestConfig:
         return config_file
 
     def create_cfg_xml(self, config_files):
-        """!Read the xml configuration file.
+        """Read the xml configuration file.
 
-        config_files: list of xml configuration files
-        in_cfg: configuration to update
-        Used to search for an unknown value.
+        Args:
+            config_files: list of xml config files used to search for an unknown value.
 
         It is possible to include other xml files with the tag "include_xml".
         It is also possible to use the text value of a xml element in the file path
         to include with $(). In the following example, $("name") refers to the
         parameter name ("WP7502") of the xml.
 
-        @snippet target.xml create_cfg_xml example
+        .. literalinclude:: ../../../test/config/target.xml
 
-        In the inluded file, the tag "include_child_only" allows to include all the
+        In the included file, the tag "include_child_only" allows to include all the
         child of the root tree, not the root tree.
         """
         # Go to LeTP tests because configuration file path can
@@ -496,7 +497,7 @@ class TestConfig:
         os.chdir(old_path)
 
     def apply_extra_config(self, cfg):
-        """!Apply extra configs in value pairs.
+        """Apply extra configs in value pairs.
 
         The format: key=value in the --config arg[,arg2]. Two
         variations: test_run/id=test test_run/context(context2)=456
@@ -534,7 +535,7 @@ class TestConfig:
                     swilog.debug("Ignore {} at this step.".format(f))
 
     def store_tests(self, item):
-        """!Store tests information.
+        """Store tests information.
 
         Check if it's possible to merge it with collect-only info.
         pytest has this it already.
@@ -542,7 +543,7 @@ class TestConfig:
         self.collected_tests.append(item.nodeid)
 
     def parse_config(self, root=None, path=""):
-        """!Parse xml configs into a dictionary.
+        """Parse xml configs into a dictionary.
 
         Key: the element path + attributes.
         """
@@ -576,11 +577,11 @@ class TestConfig:
             self.parse_config(child_root, elem_path)
 
     def get_main_config(self):
-        """!Get main configuration for the test."""
+        """Get main configuration for the test."""
         return self.xml_file_lists + sorted(self._elem_dict.values())
 
     def collect_test_configs(self):
-        """!Collect test json configs."""
+        """Collect test json configs."""
         values = self.get_main_config()
         tests_array = []
         for test in self.collected_tests:
@@ -592,12 +593,12 @@ class TestConfig:
         self.test_base_reports = json_content
 
     def is_random(self):
-        """!Read the config dict to see if the test run should be random."""
+        """Read the config dict to see if the test run should be random."""
         return self._elem_dict.get("test_run/randomize")
 
     @staticmethod
     def read_default_config(session):
-        """!Read the default configuration file."""
+        """Read the default configuration file."""
         old_path = os.getcwd()
         if "LETP_TESTS" in os.environ:
             os.chdir(os.environ["LETP_TESTS"])
@@ -609,7 +610,7 @@ class TestConfig:
 
     @staticmethod
     def get_testCfg(name):
-        """!Get Test specific configuration if there is any in json."""
+        """Get Test specific configuration if there is any in json."""
         test_list = TestConfig.test_list
 
         if test_list == []:
@@ -660,7 +661,7 @@ class TestConfig:
 
     @staticmethod
     def get_marker_config(item):
-        """!Get the marker configs pytest.mark."""
+        """Get the marker configs pytest.mark."""
         marker = item.get_closest_marker("config")
         marker_configs = []
         if marker is not None:
@@ -670,14 +671,14 @@ class TestConfig:
 
     @staticmethod
     def get_configs_in_json(item):
-        """!Get configs in json file if any."""
+        """Get configs in json file if any."""
         test_name = item.name
         configs_in_json = TestConfig.get_testCfg(test_name)
         return TestConfigsParser(configs_in_json)
 
     @staticmethod
     def build(item):
-        """!Process test config markers.
+        """Process test config markers.
 
         Create in config/test the xml files you need to your test (and only
         related to your test) such as server address, firmware versions, ...
@@ -685,14 +686,14 @@ class TestConfig:
         No need to declare it in json or in the command line.
         For a specific test function use:
 
-        ~~~~~~~~~~~~~{.py}
-        @pytest.mark.config("config/test/ima.xml")
-        def L_xxx():
-        ~~~~~~~~~~~~~
+        .. code-block:: python
 
-        To associate an xml file to a whole python module, use:
+            @pytest.mark.config("config/test/ima.xml")
+            def L_xxx():
 
-        pytestmark = pytest.mark.config("config/test/ima.xml")
+        To associate an xml file to a whole python module, use::
+
+            pytestmark = pytest.mark.config("config/test/ima.xml")
 
         The order is very important as the last read
         parameters override the others
@@ -737,7 +738,7 @@ class TestConfig:
 
     @staticmethod
     def build_default_config(cmd_line_cfgs=None):
-        """!Build config from user config parameters and default config xml."""
+        """Build config from user config parameters and default config xml."""
         # Create configuration. Add the default config file first
         cmd_line_cfgs = cmd_line_cfgs if cmd_line_cfgs is not None else []
 

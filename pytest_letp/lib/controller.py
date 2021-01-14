@@ -1,6 +1,8 @@
 # pylint: skip-file
 # Reenable pylint after error fixes.
-"""!@package controller The controller for external equipments."""
+"""The controller for external equipments.
+##########################################
+"""
 import sys
 import time
 

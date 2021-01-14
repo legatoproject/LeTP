@@ -1,13 +1,15 @@
-"""!@package swilog The Sierra-Wireless colored log module.
+r"""The Sierra-Wireless colored log module.
 
 Use the swilog module to print information instead of "print" statement.
 It is equivalent to the logging python module with colors.
 
-The debug level can be set thanks to the -d option. See @ref letp_options
+The debug level can be set thanks to the -d option. See :ref:`letp_options`
 
-@section cologLogs Examples
+Examples
+^^^^^^^^
 
-~~~~~~~~~~~~~{.python}
+.. code-block:: python
+
     from pytest_letp.lib import swilog
 
     swilog.debug("debug message")
@@ -16,25 +18,25 @@ The debug level can be set thanks to the -d option. See @ref letp_options
     swilog.warning("warning message")
     swilog.error("error message")
     swilog.critical("critical message")
-~~~~~~~~~~~~~
 
 Output:
 
-@image html swilog.png
-@image latex swilog.eps
+.. image:: ../../img/swilog.png
 
-@section memo Errors memorization
+Errors memorization
+^^^^^^^^^^^^^^^^^^^
 
 swilog.error() memorizes all the error messages in a list.
 It can be used to log all the errors of the test if they are non blocking errors.
 At the end of the test, you can use swilog.get_error_list() to
 get all errors and check if the test is passed.
 
-~~~~~~~~~~~~~{.python}
-    failed_testcases_list = swilog.get_error_list()
-    if failed_testcases_list != []:
-        assert 0, "Some tests failed:\n%s"% "\n".join(failed_testcases_list)
-~~~~~~~~~~~~~
+.. code-block:: python
+
+  failed_testcases_list = swilog.get_error_list()
+  if failed_testcases_list != []:
+      assert 0, "Some tests failed:/\n%s"% "/\n".join(failed_testcases_list)
+
 """
 import sys
 

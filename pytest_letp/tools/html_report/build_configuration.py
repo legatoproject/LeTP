@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""!Build a test running result report in json format.
+"""Build a test running result report in json format.
 
 We may run several test campaigns in the same environment.
 
@@ -7,15 +7,13 @@ The package here is to build a configuration json report.
 Input:
 junit.xml test results.
 CI environment infos:
-    e.g.
-        Test campaign name
-        Testbed.id;
-        test binaries info.
+e.g.
+- Test campaign name
+- Testbed.id;
+- test binaries info.
 
 Output:
 A json file contains the above environment and junit test results.
-
-@package build_configuration
 """
 import argparse
 import json

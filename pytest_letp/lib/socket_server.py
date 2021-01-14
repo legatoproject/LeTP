@@ -1,4 +1,4 @@
-"""!@package socket_server Network(Server) connection library."""
+"""Network(Server) connection library."""
 # pylint: skip-file
 # Reenable pylint after error fixes.
 import sys
@@ -15,14 +15,14 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
-    """!The request handler class for our server.
+    """The request handler class for our server.
 
     It is instantiated once per connection to the server, and must
     override the handle method to implement communication to the client.
     """
 
     def setup(self):
-        """!Setup TCP server."""
+        """Setup TCP server."""
         if not hasattr(self.server, "max_size"):
             swilog.warning(
                 "[TCP SERVER] server.max_size not defined. Set it to default 128"
@@ -39,7 +39,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
             self.server.wait_after_transaction = 5
 
     def handle(self):
-        """!Handle the TCP connection.
+        """Handle the TCP connection.
 
         Echo back data sent to server from client.
         """
@@ -80,19 +80,19 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    """!Threaded TCP server."""
+    """Threaded TCP server."""
 
     # Avoid [Errno 98] Address already in use
     allow_reuse_address = True
 
 
 def get_tcp_server(ip, port, responder=True, max_size=128):
-    """!Get a TCP server.
+    """Get a TCP server.
 
-    @param ip: ip address of the server
-    @param port: tcp port
-    @param responder: If True, send the received data back
-    @param max_size: Max size read by the server for each request
+    :param ip: ip address of the server
+    :param port: tcp port
+    :param responder: If True, send the received data back
+    :param max_size: Max size read by the server for each request
 
     @returns the server instance
 
@@ -111,14 +111,14 @@ def get_tcp_server(ip, port, responder=True, max_size=128):
 
 
 class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
-    """!The request handler class for our server.
+    """The request handler class for our server.
 
     It is instantiated once per connection to the server, and must
     override the handle method to implement communication to the client.
     """
 
     def setup(self):
-        """!Setup UDP server."""
+        """Setup UDP server."""
         if not hasattr(self.server, "max_size"):
             swilog.warning(
                 "[UDP SERVER] server.max_size not defined. Set it to default 128"
@@ -135,7 +135,7 @@ class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
             self.server.wait_after_transaction = 5
 
     def handle(self):
-        """!Handle the UDP connection.
+        """Handle the UDP connection.
 
         Echo back data sent to server from client.
         """
@@ -157,18 +157,18 @@ class ThreadedUDPRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class ThreadedUDPServer(SocketServer.ThreadingMixIn, SocketServer.UDPServer):
-    """!Threaded UDP server."""
+    """Threaded UDP server."""
 
     allow_reuse_address = True
 
 
 def get_udp_server(ip, port, responder=True, max_size=128):
-    """!Get an UDP server.
+    """Get an UDP server.
 
-    @param ip: ip address of the server
-    @param port: udp port
-    @param responder: If True, send the received data back
-    @param max_size: Max size read by the server for each request
+    :param ip: ip address of the server
+    :param port: udp port
+    :param responder: If True, send the received data back
+    :param max_size: Max size read by the server for each request
 
     @Returns the server instance
 

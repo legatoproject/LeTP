@@ -13,7 +13,7 @@ from _pytest.config import Config
 
 
 class Tee:
-    """!Class to write in 2 different files.
+    """Class to write in 2 different files.
 
     Typically replace sys.stdout/stderr to write both in stdout/stderr
     and in a log file.
@@ -66,7 +66,7 @@ class Tee:
 
 
 class LogFileNameBuilder:
-    """!Build a log file name."""
+    """Build a log file name."""
 
     def __init__(self, file_or_dir):
         self.file_or_dir = file_or_dir

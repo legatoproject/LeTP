@@ -1,4 +1,4 @@
-"""@package LinuxVersions.
+"""LinuxVersions.
 
 Set of functions that retrieve the linux platform's versions using
 either legato command line or AT command from the module

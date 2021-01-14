@@ -1,9 +1,9 @@
 # pylint: skip-file
 # Reenable pylint after error fixes.
-"""@package targetModules module dependant functions.
+"""module dependant functions.
 
-Set of functions that must be implemented differently depending
-on the module (eth, ecm, imei,...)
+Set of functions that must be implemented differently depending on the
+module (eth, ecm, imei,...)
 """
 import copy
 import ipaddress
@@ -65,7 +65,7 @@ def get_swi_module(class_name):
 
 
 def define_target(request, read_config, inst_name="module"):
-    """!inst_name is the name of the module top element in the xml."""
+    """inst_name is the name of the module top element in the xml."""
     generic_name = read_config.findtext("%s/generic_name" % inst_name)
     module_name = read_config.findtext("%s/name" % inst_name)
 
@@ -444,8 +444,6 @@ class SwiModule:
         """Return the IMEI of the module.
 
         (deprecated, use target.imei instead).
-
-        @ingroup targetGroup
         """
         return self.imei
 
@@ -482,7 +480,6 @@ class SwiModule:
 
         Args:
             addr: ip address that should be used
-        @ingroup targetGroup
         """
         assert 0, "Not implemented yet"
 
@@ -491,7 +488,6 @@ class SwiModule:
 
         Args:
             addr: ip address that should be used
-        @ingroup targetGroup
         """
         assert 0, "Not implemented yet"
 
@@ -527,10 +523,7 @@ class SwiModule:
         return self.sim_status() == "0"
 
     def get_info(self):
-        """Get software/hardware info.
-
-        @ingroup targetGroup
-        """
+        """Get software/hardware info."""
         self.run_at_cmd("ATI", 60)
         self.run_at_cmd("ATI8", 60)
         self.run_at_cmd("ATI9", 60)

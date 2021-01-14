@@ -1,7 +1,7 @@
-"""@package targetVersions.
+"""targetVersions.
 
-Set of functions that retrieve the target's versions using
-either legato command line or AT command from the module
+Set of functions that retrieve the target's versions using either legato
+command line or AT command from the module
 """
 import re
 from pytest_letp.lib import swilog

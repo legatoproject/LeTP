@@ -1,13 +1,11 @@
-"""! Swilog test sample.
+"""Swilog test sample.
 
 Set of tests showing how to use the swilog library
-
-@package sampleSwilog
 """
 import pytest
 
 # Log module
-import swilog
+from pytest_letp.lib import swilog
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -17,9 +15,11 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 def test_swilog_call():
-    """!Activate the debug level to see all the messages.
+    """Activate the debug level to see all the messages.
 
-    letp run --dbg-lvl 0 test/host/scenario/test_swilog.py.
+    Usage::
+
+    "letp run --dbg-lvl 0 test/host/scenario/test_swilog.py"
     """
     swilog.debug("debug message")
     swilog.info("info message")
@@ -33,12 +33,13 @@ def test_swilog_call():
 # This test is expected to fail. It is just a demo.
 @pytest.mark.xfail
 def test_swilog_error_memorization(target):
-    """!Execute several tests and capture swilog errors.
+    """Execute several tests and capture swilog errors.
 
     Use swilog.error to log all the encountered errors.
     The final verdict will be passed if there is no stored errors.
 
-    @param target: fixture to communicate with the target
+    Args:
+        target: fixture to communicate with the target
     """
     if " legato " not in target.run("ls /"):
         swilog.error("/legato is not present")

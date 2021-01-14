@@ -1,7 +1,4 @@
-"""!Test hello world.
-
-@package test_helloworld
-"""
+"""Test hello world."""
 import os
 import pytest
 import pexpect
@@ -17,18 +14,18 @@ APP_PATH = os.path.join(os.environ["LEGATO_ROOT"], "apps/sample/helloWorld")
 
 @pytest.mark.usefixtures("app_leg")
 def test_helloworld(legato, logread):
-    """!Check that "Hello, world" is printed in the legato logs.
+    """Check that "Hello, world" is printed in the legato logs.
 
-    @param app_leg Pytest fixture pytest_legato.app_leg <br>
-                    It clears the logs, builds and installs the application
-                    referred by APP_NAME and located at APP_PATH.
-                    At the end, it cleans the application build on host
-                    and removes the application on target.
-    @param legato  Pytest fixture pytest_legato.legato <br>
-                    It supplies some useful Legato functions, such as
-                    starting an application.
-    @param logread Pytest fixture pytest_legato.logread <br>
-                    It reads and expects some patterns in the Legato logs.
+    Args:
+         app_leg (Pytest fixture pytest_legato.app_leg): It clears the logs, builds and
+            installs the application referred by APP_NAME and located at APP_PATH.
+            At the end, it cleans the application build on host
+            and removes the application on target.
+         legato (Pytest fixture pytest_legato.legato): It supplies some useful Legato
+            functions, such as starting an application.
+         logread (Pytest fixture pytest_legato.logread): It reads and expects some
+            patterns in the Legato logs.
+
 
     Test code steps explanation:
 
@@ -41,12 +38,11 @@ def test_helloworld(legato, logread):
 
     - This function executing:
         - Start of the HelloWorld application with legato.start
-        - Check that the string "Hello, world" is received in the logs
-            with logread.expect
+        - Check that the string "Hello, world" is received in the logs (logread.expect)
 
     - After calling:
-        - Removal of the application and clean of the application build on
-        host by the app_leg cleanup
+        - Removal of the application and clean of the application build on host \
+          by the app_leg cleanup
     """
     # Stop the app if it is running
     if legato.is_app_running(APP_NAME):

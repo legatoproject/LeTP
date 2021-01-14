@@ -1,4 +1,4 @@
-"""!@package pytest_test_report Test report manager.
+"""Test report manager.
 
 It generates intermediate junit.xml test report. It also generates the
 human friendly HTML test report.
@@ -77,7 +77,7 @@ def _get_log_xml(config):
 
 @pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(items, session):
-    """!Modify the collected items.
+    """Modify the collected items.
 
     Will be called after collection has been performed.
 
@@ -85,8 +85,8 @@ def pytest_collection_modifyitems(items, session):
 
     We shuffle the test running order here to avoid tests logic coupled together.
 
-    @param List[_pytest.nodes.Item] items: list of item objects
-    @param session:  Current session
+    :param List[_pytest.nodes.Item] items: list of item objects
+    :param session:  Current session
     """
     default_cfg = session.config._store[TEST_CONFIG_KEY]
     randomize = "true" in default_cfg.is_random().lower()
@@ -96,7 +96,7 @@ def pytest_collection_modifyitems(items, session):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session):
-    """!Modify the report when the session finishes.
+    """Modify the report when the session finishes.
 
     We shuffled the test running order in pytest_collection_modifyitems.
     We will restore the order here.
@@ -113,17 +113,18 @@ def pytest_sessionfinish(session):
 
 
 class TestReporter:
-    """!Test reporter ."""
+    """Test reporter ."""
 
     def __init__(self, test_config, html_file, junit_file, json_file):
-        """!Have a LETP test reporter.
+        """Have a LETP test reporter.
 
         Keyword Arguments:
-        test_config -- TestConfig object
-        html_file -- The output html file.
-        junit_file -- The Junit format result from junitxml plugin.
-        json_file -- The json file extra test configs
-            and environment setup, pytest result(including xpass, xfail)
+        :param test_config: TestConfig object
+        :param html_file: The output html file.
+        :param junit_file: The Junit format result from junitxml plugin.
+        :param json_file: The json file extra test configs
+                          and environment setup,
+                          pytest result(including xpass, xfail)
         """
         self._html_file = html_file
         self._junit_file = junit_file
@@ -131,7 +132,7 @@ class TestReporter:
         self._test_config = test_config
 
     def build(self):
-        """!Build test report into HTML and JSON format."""
+        """Build test report into HTML and JSON format."""
         if not os.path.exists(self._junit_file):
             print("Need to have {}".format(self._junit_file))
             return

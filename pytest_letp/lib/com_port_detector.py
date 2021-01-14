@@ -1,4 +1,4 @@
-"""!@package com_port_detector com port detector library."""
+"""com port detector library."""
 import os
 import time
 
@@ -12,7 +12,7 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 class ComPortDetector:
-    """!Auto-detect CLI and AT com ports.
+    """Auto-detect CLI and AT com ports.
 
     Limitation: unable to reliably detect com ports if
     multiple modules of the same type are connected to the same
@@ -27,11 +27,14 @@ class ComPortDetector:
         self.com_port_info = com_port_info
 
     def _get_com_port_device_lst(self, com_port_name=com.ComPortType.CLI.name):
-        """Return a list of possible usb com port device name.
+        """Iterate over the list of com port. Find possible matches based on.
 
-        Iterate over the list of com port and find possible matches
-        based on com_port_name. The look up order should be usb-
-        interface (e.g. 5-2:1.3) -> com port description
+        com_port_name. The look up order should be usb-interface (e.g. 5-2:1.3)
+
+        -> com port description.
+
+        Returns:
+            A list of possible usb com port device name.
         """
         possible_devices_lst = []
         most_likely_dev_tty = None
@@ -138,7 +141,8 @@ class ComPortDetector:
     def get_com_port(self, com_port_name=com.ComPortType.CLI.name):
         """Iterate over a list of possible devices.
 
-        Return the port corresponds to com_port_name.
+        Returns:
+             The port corresponds to com_port_name.
         """
         max_retry = 6
         max_wait_time = 15

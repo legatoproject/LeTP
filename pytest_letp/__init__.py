@@ -1,4 +1,4 @@
-"""!@package pytest_letp LeTP main fixture.
+"""LeTP main fixture.
 
 Pytest fixtures for letp test session.
 """
@@ -58,7 +58,7 @@ if "LETP_TESTS" in os.environ:
 
 @pytest.hookimpl
 def pytest_addoption(parser):
-    """!Parse the option for this plugin."""
+    """Parse the option for this plugin."""
     group = parser.getgroup("letp", "Sierra Wireless Legato Test Project(LETP)")
     group.addoption("--config", action="append", help="xml configuration file")
     group.addoption(
@@ -101,7 +101,7 @@ def pytest_addoption(parser):
 
 
 def get_git_info(git_repo_path):
-    """!Get git name and version from its git repo.
+    """Get git name and version from its git repo.
 
     Return: git remote name and its version.
     """
@@ -158,7 +158,7 @@ def _is_junitxml_configured(args):
 
 
 def _cmdline_preparse(args, known_args):
-    """!Parse customized arguments before passing to pytest."""
+    """Parse customized arguments before passing to pytest."""
     html_file = None
 
     if "--ci" in args:
@@ -199,7 +199,7 @@ def _cmdline_preparse(args, known_args):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_load_initial_conftests(early_config, args):
-    """!Load initial conftest setups."""
+    """Load initial conftest setups."""
     newArgs = []
 
     if os.environ.get("LETP_TEST_SET") is None:
@@ -240,7 +240,7 @@ def pytest_load_initial_conftests(early_config, args):
 
 @pytest.mark.optionalhook
 def pytest_metadata(metadata):
-    """!Put repo versions in metadata."""
+    """Put repo versions in metadata."""
     git_repo_path = os.path.join(os.path.abspath(os.path.dirname(__file__)))
     repo_paths = [git_repo_path]
     # If LeTP_TESTS has git control, add the path.
@@ -254,7 +254,7 @@ def pytest_metadata(metadata):
 
 @pytest.hookimpl()
 def pytest_configure(config):
-    """!Add customized hooks definition for pytest_json_modifyreport."""
+    """Add customized hooks definition for pytest_json_modifyreport."""
     if hasattr(config.option, "json_report") and config.option.json_report:
         # pytest_jsonreport will register the hook.
         return
@@ -265,7 +265,7 @@ def pytest_configure(config):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart(session):
-    """!Read default config when session starts."""
+    """Read default config when session starts."""
     TestConfig.test_list = (
         session.config.test_list if hasattr(session.config, "test_list") else []
     )
@@ -280,14 +280,14 @@ def pytest_sessionstart(session):
 
 @pytest.hookimpl()
 def pytest_json_modifyreport(json_report):
-    """!Merge test_base_reports configs into json report."""
+    """Merge test_base_reports configs into json report."""
     test_base_reports = TestConfig.default_cfg.test_base_reports
     json_report.update(test_base_reports)
 
 
 @pytest.hookimpl()
 def pytest_itemcollected(item):
-    """!Store the collect items and tests."""
+    """Store the collect items and tests."""
     default_cfg = item.session.config._store[TEST_CONFIG_KEY]
     default_cfg.store_tests(item)
     if not item.config.getoption("--ci"):
@@ -298,7 +298,7 @@ def pytest_itemcollected(item):
 
 @pytest.hookimpl()
 def pytest_collection_finish(session):
-    """!Generate config cache JSON."""
+    """Generate config cache JSON."""
     # Report the main config of the last test is not good enough.
     default_cfg = session.config._store[TEST_CONFIG_KEY]
     default_cfg.collect_test_configs()
@@ -307,7 +307,7 @@ def pytest_collection_finish(session):
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session):
-    """!Generate a html report.
+    """Generate a html report.
 
     This needs to be the last because it depends on junit xml file
     generation.
@@ -336,15 +336,13 @@ def pytest_sessionfinish(session):
 
 
 def get_default_cfg():
-    """!Get the default configuration for the test."""
+    """Get the default configuration for the test."""
     return TestConfig.default_cfg.get()
 
 
-## @defgroup letpFixtureGroup The fixtures related to letp global.
-# @{
 @pytest.fixture(autouse=True, scope="session")
 def init_log(request):
-    """!Initialize logging for the session.
+    """Initialize logging for the session.
 
     pytest log capture happens after pytest_sessionstart.
     We need to init log here as a session fixture after capture.
@@ -369,7 +367,7 @@ def init_log(request):
 
 @pytest.fixture(scope="function")
 def test_config(request):
-    """!Build a test configuration object."""
+    """Build a test configuration object."""
     target_config = TestConfig.build(request.node)
     assert isinstance(target_config, TestConfig)
     target_config.save_test_cfg_cache(TestConfig.last_test_config_file)
@@ -378,41 +376,42 @@ def test_config(request):
 
 @pytest.fixture(scope="function")
 def read_config(test_config):
-    """!Read the xml configuration file for a test.
+    """Read the xml configuration file for a test.
 
     A particular test can have some extra config files declared in the
     json file or with the config marker.
 
     Get the values of the xml configuration file.
-    read_config returns an elementTree object. <br>
+    read_config returns an elementTree object.
     To access to the value of an element,
     use read_config.findtext(“path/of/the/element”), such as:
 
-    ~~~~~~~~~~~~~{.py}
-    def test_read_0001(target, read_config):
-        nfs_dir = read_config.findtext(“host/nfs_mount”)
-    ~~~~~~~~~~~~~
+    .. code-block:: python
 
-    To find a node, use read_config.find. <br>
+        def test_read_0001(target, read_config):
+            nfs_dir = read_config.findtext("host/nfs_mount")
+
+    To find a node, use read_config.find.
     For the available APIs, see
-    <A HREF="https://docs.python.org/2/library/
-    xml.etree.elementtree.html#module-xml.etree.ElementTree">
-    Element Tree</A>
+    `Element Tree <https://docs.python.org/2/library/
+    xml.etree.elementtree.html#module-xml.etree.ElementTree>`_
 
-    @warning Do not use "module/ssh/ip_address" :
-    target_ip = read_config.findtext(“module/ssh/ip_address”)
-    use target.target_ip instead. Indeed, the IP address can change
-    between reboot.
-    If you use also uart, LeTP will use the uart commands to get the
-    new IP address after reboot. Moreover, TARGET_IP environment variable
-    has more priority than the value in the xml file.
+    .. warning::
+
+        | Do not use "module/ssh/ip_address" :
+        | target_ip = read_config.findtext(“module/ssh/ip_address”)
+        | use target.target_ip instead. Indeed, the IP address can change
+        | between reboot.
+        | If you use also uart, LeTP will use the uart commands to get the
+        | new IP address after reboot. Moreover, TARGET_IP environment variable
+        | has more priority than the value in the xml file.
     """
     return test_config.get()
 
 
 @pytest.fixture(scope="session")
 def read_config_default(request):
-    """!Read the default xml configuration for the whole session."""
+    """Read the default xml configuration for the whole session."""
     session = request.node.session
     default_cfg = session.config._store[TEST_CONFIG_KEY]
     return default_cfg.get()
@@ -420,19 +419,19 @@ def read_config_default(request):
 
 @pytest.fixture(autouse=True, scope="function")
 def reset_error_list():
-    """!Reset the log error list before each test."""
+    """Reset the log error list before each test."""
     swilog.error_list = []
 
 
 @pytest.fixture(autouse=True, scope="session")
 def set_locale():
-    """!All messages in english."""
+    """All messages in english."""
     os.environ["LC_ALL"] = "C"
 
 
 @pytest.fixture(autouse=True, scope="function")
 def banner(request):
-    """!Print Test banner."""
+    """Print Test banner."""
     test_name = request.node.name
     begin_msg = "========== Begin of %s ==========" % test_name
     equal_nb = 2 * 21
@@ -454,7 +453,7 @@ def banner(request):
 
 @pytest.fixture(scope="session")
 def tcp_server(read_config_default):
-    """!Create up to 4 TCP servers.
+    """Create up to 4 TCP servers.
 
     It is possible to create up to 4 UDP and 4 TCP servers with LeTP.
     The servers will be created at startup and deleted at the end of
@@ -467,16 +466,15 @@ def tcp_server(read_config_default):
     Use the fixture tcp_server or udp_server in your test to get the
     list of the TCP/UDP servers you declared.
 
-    ~~~~~~~~~~~~~{.py}
-    def test_tcp_server(tcp_server, read_config):
+    .. code-block:: python
 
-        for i, serv in enumerate(tcp_server):
-            swilog.step("server %d" % i)
-            ip = read_config.findtext(
-                "host/socket_server/tcp_%d/addr" % (i+1))
-            port = int(read_config.findtext(
-                "host/socket_server/tcp_%d/port" % (i+1)))
-    ~~~~~~~~~~~~~
+        def test_tcp_server(tcp_server, read_config):
+            for i, serv in enumerate(tcp_server):
+                swilog.step("server %d" % i)
+                ip = read_config.findtext(
+                    "host/socket_server/tcp_%d/addr" % (i+1))
+                port = int(read_config.findtext(
+                    "host/socket_server/tcp_%d/port" % (i+1)))
     """
     # Fixture based on default configuration
     # Do not use read_config which is function scope
@@ -514,7 +512,7 @@ def tcp_server(read_config_default):
 
 @pytest.fixture(scope="session")
 def udp_server(read_config_default):
-    """!Create up to 4 UDP servers.
+    """Create up to 4 UDP servers.
 
     Similar to pytest_letp.tcp_server.
     """
@@ -554,7 +552,7 @@ def udp_server(read_config_default):
 
 @pytest.fixture(scope="function")
 def metrics(request, read_config):
-    """!Fixture to collect and export fine grained metrics data.
+    """Fixture to collect and export fine grained metrics data.
 
     Users need to define metrics module to upload the performance data.
     e.g. elasticsearch.

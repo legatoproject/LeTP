@@ -1,4 +1,4 @@
-# Doxyfile 1.8.11
+ Doxyfile 1.8.11
 
 # This file describes the settings to be used by the documentation system
 # doxygen (www.doxygen.org) for a project.
@@ -781,6 +781,7 @@ WARN_LOGFILE           =
 
 INPUT                  = "../pytest_letp/" \
                          "../testing_target/" \
+                         "../pytest_letp/" \
                          "."
 
 # This tag can be used to specify the character encoding of the source files

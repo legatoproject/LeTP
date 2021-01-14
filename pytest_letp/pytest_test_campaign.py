@@ -1,10 +1,13 @@
-"""!@package pytest_test_campaign Json Test campaign.
+"""Json Test campaign.
 
 It contains test list and its config.
 
 A test campaign file in json format, located in a runtest folder,
 can be used to create a test campaign.
-@section testCampaignName Test names
+
+Test names
+^^^^^^^^^^
+
 The json file describes a list of tests in the pytest syntax (a folder, a file,
 a test function inside a file, markers, ...). There is also the possibility to
 point to another json file.
@@ -12,57 +15,59 @@ The syntax is:
 "name": "path/test_selection" where path is the relative path from $LETP_TESTS
 or an absolute path.
 
-Here is an example:
-~~~~~~~~~~~~~{.xml}
-[
-    { "name": "legato/security/sandbox/host/test_basic.py::L_SandBox_0001" },
-    { "name": "legato/security/sandbox/host/test_basic.py::L_SandBox_0004" },
-]
-~~~~~~~~~~~~~
+.. code-block:: xml
+
+    [
+        { "name": "legato/security/sandbox/host/test_basic.py::L_SandBox_0001" },
+        { "name": "legato/security/sandbox/host/test_basic.py::L_SandBox_0004" },
+    ]
+
 
 And a combination of tests and inclusion of json files:
-~~~~~~~~~~~~~{.xml}
-[
-    { "name": "legato/security/sandbox/host/test_basic.py::L_SandBox_0001" },
-    { "name": "legato/c-runtime/timers/runtest/timers.json" },
-    { "name": "legato/c-runtime/file/runtest/file.json" }
-]
-~~~~~~~~~~~~~
+
+.. code-block:: xml
+
+    [
+        { "name": "legato/security/sandbox/host/test_basic.py::L_SandBox_0001" },
+        { "name": "legato/c-runtime/timers/runtest/timers.json" },
+        { "name": "legato/c-runtime/file/runtest/file.json" }
+    ]
 
 With the tag "main_config", the user can set the xml parameters or include xml
-files (same parameters as the  Command line --config). See the "–ci" option for
-creating automatically the "main_config" content based on the xml files. <br>
+files (same parameters as the  Command line --config). See the "-ci" option for
+creating automatically the "main_config" content based on the xml files.
 With the tag "config", specifically for a test function or a json test set, it is
 possible to override the default parameters with other xml config files or to set
 a xml field. If it a json test set, this specific configuration will be applied for
 all the tests declared in the test set.
 
 In the following example, the serial link 2 (slink2 for AT commands) is activated
-and generic_config.xml is also applied for the all the tests of this file. <br>
-config/test/foo_sandbox.xml is only applied to sandbox.json. <br>
+and generic_config.xml is also applied for the all the tests of this file.
+config/test/foo_sandbox.xml is only applied to sandbox.json.
 The extra configuration of the tests L_AVC2_AtCommand_0001 is foo_airvantage.xml
 and bar_airvantage.xml. Moreover host/nfs_mount is set to "/tmp/NFS".
-~~~~~~~~~~~~~{.xml}
-{
-    "main_config": [
-                    "$LETP_TESTS/config/test/generic_config.xml",
-                    "module/slink2(used)=1",
-                    "module/slink2/desc=at",
-                    "module/slink2/name=/dev/ttyUSB1",
-                    "module/slink2/port=4002",
-                    "module/slink2/rtscts=0",
-                    "module/slink2/speed=115200"
-                ]
-},
-{
-    "name": "legato/security/sandbox/runtest/sandbox.json",
-    "config": "config/test/foo_sandbox.xml"
-},
-{
-    "name": "legato/services/airvantage/host/test_atCmd.py::L_AVC2_AtCommand_0001",
-    "config": "foo_airvantage.xml,bar_airvantage.xml,host/nfs_mount=/tmp/NFS"
-}
-~~~~~~~~~~~~~
+
+.. code-block:: xml
+
+    {
+        "main_config": [
+                        "$LETP_TESTS/config/test/generic_config.xml",
+                        "module/slink2(used)=1",
+                        "module/slink2/desc=at",
+                        "module/slink2/name=/dev/ttyUSB1",
+                        "module/slink2/port=4002",
+                        "module/slink2/rtscts=0",
+                        "module/slink2/speed=115200"
+                    ]
+    },
+    {
+        "name": "legato/security/sandbox/runtest/sandbox.json",
+        "config": "config/test/foo_sandbox.xml"
+    },
+    {
+        "name": "legato/services/airvantage/host/test_atCmd.py::L_AVC2_AtCommand_0001",
+        "config": "foo_airvantage.xml,bar_airvantage.xml,host/nfs_mount=/tmp/NFS"
+    }
 """
 import os
 import json
@@ -71,7 +76,7 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 class TestsCampaign:
-    """!Test campain container."""
+    """Test campaign container."""
 
     def __init__(self, file_name):
         self._file_name = file_name
@@ -122,7 +127,7 @@ class TestsCampaign:
 
 
 class TestsCampaignJson(TestsCampaign):
-    """!Test campaign in JSON format."""
+    """Test campaign in JSON format."""
 
     @staticmethod
     def read_tests_from_json(json_file):
@@ -148,9 +153,11 @@ class TestsCampaignJson(TestsCampaign):
 
         Search recursively if a json file is referenced.
 
-        :json_file: path of Json test file
-        :return: tuple composed of the list of the host tests
-            and the list of the target tests
+        Args:
+            json_file: path of Json test file
+
+        Returns:
+            tuple composed of the lists of the host tests of the target tests
         """
         main_config_json, tests_from_json = TestsCampaignJson.read_tests_from_json(
             json_file

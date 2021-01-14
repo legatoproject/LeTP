@@ -1,9 +1,9 @@
-"""!@package com_exceptions communication exceptions for modules classes."""
+"""Communication exceptions for modules classes."""
 from pytest_letp.lib import swilog
 
 
 class ComException(Exception):
-    """!Generic exception for Communication."""
+    """Generic exception for Communication."""
 
     def __init__(self, msg=None):
         error_msg = "ComException"

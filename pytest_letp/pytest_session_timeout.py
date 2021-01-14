@@ -1,4 +1,4 @@
-"""!@package pytest_session_timeout Session timeout.
+"""Session timeout.
 
 In CI, we may want to have a time limit for the session.
 

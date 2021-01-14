@@ -1,4 +1,4 @@
-"""!@package runpy_adapter Have a adapter to use runpy for command.
+"""Have a adapter to use runpy for command.
 
 Sometimes, we may want to call a test or file with __name__ ==
 "__main__". This modules facilitates it.

@@ -1,4 +1,4 @@
-"""!packages files File copy or transfer (scp, adb, wget...)."""
+"""File copy or transfer (scp, adb, wget...)."""
 import time
 import os
 import pexpect
@@ -8,11 +8,12 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 def scp(file_list, dest, target):
-    """!Copy files to target with scp.
+    """Copy files to target with scp.
 
-    @param file_list: file name or python list of files/folder to copy
-    @param dest: destination folder or file
-    @param target: fixture of the target to copy files onto
+    Args:
+        file_list: file name or python list of files/folder to copy
+        dest: destination folder or file
+        target: fixture of the target to copy files onto
 
     LeTP add some flags and the SSH port can be different from 22.
     """
@@ -42,10 +43,11 @@ def scp(file_list, dest, target):
 
 
 def adb_transfer(file_list, dest):
-    """!Copy files to target with adb.
+    """Copy files to target with adb.
 
-    @param file_list: python list of files/folder to copy
-    @param dest: destination folder or file
+    Args:
+        file_list: python list of files/folder to copy
+        dest: destination folder or file
     """
     time.sleep(5)
     exit_status = -1
@@ -67,10 +69,11 @@ def adb_transfer(file_list, dest):
 
 
 def fetch_binary(file_location, file_output):
-    """!Get a file by HTTP.
+    """Get a file by HTTP.
 
-    @param file_location: URL of the file
-    @param file_output: output path
+    Args:
+        file_location: URL of the file
+        file_output: output path
     """
     pexpect.run("mkdir -p %s" % file_location)
     swilog.info("wget -q -N -P %s %s" % (file_output, file_location))
@@ -84,10 +87,11 @@ def fetch_binary(file_location, file_output):
 
 
 def find_in_host(fileName, path):
-    """!Find a file in a folder recursively.
+    """Find a file in a folder recursively.
 
-    @param fileName: name of the file to find
-    @param path: path to scan
+    Args:
+        fileName: name of the file to find
+        path: path to scan
 
     Returns:
         Found path or None
