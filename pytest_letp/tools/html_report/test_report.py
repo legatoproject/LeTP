@@ -433,6 +433,14 @@ class BuildConfiguration:
             current_summary.setdefault(k, 0)
             current_summary[k] += value
 
+    def consolidate_target_components(self, another_cfg):
+        """!Consolidate target components."""
+        this_components = self.json_data.get("components")
+        new_components = another_cfg.json_data.get("components")
+
+        if new_components and not this_components:
+            self.json_data["components"] = new_components
+
     def consolidate(self, another_cfg):
         """!Consolidate two build configurations.
 
@@ -441,6 +449,7 @@ class BuildConfiguration:
         """
         self.consolidate_summary(another_cfg)
         self.consolidate_test_results(another_cfg)
+        self.consolidate_target_components(another_cfg)
 
     def build_pytest_results(self):
         """!Build pytest results if any."""
