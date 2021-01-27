@@ -36,7 +36,7 @@ def get_swi_module_namespaces():
     return ["pytest_letp.lib", "letp_internal"]
 
 
-def get_swi_module(class_name):
+def get_swi_module(class_name, fatal=True):
     """Get module from one of the modules namespaces.
 
     Use dynamically loading from the module path.
@@ -59,9 +59,13 @@ def get_swi_module(class_name):
                     return getattr(candidate_module_obj, class_name)
                 except Exception:
                     continue
-    raise TargetException(
-        "Target not found: {} in module_files {}".format(class_name, modules_lib_path)
-    )
+    
+    if fatal:
+        raise TargetException(
+            "Target not found: {} in module_files {}".format(class_name, modules_lib_path)
+        )
+    
+    return None
 
 
 def define_target(request, read_config, inst_name="module"):
@@ -69,8 +73,11 @@ def define_target(request, read_config, inst_name="module"):
     generic_name = read_config.findtext("%s/generic_name" % inst_name)
     module_name = read_config.findtext("%s/name" % inst_name)
 
-    class_name = generic_name.replace("-", "").upper()
-    module_fn = get_swi_module(class_name)
+    class_name = generic_name.title().replace("-", "")
+    module_fn = get_swi_module(class_name, fatal=False)
+    if not module_fn:
+        class_name = class_name.upper()
+        module_fn = get_swi_module(class_name)
 
     return module_fn.create(module_name, generic_name, request, read_config, inst_name)
 
