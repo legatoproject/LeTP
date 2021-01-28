@@ -44,6 +44,16 @@ def test_legato_version_pattern():
         version
     )
 
+    version = "OTVFX3.2.0"
+
+    pattern = SwiModule.legato_pattern["full"]
+    assert (
+        re.match(pattern, version) is not None
+    ), "{} doesn't match the pattern: {}".format(version, pattern)
+    assert re.match(pattern, invalid_version) is None, "{} shouldn't be matched".format(
+        version
+    )
+
 
 def test_modem_version_pattern():
     """Test modem version pattern."""
@@ -135,5 +145,8 @@ def test_parsed_legato_version_pattern():
         "20.08.0.rc1custom-d123456": "20.08.0.rc1custom",
         "20.08.0.rc1custom_d123456_modified": "20.08.0.rc1custom",
         "20.08.0.rc1custom-d123456_modified": "20.08.0.rc1custom",
+        "OTVFX3.2.0.pre21Dec20": "OTVFX3.2.0.pre21Dec20",
+        "OTVFX3.2.0.pre21Dec20_653d8": "OTVFX3.2.0.pre21Dec20",
+        "OTVFX3.2.0.pre21Dec20_653d8_modified": "OTVFX3.2.0.pre21Dec20",
     }
     validate_legato_pattern(version_dict)

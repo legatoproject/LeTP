@@ -26,6 +26,13 @@ def test_get_legato_version_value(legato):
         rsp = legato.get_legato_version()
         assert legato_version == rsp
 
+    octave_legato_version = "OTVFX3.2.0.pre21Dec20"
+    with patch(
+        "pytest_letp.lib.com.target_qct.run_main", return_value=octave_legato_version
+    ):
+        rsp = legato.get_legato_version()
+        assert octave_legato_version == rsp
+
 
 def test_get_legato_status_value(legato):
     legato_status = """Systems installed:

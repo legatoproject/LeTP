@@ -201,8 +201,10 @@ class SwiModule:
     """Generic Sierra Wireless module class."""
 
     legato_pattern = {
-        "full": (r".*?(?P<version>\d{2}\.\d{2}\.\d+?(\.rc\d+)?.*$)"),
-        "parsed": (r".*?(?P<version>\d{2}\.\d{2}\.\d+?(\.rc\d+)?([^-_\n]+|$)?)"),
+        "full": (r".*?(?P<version>[A-Z]*\d{1,2}\.\d{1,2}\.\d+?(\.rc\d+)?.*$)"),
+        "parsed": (
+            r".*?(?P<version>[A-Z]*\d{1,2}\.\d{1,2}\.\d+?(\.rc\d+)?([^-_\n]+|$)?)"
+        ),
     }
 
     modem_pattern = {
