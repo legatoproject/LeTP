@@ -660,9 +660,20 @@ def get_legato_version(target):
 
 def restore_golden_legato(target, timeout=60):
     """Restore the stable legato."""
-    legato_stop(target)
-    target.run("/bin/rm -rf /legato/apps /legato/systems")
-    target.reboot(timeout)
+    for loop in range(0, 2):
+        if loop != 0:
+            swilog.info("Try to execute restore golden legato {} times".format(loop))
+            target.reboot(timeout)
+        legato_stop(target)
+        rsp = get_legato_status(target)
+        if "NOT running" in rsp:
+            rsp = target.run("/bin/rm -rf /legato/apps /legato/systems", check=False)
+            if not re.search("can't remove '/legato/systems/current'", rsp):
+                break
+    else:
+        swilog.error("[FAILED] Unable to restore the stable legato.")
+
+    target.reboot()
     current_system_index = get_current_system_index(target)
     swilog.info("Current system index is %s" % current_system_index)
     return current_system_index == 0

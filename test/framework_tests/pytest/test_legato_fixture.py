@@ -73,12 +73,14 @@ def test_find_in_target_log_value(legato):
 
 
 def test_restore_golden_legato_value(legato):
+    legato_running = "Legato framework is running."
     with patch(
         "pytest_letp.lib.com.target_qct.run_main", side_effect=["OK", 0, 0]
-    ), patch("pytest_letp.lib.modules_linux.ModuleLinux.reboot", return_value=0):
+    ), patch("pytest_letp.lib.modules_linux.ModuleLinux.reboot", return_value=0), patch(
+        "pytest_letp.lib.app.get_legato_status", return_value=legato_running
+    ):
         rsp = legato.restore_golden_legato()
-        print("rsp value= %s" % rsp)
-        assert rsp, "restore golden legato fails"
+        assert rsp, "restore golden legato fails rsp value= {}".format(rsp)
 
 
 @pytest.fixture
