@@ -331,6 +331,7 @@ class TestCaseView:
         if res.type == "pytest.xfail":
             # junitxml plugin named the elem tag for both SKIP & XFAIL test results
             # the same as "skipped", so we need to distinguish it
+            # https://github.com/pytest-dev/pytest/issues/7009
             return "XFail"
         return res.__class__.__name__
 

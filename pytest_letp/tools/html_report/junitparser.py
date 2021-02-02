@@ -155,11 +155,20 @@ class Element(with_metaclass(junitxml, object)):
         """Constructs Junit objects with an element."""
         if elem is None:
             return
-        instance = cls()
-        if isinstance(elem, Element):
-            instance._elem = elem._elem
+
+        if elem.attrib.get("type") == "pytest.xfail" and elem.tag == "skipped":
+            # junitxml plugin named the elem tag for both SKIP & XFAIL test results
+            # the same as "skipped", so we need to distinguish it
+            # https://github.com/pytest-dev/pytest/issues/7009
+            instance = XFail(
+                message=elem.attrib.get("message"), type=elem.attrib.get("type")
+            )
         else:
-            instance._elem = elem
+            instance = cls()
+            if isinstance(elem, Element):
+                instance._elem = elem._elem
+            else:
+                instance._elem = elem
         return instance
 
     def iterchildren(self, Child):
