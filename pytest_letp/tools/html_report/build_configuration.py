@@ -15,12 +15,52 @@ e.g.
 Output:
 A json file contains the above environment and junit test results.
 """
+import enum
+import re
 import argparse
 import json
 import os
 import sys
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
+
+
+class Components(enum.Enum):
+    """!Components of the system."""
+
+    legato = enum.auto()
+    legato_built = enum.auto()
+    linux = enum.auto()
+    modem = enum.auto()
+
+
+class PytestResult(dict):
+    """!Pytest result genereate from pytest_jsonreport."""
+
+    @staticmethod
+    def build_test_id(test_path):
+        """Build test id from test path.
+
+        Make 'scenario/command/test.py::test_json_report_stub'
+        into scenario.command.test.test_json_report_stub
+
+        Key: classname and name.
+        """
+        python_file_patten = r"(?P<file_name>.+\.py)"
+        match = re.search(python_file_patten, test_path)
+
+        if match:
+            python_file = os.path.basename(match.group("file_name"))
+            test_path = test_path.replace(python_file, python_file.replace(".py", ""))
+            module_name, test_name = test_path.split("::")
+            module_name = module_name.replace("/", ".")
+            return "{}.{}".format(module_name, test_name)
+        return ""
+
+    def get_test_name(self):
+        """Align test id with junitparser.TestCase."""
+        test_path = self.get("nodeid")
+        return self.build_test_id(test_path)
 
 
 class JsonBuilder:

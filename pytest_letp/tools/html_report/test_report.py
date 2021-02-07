@@ -3,7 +3,6 @@
 
 Test Report is based on build configuration json results.
 """
-import enum
 import datetime
 import json
 import os
@@ -26,9 +25,11 @@ from junitparser import (
     Result,
     Running,
 )
-
+from build_configuration import PytestResult, Components
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
+
+ALL_COMPONENTS = [x.name for x in Components]
 
 
 # pylint: disable=too-many-instance-attributes
@@ -165,6 +166,8 @@ class TestCaseResult:
         """One test case result."""
         self.xml_element_results = []
         self.pytest_json_result = None
+        self._system_out = ""
+        self._system_err = ""
 
     def add_xml_element(self, xml_element):
         """Add xml elements.
@@ -214,7 +217,9 @@ class TestCaseResult:
     @property
     def result(self):
         """Get the junit result."""
-        return self.xml_element_results[0]
+        if self.xml_element_results:
+            return self.xml_element_results[0]
+        return None
 
     @property
     def message(self):
@@ -242,7 +247,12 @@ class TestCaseResult:
         ]
         if any(system_out):
             return "\n".join(system_out)
-        return ""
+        return self._system_out
+
+    @system_out.setter
+    def system_out(self, logs):
+        """Set system out."""
+        self._system_out = "{}\n{}".format(self._system_out, logs)
 
     @property
     def system_err(self):
@@ -254,7 +264,12 @@ class TestCaseResult:
         ]
         if any(system_err):
             return "\n".join(system_err)
-        return ""
+        return self._system_err
+
+    @system_err.setter
+    def system_err(self, logs):
+        """Set system err."""
+        self._system_err = "{}\n{}".format(self._system_err, logs)
 
 
 class GlobalTestCase:
@@ -277,13 +292,18 @@ class GlobalTestCase:
             return False
 
         for res in self.results.values():
-            result_obj = res.result.result
-            if result_obj and isinstance(result_obj, (XFail, Failure, Error)):
+            if res.result:
+                result_obj = res.result.result
+                if result_obj and isinstance(result_obj, (XFail, Failure, Error)):
+                    return False
+            else:
+                if "pass" in res.pytest_json_result.get("outcome", ""):
+                    return True
                 return False
 
         return True
 
-    def _get_create_target_result(self, target_name):
+    def get_create_target_result(self, target_name):
         """Get and create test result for the target."""
         if target_name not in self.results:
             self.results[target_name] = TestCaseResult()
@@ -291,7 +311,7 @@ class GlobalTestCase:
 
     def process_new_test_result(self, target_name, elmt, elmt_name, pytest_result):
         """Process a new test result entry."""
-        test_result = self._get_create_target_result(target_name)
+        test_result = self.get_create_target_result(target_name)
         if test_result.is_valid():
             test_result.add_xml_element(elmt)
             return False
@@ -344,50 +364,17 @@ class TestCaseView:
         if not self.test_case:
             return "N/A"
 
+        if not self.test_case.result:
+            return self.test_case.pytest_json_result.get("outcome", "N/A")
         return self.result_to_string(self.test_case.result.result)
 
     @property
     def html_class(self):
         """For Ninja usage."""
         if not self.test_case.result:
-            return ""
+            return self.test_case.pytest_json_result.get("outcome", "N/A")
 
         return self.result.lower()
-
-
-class Components(enum.Enum):
-    """!Components of the system."""
-
-    legato = enum.auto()
-    legato_built = enum.auto()
-    linux = enum.auto()
-    modem = enum.auto()
-
-
-ALL_COMPONENTS = [x.name for x in Components]
-
-
-class PytestResult(dict):
-    """!Pytest result genereate from pytest_jsonreport."""
-
-    @staticmethod
-    def build_test_id(test_path):
-        """Build test id from test path.
-
-        Make 'scenario/command/test.py::test_json_report_stub'
-        into scenario.command.test.test_json_report_stub
-
-        Key: classname and name.
-        """
-        test_info = test_path.split("::")
-        module_name = test_info[0].replace("/", ".").strip(".py")
-        test_name = test_info[1]
-        return "{}.{}".format(module_name, test_name)
-
-    def get_test_name(self):
-        """Align test id with junitparser.TestCase."""
-        test_path = self.get("nodeid")
-        return self.build_test_id(test_path)
 
 
 class BuildConfiguration:
@@ -409,18 +396,26 @@ class BuildConfiguration:
         if "test_results" in self.json_data:
             self.junit_results = self.json_data["test_results"]
         self.build_pytest_results()
-        self.name = name or self.json_data["target_name"]
+        self.name = name or self.json_data.get("target_name", "N/A")
         self.name = self.name.replace(":wip", "")
         self.jenkins_build_number = self.get_jenkins_build_number()
 
     def consolidate_test_results(self, another_cfg):
         """!Consolidate test results."""
-        for test_compaign_name, result in another_cfg.junit_results.items():
-            if test_compaign_name in self.junit_results:
-                test_compaign_name = "{}+".format(test_compaign_name)
-                self.junit_results[test_compaign_name] = result
-            else:
-                self.junit_results[test_compaign_name] = result
+        if not self.junit_results or not another_cfg.junit_results:
+            # most likely incomplete results due to interrutpion during test run
+            self.pytest_results += another_cfg.pytest_results
+            self.pytest_test_name_array += another_cfg.pytest_test_name_array
+            self.junit_results = (
+                {}
+            )  # force to process the test data using pytest result later
+        else:
+            for test_compaign_name, result in another_cfg.junit_results.items():
+                if test_compaign_name in self.junit_results:
+                    test_compaign_name = "{}+".format(test_compaign_name)
+                    self.junit_results[test_compaign_name] = result
+                else:
+                    self.junit_results[test_compaign_name] = result
 
     def consolidate_summary(self, another_cfg):
         """!Consolidate summary statistics."""
@@ -542,16 +537,30 @@ class BuildConfiguration:
             global_test_data[elmt_name] = global_test_case
         return global_test_case
 
-    @staticmethod
-    def _process_result_in_summary(result, summary):
-        summary.stat_tcs += 1
+    # @staticmethod
+    def _process_result_in_summary(self, result, summary):
+        """Convert junitxml result into summary."""
         if not result or isinstance(result, XPass):
-            summary.stat_passed += 1
+            self._convert_result_to_summary(XPass.__name__, summary)
         elif isinstance(result, Skipped):
-            summary.stat_skipped += 1
+            self._convert_result_to_summary(Skipped.__name__, summary)
         elif isinstance(result, (Failure, XFail)):
-            summary.stat_failures += 1
+            self._convert_result_to_summary(Failure.__name__, summary)
         elif isinstance(result, Error):
+            self._convert_result_to_summary(Error.__name__, summary)
+
+    @staticmethod
+    def _convert_result_to_summary(result: str, summary):
+        """Convert result into summary."""
+        summary.stat_tcs += 1
+
+        if not result or "pass" in result.lower():
+            summary.stat_passed += 1
+        elif "skip" in result.lower():
+            summary.stat_skipped += 1
+        elif "fail" in result.lower():
+            summary.stat_failures += 1
+        elif "error" in result.lower():
             summary.stat_errors += 1
 
     def _iter_report(self, global_test_data, summary, parent, prefix=""):
@@ -578,6 +587,43 @@ class BuildConfiguration:
                 continue
             self._process_result_in_summary(elmt.result, summary)
 
+    def _iter_pytest_report(self, global_test_data, summary):
+        """Iterate the corrupted test report and collect summary."""
+        tests = self.json_data.get("tests", [])
+        for elmt in tests:
+            test_name = PytestResult(elmt).get_test_name()
+            pytest_result = self._lookup_pytest_json_result(test_name)
+
+            if not pytest_result:
+                print("Unable to recover the test result for {}".format(pytest_result))
+                continue
+
+            global_test_case = self._get_create_global_test_case(
+                global_test_data, test_name
+            )
+            test_result = global_test_case.get_create_target_result(self.name)
+            test_result.add_pytest_json_result(pytest_result)
+            self._add_pytest_test_logs(global_test_data, pytest_result)
+            self._convert_result_to_summary(pytest_result.get("outcome"), summary)
+
+    def _add_pytest_test_logs(self, global_test_data, pytest_result):
+        """Try to recover the test logs using pytest results."""
+        if pytest_result:
+            for test_name, global_test_case in global_test_data.items():
+                test_result_to_recover = global_test_case.results.get(self.name)
+                if (
+                    PytestResult(pytest_result).get_test_name() == test_name
+                    and test_result_to_recover
+                ):
+                    for run_phase in ["setup", "call", "teardown"]:
+                        if pytest_result.get(run_phase):
+                            test_result_to_recover.system_out = pytest_result[
+                                run_phase
+                            ].get("stdout", "")
+                            test_result_to_recover.system_err = pytest_result[
+                                run_phase
+                            ].get("stderr", "")
+
     def add_running_test_cases(self, xml_ref):
         """!Add running tests."""
         if len(xml_ref) > 0:
@@ -603,13 +649,17 @@ class BuildConfiguration:
         if "state" in self.json_data:
             new_summary.set_status(self.json_data["state"])
 
-        for test_res_name in self.junit_results.keys():
-            xml_data = self.junit_results[test_res_name]
-            bytes_data = xml_data.encode("utf-8")
-            bytes_io = BytesIO(bytes_data)
-            xml_ref = JUnitXml.fromfile(bytes_io)
-            self.add_running_test_cases(xml_ref)
-            self._iter_report(global_test_data, new_summary, xml_ref)
+        if not self.junit_results:
+            # most likely incomplete results due to interrutpion during test run
+            self._iter_pytest_report(global_test_data, new_summary)
+        else:
+            for test_res_name in self.junit_results.keys():
+                xml_data = self.junit_results[test_res_name]
+                bytes_data = xml_data.encode("utf-8")
+                bytes_io = BytesIO(bytes_data)
+                xml_ref = JUnitXml.fromfile(bytes_io)
+                self.add_running_test_cases(xml_ref)
+                self._iter_report(global_test_data, new_summary, xml_ref)
         return new_summary
 
 
