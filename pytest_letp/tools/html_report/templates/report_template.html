@@ -189,6 +189,7 @@
         {%- endmacro %}
 
         <!-- Environment -->
+        {% if section == 'all' %}
         <div style="margin-top: 50px">
             <h4 style="text-align: center">Environment</h4>
 
@@ -274,6 +275,7 @@
         {% call render_results('Test Results (all)', results_headers,
             results_all) %}
         {% endcall %}
+        {% endif %}
 
         {% macro render_logs(title, content, cls) -%}
             <div>

@@ -12,7 +12,7 @@ from io import BytesIO
 import html
 from collections import OrderedDict
 import requests
-from jinja2 import FileSystemLoader, Environment
+
 from junitparser import (
     JUnitXml,
     TestSuite,
@@ -26,6 +26,7 @@ from junitparser import (
     Running,
 )
 from build_configuration import PytestResult, Components
+from report_template import HTMLRender
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -822,7 +823,7 @@ class TestReportBuilder:
             results.append(c_res)
         return results
 
-    def generate_report(self, results_all, status, title, is_basic, online_link):
+    def generate_report(self, results_all, status, other_contents: dict):
         """!Generate the test report."""
         raise NotImplementedError
 
@@ -845,9 +846,12 @@ class TestReportBuilder:
         self._add_results_headers()
         status = self._add_summary_section()
         results_all = self.gen_results_table()
-        output = self.generate_report(
-            results_all, status, args.title, args.basic, args.online_link
-        )
+        other_contents = {
+            "title": args.title,
+            "basic": args.basic,
+            "section": args.html_section,
+        }
+        output = self.generate_report(results_all, status, other_contents)
         if args.output:
             with open(args.output, "w") as f:
                 f.write(output)
@@ -857,68 +861,31 @@ class TestReportBuilder:
 class TestReportHTMLBuilder(TestReportBuilder):
     """!Test report HTML format builder."""
 
-    @staticmethod
-    def _convert_colors(msg):
-        """!Replace ansi color by html colors."""
-        if not msg:
-            return msg
-        msg = msg.replace("#x1B[0m", "</font>")
-        msg = msg.replace("#x1B[01m", '<font class="bold">')
-        msg = msg.replace("#x1B[02m", "</font>")
-        msg = msg.replace("#x1B[31m", '<font class="black">')
-        msg = msg.replace("#x1B[31m", '<font class="red">')
-        msg = msg.replace("#x1B[01;31m", '<font class="red bold">')
-        msg = msg.replace("#x1B[32m", '<font class="green">')
-        msg = msg.replace("#x1B[33m", '<font class="yellow">')
-        msg = msg.replace("#x1B[01;33m", '<font class="yellow bold">')
-        msg = msg.replace("#x1B[34m", '<font class="blue">')
-        msg = msg.replace("#x1B[35m", '<font class="magenta">')
-        msg = msg.replace("#x1B[36m", '<font class="cyan">')
-        msg = msg.replace("#x1B[37m", '<font class="white">')
-        return msg
-
-    @staticmethod
-    def _clean_pytest_name(name):
-        """!Sanitize the test name.
-
-        Tests can be parametrized in pytest. Use of [ and ] does not
-        work in html links
-        """
-        name = name.replace("[", "_")
-        name = name.replace("]", "_")
-        return name
-
-    def generate_report(self, results_all, status, title, is_basic, online_link):
+    def generate_report(self, results_all, status, other_contents: dict):
         """!Generate report in HTML."""
-        template_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "templates"
-        )
-        file_loader = FileSystemLoader(template_path)
-        env = Environment(loader=file_loader)
-        env.filters["convert_colors"] = self._convert_colors
-        env.filters["clean_pytest_name"] = self._clean_pytest_name
-
-        template = env.get_template("report_template.html")
+        html_render = HTMLRender("report_template.html")
         results_failed = self.gen_results_table(lambda x: not x.is_passed())
         summary_headers = ["Config", "Status"]
         summary_headers.extend(TestSummary.stat_keys())
 
-        output = template.render(
-            title=title,
-            basic=is_basic,
-            online_link=online_link,
-            summary_headers=summary_headers,
-            summary=self.summary,
-            env_global_list=self.env_global_list,
-            target_components=self.target_components,
-            testing_env_infos=self.testing_env_infos,
-            environment_dict=self.environment_dict,
-            results_headers=self.results_headers,
-            results_failed=results_failed,
-            results_all=results_all,
-            test_data=self.global_test_data,
-        )
-        return output
+        html_render.contents = {
+            "title": other_contents.get("title"),
+            "basic": other_contents.get("basic"),
+            "online_link": other_contents.get("online_link"),
+            "section": other_contents.get("section"),
+            "summary_headers": summary_headers,
+            "summary": self.summary,
+            "env_global_list": self.env_global_list,
+            "target_components": self.target_components,
+            "testing_env_infos": self.testing_env_infos,
+            "environment_dict": self.environment_dict,
+            "results_headers": self.results_headers,
+            "results_failed": results_failed,
+            "results_all": results_all,
+            "test_data": self.global_test_data,
+        }
+
+        return html_render.render()
 
     def build(self, title, input_json_file, output_name):
         """!Build the html report."""
@@ -928,7 +895,8 @@ class TestReportHTMLBuilder(TestReportBuilder):
         status = self._add_summary_section()
         self._add_env_list_header()
         results_all = self.gen_results_table()
-        output = self.generate_report(results_all, status, title, False, None)
+        other_contents = {"title": title, "section": "all"}
+        output = self.generate_report(results_all, status, other_contents)
         if output_name:
             with open(output_name, "w") as f:
                 f.write(output)
@@ -941,7 +909,7 @@ class TestReportJSONBuilder(TestReportBuilder):
         super(TestReportJSONBuilder, self).__init__()
         self.content = None
 
-    def generate_report(self, results_all, status, title, is_basic, online_link):
+    def generate_report(self, results_all, status, other_contents: dict):
         """!Generate report in JSON format."""
         print("Generating JSON")
         tests = []
@@ -987,6 +955,14 @@ def parse_args():
         action="append",
         required=True,
         help="Path to build_configuration.json files",
+    )
+    parser.add_argument(
+        "--html-section",
+        action="store",
+        default="all",
+        help="""
+        Included section(s) in the final html report.\n
+        Supported sections (All, Summary).\n""",
     )
     parser.add_argument(
         "--global-env",
