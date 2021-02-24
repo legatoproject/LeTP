@@ -34,6 +34,7 @@ ALL_COMPONENTS = [x.name for x in Components]
 
 
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-lines
 class TestSummary:
     """!Test summary section in the table."""
 
