@@ -9,7 +9,7 @@ There are four configuration ways.
 - Configuration xml file
 - module/slink2(used)=1 in test campaign json
 - pytest.mark.config("$LETP_TESTS/scenario/config/target_wp750x.xml")
-- letp command with "--config module/slink2(used)=1"
+- letp command with ``--config module/slink2(used)=1``
 
 Configuration files
 -------------------
@@ -21,7 +21,7 @@ Select a configuration file
 
 There are 2 possibilities to use a configuration file:
 
-    - The configuration files can be passed as an argument of letp with option --config. A specific parameter can also be set with this option.
+    - The configuration files can be passed as an argument of letp with option ``--config``. A specific parameter can also be set with this option.
 
     - They can also be added in testbench.xml in the include_xml tag.
 
@@ -29,6 +29,11 @@ Priority of the files
 ^^^^^^^^^^^^^^^^^^^^^
 
 All the files declared with --config override the values in the default file testbench.xml (and all the included files).
+Priorities of configuration options (From highest to lowest priority):
+
+    1. Environment variables (TARGET_IP, TARGET_SSH_PORT)
+    2. Command line using ``--config``
+    3. XML files
 
 Common files
 ------------

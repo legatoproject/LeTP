@@ -28,11 +28,7 @@ sys.path.insert(0, os.path.abspath("../testing_target/"))
 sys.path.insert(0, os.path.abspath("../testing_target/scenario"))
 sys.path.insert(0, os.path.abspath("../pytest_letp/"))
 sys.path.insert(0, os.path.abspath("../test/"))
-sys.path.insert(0, os.path.abspath("../testing_target/public/legato/basics/"))
-sys.path.insert(0, os.path.abspath("../testing_target/public/legato/basics/tools"))
-sys.path.insert(0, os.path.abspath("../testing_target/public/legato/c-runtime/"))
-sys.path.insert(0, os.path.abspath("../testing_target/public/legato/security/"))
-sys.path.insert(0, os.path.abspath("../testing_target/public/legato/services/"))
+
 print(sys.path)
 
 # -- General configuration ------------------------------------------------

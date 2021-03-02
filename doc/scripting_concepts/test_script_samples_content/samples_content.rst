@@ -1,13 +1,12 @@
+test\_cli
+-----------------------------------
 
-test\_helloworld 
----------------------------------
-
-.. automodule:: scenario.test_helloworld
+.. automodule:: scenario.commands.test_cli
     :members:
     :undoc-members:
     :show-inheritance:
 
-test\_at 
+test\_at
 -----------------------------------
 
 .. automodule:: scenario.commands.test_at
@@ -15,7 +14,7 @@ test\_at
     :undoc-members:
     :show-inheritance:
 
-test\_swilog 
+test\_swilog
 ---------------------------------------
 
 .. automodule:: scenario.commands.test_swilog
@@ -23,7 +22,7 @@ test\_swilog
     :undoc-members:
     :show-inheritance:
 
-test\_target2 
+test\_target2
 ----------------------------------------
 
 .. automodule:: scenario.commands.test_target2

@@ -13,11 +13,8 @@ Concepts
    scripting_concepts/test_configuration.rst
    scripting_concepts/test_campaign.rst
 
-Pre-requisite: :ref:`introduction`
+Please read: :ref:`introduction`
 
-LeTP is designed to solve the system testing automation problem,
-it uses the pexpect to communicate with the test targets, manage
-devices, do the test report after the tests.
 
 LeTP architecture
 ------------------
@@ -60,6 +57,8 @@ sim library, socker_server, etc.
 Pytest LeTP fixtures
 ---------------------
 
+:ref:`fixtures`
+
 Test fixtures provide a fixed baseline so that tests execute reliably and
 produce consistent, repeatable, results. Initialization may setup services,
 state, or other operating environments. These are accessed by test functions
@@ -71,5 +70,6 @@ Users can also use
 
 LeTP can be used as a
 `Pytest plugin <https://docs.pytest.org/en/stable/contents.html#toc>`_.
+
 
 Copyright (C) Sierra Wireless Inc.

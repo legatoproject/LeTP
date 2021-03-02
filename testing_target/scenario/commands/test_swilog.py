@@ -31,7 +31,7 @@ def test_swilog_call():
 
 
 # This test is expected to fail. It is just a demo.
-@pytest.mark.xfail
+@pytest.mark.xfail(reason="This test is expected to fail. It is just a demo.")
 def test_swilog_error_memorization(target):
     """Execute several tests and capture swilog errors.
 

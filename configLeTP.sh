@@ -23,7 +23,7 @@ fi
 export LETP_PATH=$PWD
 
 # Point to the test samples
-DEFAULT_TEST_DIR="$LETP_PATH/test"
+DEFAULT_TEST_DIR="$LETP_PATH/testing_target"
 letp_tests=$1
 
 if [ -z "$LEGATO_ROOT" ]; then
@@ -51,8 +51,12 @@ export PATH=$PATH:$LETP_PATH
 export PYTHONPATH=$LETP_PATH:$LETP_PATH/letp-internal:$LETP_PATH/pytest_letp/tools/html_report
 echo "Set PYTHONPATH to $PYTHONPATH"
 
-export LETP_INTERNAL_PATH="$LETP_PATH/letp-internal"
-echo "Set LETP_INTERNAL_PATH to $LETP_INTERNAL_PATH"
+# Set LETP_INTERNAL_PATH if the diectory for it exists.
+if [ -d "$LETP_PATH/letp-internal" ]; then
+    export LETP_INTERNAL_PATH="$LETP_PATH/letp-internal"
+    echo "Set LETP_INTERNAL_PATH to $LETP_INTERNAL_PATH"
+fi
+
 
 REQ_CACHE=${REQ_CACHE:-"$LETP_PATH/.requirements"}
 

@@ -76,7 +76,7 @@ Python 3.6+. Check with::
 
 Install python modules in requirements.txt required by LeTP.::
 
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
 
 
 In order to communicate with the device, the host user needs the necessary permissions to read and write to the /dev/ttyXYZ device. On most distributions the user just needs to be in the 'dialout' group.::
