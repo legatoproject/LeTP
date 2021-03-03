@@ -108,6 +108,7 @@ class ComPortDevice:
         """Initialize ComPortDevice."""
         self.name = name
         self.dev_tty_regx = r"(?P<dev_tty>/dev/tty[A-Z]+[0-9]+)"
+        self.pcie_interface_regx = r"(?P<dev_mhitty>/dev/mhitty+[0-9]+)"
         self.tty_regx = r"(?P<tty>tty[A-Z]+[0-9]+)"
         self.usb_interface_regx = (
             r"(?P<usb_interface>[0-9]+-[0-9]+(\.[0-9]+)*:[0-9]+(\.[0-9]+)*)"
@@ -131,6 +132,14 @@ class ComPortDevice:
         """Check if the name follows /dev/ttyxx device format."""
         if self.name:
             if os.path.exists(self.name) and re.search(self.dev_tty_regx, self.name):
+                return True
+
+        return False
+
+    def is_pcie_interface(self):
+        """Check if the name follows /dev/mhixx device format. Which is the PCIe port"""
+        if self.name:
+            if os.path.exists(self.name) and re.search(self.pcie_interface_regx, self.name):
                 return True
 
         return False
