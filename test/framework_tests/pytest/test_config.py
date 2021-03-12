@@ -170,21 +170,6 @@ def test_config_value(default_command, set_value, config, expected_value):
     assert run_python_with_command(cmd)
 
 
-def test_config_create_new_param(default_command):
-    """Create a new config value with --config should not be possible."""
-    path = "module/ssh/key"
-    expected_value = "uKp3jN"
-    cmd = "%s --config %s=%s --path %s --expected_value %s" % (
-        default_command,
-        path,
-        expected_value,
-        path,
-        None,
-    )
-    print("Start command:\n%s" % cmd)
-    assert run_python_with_command(cmd)
-
-
 @pytest.mark.parametrize(
     "json_file, expected_value",
     [
@@ -301,6 +286,46 @@ def test_config_with_multi_xml_associated_in_test(letp_cmd):
         % (letp_cmd, path, expected_value, path2, expected_value2)
     )
     print("Start command:\n%s" % cmd)
+    assert run_python_with_command(cmd)
+
+
+def test_custom_config_tag_with_attri(letp_cmd):
+    """Test custom config arguments tag with attribute."""
+    cmd = (
+        "%s run "
+        "scenario/command/test_config_stub.py::test_custom_config_tag_with_attri "
+        "--config module/slink1/name/new_tag=new_val "
+        "--config module/slink3(used)=1 "
+        "--config module/slink3/name=/dev/ttyUSB6 "
+        "--config module/slink1/name/new_tag(new_attri)=new_attri_val "
+        "--config module/slink3/desc=mcu "
+        "--config custom/new/tag=foo" % (letp_cmd)
+    )
+    assert run_python_with_command(cmd)
+
+
+def test_custom_config_attri_only(letp_cmd):
+    """Test custom config arguments attribute only."""
+    cmd = (
+        "%s run "
+        "scenario/command/test_config_stub.py::test_custom_config_attri_only "
+        "--config module/slink3(used)=1 "
+        "--config capability/avc(used)=1 "
+        "--config custom/new/tag(attri)=1 " % (letp_cmd)
+    )
+    assert run_python_with_command(cmd)
+
+
+def test_custom_config_tag_only(letp_cmd):
+    """Test custom config arguments tag only."""
+    cmd = (
+        "%s run "
+        "scenario/command/test_config_stub.py::test_custom_config_tag_only "
+        "--config module/slink1/name/new_tag=new_val "
+        "--config module/slink3/name=/dev/ttyUSB6 "
+        "--config custom/new/tag=foo "
+        "--config module/slink3/desc=mcu " % (letp_cmd)
+    )
     assert run_python_with_command(cmd)
 
 

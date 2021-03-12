@@ -358,6 +358,46 @@ class TestConfig:
         """Read test campaign config if there is any."""
         return self._get_args_config_value("test_run/context(test.campaign)")
 
+    def _get_parent_tag(self, tag_names):
+        """Get the parent tag in the sequence of tag names."""
+        parent_tag = None
+        if self._config_container:
+            curr_path = ""
+            for tag in tag_names:
+                curr_path = os.path.join(curr_path, tag)
+                elmt = self._config_container.find(curr_path)
+                if not isinstance(elmt, ET.Element):
+                    break
+                parent_tag = elmt
+
+        if parent_tag is None:
+            # can't find any tag in the xml tree, so appends
+            # the new tags to the root
+            parent_tag = self._get_xml_root()
+
+        return parent_tag
+
+    def _add_tag(self, path):
+        """Add the tag to the xml tree."""
+        if self._config_container:
+            tag_names = path.split("/")
+            parent_tag = self._get_parent_tag(tag_names)
+            curr_path = parent_tag.tag
+
+            if parent_tag.tag in tag_names:
+                end_idx = tag_names.index(parent_tag.tag) + 1
+                curr_path = "/".join(tag_names[:end_idx])
+                del tag_names[:end_idx]
+
+            if curr_path == "test":
+                curr_path = ""
+
+            for tag in tag_names:
+                new_tag = ET.Element(tag)
+                parent_tag.append(new_tag)
+                curr_path = os.path.join(curr_path, tag)
+                parent_tag = self._config_container.find(curr_path)
+
     def _search_for_value(self, key, config_container):
         """Search for value in the configuration tree by priority."""
         # Search in --config parameters as it has more priority
@@ -501,6 +541,7 @@ class TestConfig:
 
         The format: key=value in the --config arg[,arg2]. Two
         variations: test_run/id=test test_run/context(context2)=456
+        tag config must precede before attribute config
         """
         for config in cfg:
             # the xml files can be separated by a comma
@@ -515,6 +556,10 @@ class TestConfig:
                         path, attr = param.split("(")
                         attr = attr.replace(")", "")
                         elem = self._config_container.find(path)
+                        if elem is None:
+                            self._add_tag(path)
+                            elem = self._config_container.find(path)
+
                         if isinstance(elem, ET.Element):
                             elem.set(attr, val)
                             continue
@@ -522,6 +567,10 @@ class TestConfig:
                         command = f.split("=")
                         key = command[0]
                         elem = self._config_container.find(key)
+                        if elem is None:
+                            self._add_tag(key)
+                            elem = self._config_container.find(key)
+
                         if isinstance(elem, ET.Element):
                             # join in case the value has "="
                             elem.text = "=".join(command[1:])

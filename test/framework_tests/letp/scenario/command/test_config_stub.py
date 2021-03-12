@@ -121,3 +121,31 @@ def test_config_value_with_json_env_vari(request, read_config):
     assert request
     assert read_config
     swilog.info("env variable was found")
+
+
+def test_custom_config_tag_with_attri(read_config):
+    """Test custom config arguments tag with attribute."""
+    assert read_config.findtext("module/slink3/name") == "/dev/ttyUSB6"
+    assert read_config.findtext("module/slink1/name/new_tag") == "new_val"
+    assert read_config.find("module/slink3").get("used") == "1"
+    assert read_config.findtext("module/slink3/desc") == "mcu"
+    assert read_config.findtext("custom/new/tag") == "foo"
+    assert (
+        read_config.find("module/slink1/name/new_tag").get("new_attri")
+        == "new_attri_val"
+    )
+
+
+def test_custom_config_attri_only(read_config):
+    """Test custom config arguments attribute only."""
+    assert read_config.find("module/slink3").get("used") == "1"
+    assert read_config.find("capability/avc").get("used") == "1"
+    assert read_config.find("custom/new/tag").get("attri") == "1"
+
+
+def test_custom_config_tag_only(read_config):
+    """Test custom config arguments tag only."""
+    assert read_config.findtext("module/slink3/name") == "/dev/ttyUSB6"
+    assert read_config.findtext("module/slink1/name/new_tag") == "new_val"
+    assert read_config.findtext("module/slink3/desc") == "mcu"
+    assert read_config.findtext("custom/new/tag") == "foo"
