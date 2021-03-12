@@ -47,12 +47,7 @@ Users will also have these bonuses:
 Prerequisites
 -------------
 
-python 3.6+
-
-Also make sure to install the requirements::
-
-    pip3 install -r requirements
-
+python 3.6+ and pip3
 
 Running your first tests
 ------------------------
@@ -67,20 +62,18 @@ Running your first tests
 
 3. Run the configuration script to setup the environment variables::
 
-    source configLeTP.sh # When asked for the directory, you can use the default one.
+    source configLeTP.sh testing_target
 
-4. Install the requirements::
+4. Go to the directory where your tests are::
 
-    pip3 install -r requirements.txt
+    cd testing_target/scenario/commands
 
-5. Edit target.xml to suit your target. See :ref:`test_configuration`.
-6. Go to the directory where your tests are::
+5. Run your tests::
 
-    cd LeTP/testing_target/scenario/commands
+    letp run test_at.py --config 'module/ssh(used)=1' --config 'module/slink1(used)=1' --config 'module/slink1/name=<DEVICE_CLI_PORT>' --config 'module/slink2(used)=1' --config 'module/slink2/name=<DEVICE_AT_PORT>'
 
-7. Run your tests::
-
-    letp run test_at.py # You can experiment with other command line options.
+Change the fields with your device's CLI port and AT port. For example: "/dev/ttyUSB0"
+"slink1" and "slink2" refers to your device's CLI and AT ports respectively.
 
 
 More documents and tutorials
@@ -92,7 +85,7 @@ Install sphinx::
 Set environment variables::
 
     cd LeTP
-    source configLeTP.sh # When asked for the directory, you can use the default one.
+    source configLeTP.sh testing_target
 
 and then::
 

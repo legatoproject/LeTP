@@ -62,13 +62,14 @@ target.xml
       - ip address of the target
 
 - At least change the value of the module name (wp7502, wp7607, ...). It should correspond to a file in config/module/specific.
-- Change used=0 to used=1 for all the communication links you want to use (ssh, serial link 1 or 2).
+- Change used=0 to used=1 for all the communication methods you want to use (ssh, serial link 1 or 2).
+  Serial link 1 refers to the CLI port on the device while serial link 2 refers to the AT port.
 
 When available, SSH is the default link.
 
 - For ssh, set the network interface (eth0 or usb0) as well as the ip address
 
-- For slink, /dev/ttyxxx or IP address+port (for telnet access on Moxa eth to uart) are supported.
+- For slink, connection over /dev/ttyxxx is supported.
 
 
 Note for linux For Linux Legato users:

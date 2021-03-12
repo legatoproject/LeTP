@@ -27,7 +27,7 @@
 
         <slink1 used="0">
             <!-- UART CLI -->
-            <!-- /dev/ttyxxx or IP address for raw telnet -->
+            <!-- /dev/ttyxxx -->
             <name>/dev/ttyUSB0</name>
             <!-- Symbolic link in target fixture. Uart can be used with target."your description" -->
             <desc>uart_cli</desc>
