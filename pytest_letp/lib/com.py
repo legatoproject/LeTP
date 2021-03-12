@@ -735,7 +735,7 @@ class target_qct:
 
     def _read_exit_code(self, timeout, retry=2):
         self.sendline('echo "\n$?"')
-        self.expect(["\n\d+\r\n", pexpect.TIMEOUT], timeout)
+        self.expect([r"\n\d+\r\n", pexpect.TIMEOUT], timeout)
         if self.after == pexpect.TIMEOUT:
             _exit = 1
             exit_s = "Timeout"
