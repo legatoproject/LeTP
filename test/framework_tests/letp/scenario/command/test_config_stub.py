@@ -7,6 +7,7 @@ The stub will be used by LETP unit tests.
 
 import pytest
 from pytest_letp.lib import swilog
+from pytest_letp.lib.modules import SlinkInfo
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -149,3 +150,14 @@ def test_custom_config_tag_only(read_config):
     assert read_config.findtext("module/slink1/name/new_tag") == "new_val"
     assert read_config.findtext("module/slink3/desc") == "mcu"
     assert read_config.findtext("custom/new/tag") == "foo"
+
+
+def test_slink_default_val(read_config):
+    """Test default slink config val."""
+    assert SlinkInfo.get_num_links(read_config) == 3
+    link = SlinkInfo(read_config, "module/slink3")
+
+    assert link.desc().lower() == "cli"
+    assert link.speed() == 115200
+    assert not link.rtscts()
+    assert not link.is_used()

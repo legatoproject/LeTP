@@ -19,9 +19,8 @@ import pexpect
 import pexpect.fdpexpect
 import pexpect.pxssh
 
-from pytest_letp.lib import com
-from pytest_letp.lib import com_port_detector
-from pytest_letp.lib import swilog
+from pytest_letp import TestConfig
+from pytest_letp.lib import com, com_port_detector, swilog
 from pytest_letp.lib.module_exceptions import SlinkException, TargetException
 from pytest_letp.lib.versions import TargetVersions
 
@@ -59,12 +58,14 @@ def get_swi_module(class_name, fatal=True):
                     return getattr(candidate_module_obj, class_name)
                 except Exception:
                     continue
-    
+
     if fatal:
         raise TargetException(
-            "Target not found: {} in module_files {}".format(class_name, modules_lib_path)
+            "Target not found: {} in module_files {}".format(
+                class_name, modules_lib_path
+            )
         )
-    
+
     return None
 
 
@@ -237,11 +238,14 @@ class SwiModule:
             self.com_port_checklist, self.com_port_info
         )
 
+        self.max_num_links = SlinkInfo.get_num_links(
+            link_config=TestConfig.default_cfg.get(), slink_template=self.slink_template
+        )
         # Map of all module links.
         # Not an array as we want to store things such as 'ssh'
         self.links = {}
-        # Create the 3 links:
-        for idx in [1, 2, 3]:
+
+        for idx in range(1, self.max_num_links + 1):
             self.links[idx] = ModuleLink(self, idx)
 
         # By default, link 1 is the default link
@@ -641,7 +645,12 @@ class SlinkInfo:
 
     def speed(self):
         """Get the speed of the port from the base config."""
-        return int(self.config.findtext(self.base_config + "/speed"))
+        speed = self.config.findtext(self.base_config + "/speed")
+
+        if not speed:
+            speed = 115200
+
+        return int(speed)
 
     def port(self):
         """Get the port from the base config."""
@@ -649,11 +658,19 @@ class SlinkInfo:
 
     def desc(self):
         """Get the description of the port from the base config."""
-        return self.config.findtext(self.base_config + "/desc")
+        desc = self.config.findtext(self.base_config + "/desc")
+
+        if not desc:
+            return com.ComPortType.CLI.name
+        return desc
 
     def rtscts(self):
         """Get the RTSCTS from the base config."""
-        return self.config.findtext(self.base_config + "/rtscts") == "1"
+        rtscts_val = self.config.findtext(self.base_config + "/rtscts")
+
+        if rtscts_val:
+            return rtscts_val == "1"
+        return False
 
     def detect_ports(self):
         """Detect if slink port is available."""
@@ -701,3 +718,17 @@ class SlinkInfo:
         """Update the value of <name>."""
         tag = self.config.find(self.base_config + "/name")
         tag.text = name
+
+    @staticmethod
+    def get_num_links(link_config, base_path="module", slink_template="slink%d"):
+        """Return how many links are configured."""
+        used_links_cnt = 0
+        link_idx = 1
+        path_template = os.path.join(base_path, slink_template)
+
+        if link_config:
+            while link_config.find(path_template % link_idx):
+                used_links_cnt += 1
+                link_idx += 1
+
+        return used_links_cnt

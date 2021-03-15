@@ -119,7 +119,6 @@ def test_define_target_with_one_slink(target):
     """Test the target only used one link: slink1."""
     assert target.link1, " slink1 should be used"
     assert target.link2 is None, " slink2 should not be used."
-    assert target.link3 is None, " slink3 should not be used."
     assert "ssh" not in target.links, " ssh was not enabled."
 
 
@@ -127,7 +126,6 @@ def test_define_target_with_two_slinks(target):
     """Test the target only used one link: slink1."""
     assert target.link1, " slink1 should be used"
     assert target.link2, " slink2 should be used."
-    assert target.link3 is None, " slink3 should not be used."
     assert "ssh" not in target.links, " ssh was not enabled."
 
 
@@ -135,7 +133,6 @@ def test_define_target_with_two_slinks_and_ssh(target):
     """Test the target only used one link: slink1."""
     assert target.link1, " slink1 should be used"
     assert target.link2, " slink2 should be used."
-    assert target.link3 is None, " slink3 should not be used."
     assert "ssh" in target.links, " ssh was enabled."
 
 
@@ -143,5 +140,4 @@ def test_define_target_with_only_at(target):
     """Test the target only used one link: slink2."""
     assert target.link1 is None, " slink1 should not be used"
     assert target.link2, " slink2 should be used."
-    assert target.link3 is None, " slink3 should not be used."
     assert "ssh" not in target.links, " ssh was not enabled."

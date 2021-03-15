@@ -289,6 +289,16 @@ def test_config_with_multi_xml_associated_in_test(letp_cmd):
     assert run_python_with_command(cmd)
 
 
+def test_slink_default_val(letp_cmd):
+    """Test default slink config val."""
+    cmd = (
+        "%s run "
+        "scenario/command/test_config_stub.py::test_slink_default_val "
+        "--config module/slink3/name=/dev/ttyUSB6" % (letp_cmd)
+    )
+    assert run_python_with_command(cmd)
+
+
 def test_custom_config_tag_with_attri(letp_cmd):
     """Test custom config arguments tag with attribute."""
     cmd = (
