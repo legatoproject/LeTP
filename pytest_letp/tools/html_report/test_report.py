@@ -8,23 +8,8 @@ import json
 import os
 import sys
 import argparse
-from io import BytesIO
-import html
 from collections import OrderedDict
 import requests
-
-from junitparser import (
-    JUnitXml,
-    TestSuite,
-    Skipped,
-    Error,
-    XPass,
-    XFail,
-    Failure,
-    TestCase,
-    Result,
-    Running,
-)
 from build_configuration import PytestResult, Components
 from report_template import HTMLRender
 
@@ -34,7 +19,6 @@ ALL_COMPONENTS = [x.name for x in Components]
 
 
 # pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-lines
 class TestSummary:
     """!Test summary section in the table."""
 
@@ -166,89 +150,28 @@ class TestCaseResult:
 
     def __init__(self):
         """One test case result."""
-        self.xml_element_results = []
         self.pytest_json_result = None
         self._system_out = ""
         self._system_err = ""
-
-    def add_xml_element(self, xml_element):
-        """Add xml elements.
-
-        One test case may have several xml element results.
-
-        One for each failure/error.
-        """
-        if xml_element is not None:
-            self.xml_element_results.append(xml_element)
 
     def add_pytest_json_result(self, pytest_result):
         """Add pytest json result."""
         assert self.pytest_json_result is None, "Pytest already exists."
         self.pytest_json_result = pytest_result
 
-    def is_valid(self):
-        """Is this result containing any junit xml."""
-        return len(self.xml_element_results) >= 1
-
-    def reset_junit_tag(self, tag_name):
-        """Reset junit result tag."""
-        result = self.result.result
-        if result and isinstance(result, Result):
-            result._elem.tag = tag_name
-
-    def merge_test_result_tag(self):
-        """Merge Junit test result with pytest result.
-
-        To align Jenkins junit report plugin,
-        we did not overwrite junit result.
-
-        Instead, we store pytest results from json.
-        (it many include xpass and xfail)
-        """
-        junit_result = self.result
-        pytest_result = self.pytest_json_result
-        if pytest_result and "outcome" in pytest_result:
-            if "xfail" in pytest_result["outcome"].lower():
-                self.reset_junit_tag("xfail")
-            elif "xpass" in pytest_result["outcome"].lower():
-                if junit_result.result:
-                    self.reset_junit_tag("xpass")
-                else:
-                    junit_result.result = XPass()
-
-    @property
-    def result(self):
-        """Get the junit result."""
-        if self.xml_element_results:
-            return self.xml_element_results[0]
-        return None
-
     @property
     def message(self):
         """Property mesage."""
-        all_message = [html.escape(x.result.message) for x in self.xml_element_results]
-        if any(all_message):
-            return "\n".join(all_message)
-        return ""
-
-    @property
-    def capture_log(self):
-        """Capture log."""
-        captured_log = [html.escape(x.result.text()) for x in self.xml_element_results]
-        if any(captured_log):
-            return "\n".join(captured_log)
+        call_phase = self.pytest_json_result.get("call")
+        crash_reason = call_phase.get("crash")
+        if crash_reason:
+            # non-passing testcases
+            return crash_reason.get("message", "N/A")
         return ""
 
     @property
     def system_out(self):
         """System out from all xml elements.."""
-        system_out = [
-            html.escape(x.system_out)
-            for x in self.xml_element_results
-            if x.system_out is not None
-        ]
-        if any(system_out):
-            return "\n".join(system_out)
         return self._system_out
 
     @system_out.setter
@@ -259,13 +182,6 @@ class TestCaseResult:
     @property
     def system_err(self):
         """System err from all xml elements."""
-        system_err = [
-            html.escape(x.system_err)
-            for x in self.xml_element_results
-            if x.system_err is not None
-        ]
-        if any(system_err):
-            return "\n".join(system_err)
         return self._system_err
 
     @system_err.setter
@@ -294,13 +210,8 @@ class GlobalTestCase:
             return False
 
         for res in self.results.values():
-            if res.result:
-                result_obj = res.result.result
-                if result_obj and isinstance(result_obj, (XFail, Failure, Error)):
-                    return False
-            else:
-                if "pass" in res.pytest_json_result.get("outcome", ""):
-                    return True
+            test_result = res.pytest_json_result.get("outcome", "").lower()
+            if "fail" in test_result or "error" in test_result:
                 return False
 
         return True
@@ -310,19 +221,6 @@ class GlobalTestCase:
         if target_name not in self.results:
             self.results[target_name] = TestCaseResult()
         return self.results[target_name]
-
-    def process_new_test_result(self, target_name, elmt, elmt_name, pytest_result):
-        """Process a new test result entry."""
-        test_result = self.get_create_target_result(target_name)
-        if test_result.is_valid():
-            test_result.add_xml_element(elmt)
-            return False
-        test_result.add_xml_element(elmt)
-        if elmt and not pytest_result:
-            print("{} has no json result. Only result in xml.".format(elmt_name))
-        test_result.add_pytest_json_result(pytest_result)
-        test_result.merge_test_result_tag()
-        return True
 
 
 class TestCaseView:
@@ -343,20 +241,6 @@ class TestCaseView:
         id_str = id_str.replace(":", "_")
         return id_str
 
-    @staticmethod
-    def result_to_string(res):
-        """Generate result to string."""
-        if not res:
-            return "Passed"
-        if isinstance(res, Failure):
-            return "Failed"
-        if res.type == "pytest.xfail":
-            # junitxml plugin named the elem tag for both SKIP & XFAIL test results
-            # the same as "skipped", so we need to distinguish it
-            # https://github.com/pytest-dev/pytest/issues/7009
-            return "XFail"
-        return res.__class__.__name__
-
     @property
     def result(self):
         """Test result.
@@ -366,17 +250,12 @@ class TestCaseView:
         if not self.test_case:
             return "N/A"
 
-        if not self.test_case.result:
-            return self.test_case.pytest_json_result.get("outcome", "N/A")
-        return self.result_to_string(self.test_case.result.result)
+        return self.test_case.pytest_json_result.get("outcome", "N/A")
 
     @property
     def html_class(self):
         """For Ninja usage."""
-        if not self.test_case.result:
-            return self.test_case.pytest_json_result.get("outcome", "N/A")
-
-        return self.result.lower()
+        return self.test_case.pytest_json_result.get("outcome", "N/A").lower()
 
 
 class BuildConfiguration:
@@ -392,11 +271,8 @@ class BuildConfiguration:
         if name:
             self.flags = name.split(":")
             self.flags.pop(0)
-        self.junit_results = {}
         self.pytest_results = {}
         self.pytest_test_name_array = []
-        if "test_results" in self.json_data:
-            self.junit_results = self.json_data["test_results"]
         self.build_pytest_results()
         self.name = name or self.json_data.get("target_name", "N/A")
         self.name = self.name.replace(":wip", "")
@@ -404,20 +280,8 @@ class BuildConfiguration:
 
     def consolidate_test_results(self, another_cfg):
         """!Consolidate test results."""
-        if not self.junit_results or not another_cfg.junit_results:
-            # most likely incomplete results due to interrutpion during test run
-            self.pytest_results += another_cfg.pytest_results
-            self.pytest_test_name_array += another_cfg.pytest_test_name_array
-            self.junit_results = (
-                {}
-            )  # force to process the test data using pytest result later
-        else:
-            for test_compaign_name, result in another_cfg.junit_results.items():
-                if test_compaign_name in self.junit_results:
-                    test_compaign_name = "{}+".format(test_compaign_name)
-                    self.junit_results[test_compaign_name] = result
-                else:
-                    self.junit_results[test_compaign_name] = result
+        self.pytest_results += another_cfg.pytest_results
+        self.pytest_test_name_array += another_cfg.pytest_test_name_array
 
     def consolidate_summary(self, another_cfg):
         """!Consolidate summary statistics."""
@@ -539,18 +403,6 @@ class BuildConfiguration:
             global_test_data[elmt_name] = global_test_case
         return global_test_case
 
-    # @staticmethod
-    def _process_result_in_summary(self, result, summary):
-        """Convert junitxml result into summary."""
-        if not result or isinstance(result, XPass):
-            self._convert_result_to_summary(XPass.__name__, summary)
-        elif isinstance(result, Skipped):
-            self._convert_result_to_summary(Skipped.__name__, summary)
-        elif isinstance(result, (Failure, XFail)):
-            self._convert_result_to_summary(Failure.__name__, summary)
-        elif isinstance(result, Error):
-            self._convert_result_to_summary(Error.__name__, summary)
-
     @staticmethod
     def _convert_result_to_summary(result: str, summary):
         """Convert result into summary."""
@@ -565,39 +417,15 @@ class BuildConfiguration:
         elif "error" in result.lower():
             summary.stat_errors += 1
 
-    def _iter_report(self, global_test_data, summary, parent, prefix=""):
-        """Iterate test report and collect summary.
-
-        global_test_data: Global test data container
-        """
-        for elmt in parent:
-            if isinstance(elmt, TestSuite):
-                test_suite_name = "%s%s." % (prefix, elmt.name)
-                if test_suite_name == "pytest.":
-                    # Ignore the default name added by pytest.
-                    test_suite_name = ""
-                self._iter_report(global_test_data, summary, elmt, test_suite_name)
-                continue
-            elmt_name = self._build_element_name(elmt, prefix)
-            global_test_case = self._get_create_global_test_case(
-                global_test_data, elmt_name
-            )
-            pytest_result = self._lookup_pytest_json_result(elmt_name)
-            if not global_test_case.process_new_test_result(
-                self.name, elmt, elmt_name, pytest_result
-            ):
-                continue
-            self._process_result_in_summary(elmt.result, summary)
-
     def _iter_pytest_report(self, global_test_data, summary):
-        """Iterate the corrupted test report and collect summary."""
+        """Iterate the test report and collect summary."""
         tests = self.json_data.get("tests", [])
         for elmt in tests:
             test_name = PytestResult(elmt).get_test_name()
             pytest_result = self._lookup_pytest_json_result(test_name)
 
             if not pytest_result:
-                print("Unable to recover the test result for {}".format(pytest_result))
+                print("Unable to get the test result for {}".format(pytest_result))
                 continue
 
             global_test_case = self._get_create_global_test_case(
@@ -626,21 +454,6 @@ class BuildConfiguration:
                                 run_phase
                             ].get("stderr", "")
 
-    def add_running_test_cases(self, xml_ref):
-        """!Add running tests."""
-        if len(xml_ref) > 0:
-            # Using the results in test suite directly.
-            return
-        collected_tests = self.get_collected_tests()
-        if not collected_tests:
-            return
-        assert isinstance(xml_ref, TestSuite)
-        for test_dict in collected_tests:
-            test_id = PytestResult.build_test_id(test_dict["name"])
-            test_case = TestCase(test_id)
-            test_case.result = Running()
-            xml_ref.add_testcase(test_case)
-
     def process_test_data(self, global_test_data):
         """!Build test summary."""
         collected_tests_num = self._get_json("test_collected")
@@ -651,17 +464,8 @@ class BuildConfiguration:
         if "state" in self.json_data:
             new_summary.set_status(self.json_data["state"])
 
-        if not self.junit_results:
-            # most likely incomplete results due to interrutpion during test run
-            self._iter_pytest_report(global_test_data, new_summary)
-        else:
-            for test_res_name in self.junit_results.keys():
-                xml_data = self.junit_results[test_res_name]
-                bytes_data = xml_data.encode("utf-8")
-                bytes_io = BytesIO(bytes_data)
-                xml_ref = JUnitXml.fromfile(bytes_io)
-                self.add_running_test_cases(xml_ref)
-                self._iter_report(global_test_data, new_summary, xml_ref)
+        self._iter_pytest_report(global_test_data, new_summary)
+
         return new_summary
 
 
@@ -819,8 +623,9 @@ class TestReportBuilder:
                     test_case = global_test_case.results[target_name]
                 else:
                     test_case = None
-                test_case_review = TestCaseView(test_name, target_name, test_case)
-                c_res.append(test_case_review)
+                test_case_view = TestCaseView(test_name, target_name, test_case)
+                c_res.append(test_case_view)
+
             results.append(c_res)
         return results
 

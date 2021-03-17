@@ -127,17 +127,6 @@ class JsonBuilder:
             component_name, component_version = self._parse_args_with_colon(entry)
             self._data["components"][component_name] = component_version
 
-    def _add_test_results(self, test_results):
-        if test_results is None:
-            return
-        self._data["test_results"] = {}
-        for entry in test_results:
-            test_results_type, test_results_file = self._parse_args_with_colon(entry)
-
-            with open(test_results_file, "r") as outfile:
-                output = outfile.read()
-                self._data["test_results"][test_results_type] = output
-
     def _add_state(self, state):
         if state is None:
             return
@@ -160,7 +149,6 @@ class JsonBuilder:
         self._add_test_campaign(args.test_campaign)
         self._add_info_entries(args.info)
         self._add_component_entries(args.components)
-        self._add_test_results(args.test_results)
         self._add_state(args.state)
         self._finalize(args.output)
 
@@ -196,7 +184,6 @@ class JsonExtender(JsonBuilder):
         test_compaign = test_config.get_test_campaign()
         self._add_test_campaign(test_compaign)
         self._add_info_entries_from_config(test_config)
-        self._add_test_results(test_results)
         test_components = test_config.get_test_components()
         self._add_component_entries(test_components)
         self._finalize(self._base_json_file)

@@ -68,7 +68,7 @@
     .error { background-color: #ffeeba; }
     .aborted { background-color: #fff7ba; }
     .xpass { background-color: #8CCF9C; }
-    .xfail { background-color: #E77480; }
+    .xfailed { background-color: #E77480; }
     .running { background-color: #97def0; }
 
     pre.log {
@@ -323,13 +323,8 @@
                                     </table>
 
                     {% if test_case_view.test_case %}
-                        {% if test_case_view.test_case.result.result and test_case_view.test_case.message %}
+                        {% if test_case_view.test_case.message %}
                             {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
-                            {% endcall %}
-                        {% endif %}
-
-                        {% if test_case_view.test_case.result.result and test_case_view.test_case.capture_log %}
-                            {% call render_logs('Log', test_case_view.test_case.capture_log, 'log') %}
                             {% endcall %}
                         {% endif %}
 

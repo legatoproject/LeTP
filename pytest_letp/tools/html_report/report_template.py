@@ -39,19 +39,19 @@ class HTMLRender(TemplateRender):
         """!Replace ansi color by html colors."""
         if not msg:
             return msg
-        msg = msg.replace("#x1B[0m", "</font>")
-        msg = msg.replace("#x1B[01m", '<font class="bold">')
-        msg = msg.replace("#x1B[02m", "</font>")
-        msg = msg.replace("#x1B[31m", '<font class="black">')
-        msg = msg.replace("#x1B[31m", '<font class="red">')
-        msg = msg.replace("#x1B[01;31m", '<font class="red bold">')
-        msg = msg.replace("#x1B[32m", '<font class="green">')
-        msg = msg.replace("#x1B[33m", '<font class="yellow">')
-        msg = msg.replace("#x1B[01;33m", '<font class="yellow bold">')
-        msg = msg.replace("#x1B[34m", '<font class="blue">')
-        msg = msg.replace("#x1B[35m", '<font class="magenta">')
-        msg = msg.replace("#x1B[36m", '<font class="cyan">')
-        msg = msg.replace("#x1B[37m", '<font class="white">')
+        msg = msg.replace("\x1b[0m", "</font>")
+        msg = msg.replace("\x1b[01m", '<font class="bold">')
+        msg = msg.replace("\x1b[02m", "</font>")
+        msg = msg.replace("\x1b[31m", '<font class="black">')
+        msg = msg.replace("\x1b[31m", '<font class="red">')
+        msg = msg.replace("\x1b[01;31m", '<font class="red bold">')
+        msg = msg.replace("\x1b[32m", '<font class="green">')
+        msg = msg.replace("\x1b[33m", '<font class="yellow">')
+        msg = msg.replace("\x1b[01;33m", '<font class="yellow bold">')
+        msg = msg.replace("\x1b[34m", '<font class="blue">')
+        msg = msg.replace("\x1b[35m", '<font class="magenta">')
+        msg = msg.replace("\x1b[36m", '<font class="cyan">')
+        msg = msg.replace("\x1b[37m", '<font class="white">')
         return msg
 
     @staticmethod
