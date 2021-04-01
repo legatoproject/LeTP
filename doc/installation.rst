@@ -15,22 +15,11 @@ These steps are for getting a standalone LeTP:
 
 Get the framework with git clone::
 
-    git clone git://github/Legato/LeTP
+    git clone https://github.com/legatoproject/LeTP.git
 
 Then create (see :ref:`Create test repository<create_test_repo>`) or get a test repository.
 And configure your environment see :ref:`the configuration section.<env_configuration>`
 
-Installation with repo
-^^^^^^^^^^^^^^^^^^^^^^
-
-Follow the instructions for Legato "Clone for Github":
-`Instructions <https://docs.legato.io/latest/basicBuildLegato.html#basicBuildLegato_Download>`_
-
-But add the groups default and letp in the repo command with "-g"::
-
-    repo init -u git://github.com/legatoproject/manifest -m legato/releases/17.07.1.xml -g letp,default
-
-Then configure your environment see :ref:`the configuration section.<env_configuration>`
 
 .. _create_test_repo:
 
