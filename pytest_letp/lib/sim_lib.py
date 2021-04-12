@@ -121,12 +121,14 @@ class SimDBParser:
         is_detail_info = False
 
         sim_info = []
+        apn = None
         # get detail sim info
         for uicc in self.root.findall("simdb/uicc"):
             curr_iccid = uicc.find("iccid").text
             # found iccid
             if curr_iccid in iccid:
                 is_detail_info = True
+                apn = self._get_sim_info_detail(uicc, "apn")
                 sim_info.append(self._get_sim_info_detail(uicc, "iccid"))
                 sim_info.append(self._get_sim_info_detail(uicc, "imsi"))
                 sim_info.append(self._get_sim_info_detail(uicc, "mcc"))
@@ -142,7 +144,8 @@ class SimDBParser:
         for element in sim_elements:
             if validate(element, iccid, imsi):
                 carrier = self.get_sim_carrier(element)
-                apn = self.get_sim_apn(sim_type=carrier)
+                if apn is None:
+                    apn = self.get_sim_apn(sim_type=carrier)
                 pdp = self.get_sim_pdp(sim_type=carrier)
                 band = self.get_rf_band(sim_type=carrier)
                 sim_tuple = [carrier, apn, pdp, band]
