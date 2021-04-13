@@ -5,10 +5,16 @@ import os
 import sys
 import time
 import stat
-import termios
+
+if os.name == "nt":
+    import msvcrt
+
+    termios = {}
+else:
+    import termios
+    import fcntl
 import socket
 import struct
-import fcntl
 import re
 from enum import Enum
 import colorama
@@ -137,9 +143,14 @@ class ComPortDevice:
         return False
 
     def is_pcie_interface(self):
-        """Check if the name follows /dev/mhixx device format. Which is the PCIe port"""
+        """Check if the name follows /dev/mhixx device format.
+
+        Which is the PCIe port
+        """
         if self.name:
-            if os.path.exists(self.name) and re.search(self.pcie_interface_regx, self.name):
+            if os.path.exists(self.name) and re.search(
+                self.pcie_interface_regx, self.name
+            ):
                 return True
 
         return False
@@ -552,28 +563,30 @@ class SerialPort:
     """Class providing serial port configuration."""
 
     # Available baud rates.
-    BAUD = {
-        9600: termios.B9600,
-        19200: termios.B19200,
-        38400: termios.B38400,
-        57600: termios.B57600,
-        115200: termios.B115200,
-        230400: termios.B230400,
-        460800: termios.B460800,
-        # Linux baudrates bits missing in termios module included below
-        500000: 0x1005,
-        576000: 0x1006,
-        921600: 0x1007,
-        1000000: 0x1008,
-        1152000: 0x1009,
-        1500000: 0x100A,
-        2000000: 0x100B,
-        2500000: 0x100C,
-        3000000: 0x100D,
-        3500000: 0x100E,
-        4000000: 0x100F,
-    }
-
+    if os.name == "nt":
+        BAUD = {}
+    else:
+        BAUD = {
+            9600: termios.B9600,
+            19200: termios.B19200,
+            38400: termios.B38400,
+            57600: termios.B57600,
+            115200: termios.B115200,
+            230400: termios.B230400,
+            460800: termios.B460800,
+            # Linux baudrates bits missing in termios module included below
+            500000: 0x1005,
+            576000: 0x1006,
+            921600: 0x1007,
+            1000000: 0x1008,
+            1152000: 0x1009,
+            1500000: 0x100A,
+            2000000: 0x100B,
+            2500000: 0x100C,
+            3000000: 0x100D,
+            3500000: 0x100E,
+            4000000: 0x100F,
+        }
     # TTY attribute fields.
     IFLAG = 0
     OFLAG = 1
@@ -648,6 +661,7 @@ class SerialPort:
             self._tty_attr[self.CFLAG] |= termios.CRTSCTS
         else:
             self._tty_attr[self.CFLAG] &= ~termios.CRTSCTS
+
         termios.tcsetattr(self.fd, termios.TCSADRAIN, self._tty_attr)
         self._tty_attr = termios.tcgetattr(self.fd)
 
