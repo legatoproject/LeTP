@@ -1,3 +1,0 @@
-junitparser
-Jinja2
-requests

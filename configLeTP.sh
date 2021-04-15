@@ -57,35 +57,8 @@ if [ -d "$LETP_PATH/letp-internal" ]; then
     echo "Set LETP_INTERNAL_PATH to $LETP_INTERNAL_PATH"
 fi
 
-
-REQ_CACHE=${REQ_CACHE:-"$LETP_PATH/.requirements"}
-
-pip_install() {
-    local req_txt="$1"
-
-    local req_hash=$(sha1sum "$req_txt" | awk '{print $1}')
-
-    if [ -n "$req_hash" ] && [ -e "$REQ_CACHE/$req_hash" ]; then
-        # Skipping, hash is already known and installed
-        return
-    fi
-
-    echo "LeTP dependencies: install $req_txt"
-
-    python3 -m pip install --user -r "$req_txt"
-
-    # Not failing on purpose in case the source folder is read-only
-    mkdir -p "$REQ_CACHE" 2>/dev/null || true
-    touch "$REQ_CACHE/$req_hash" || true
-}
-
 # Install LeTP dependencies
-pip_install "$LETP_PATH/requirements.txt"
-
-if [ -f "$LETP_TESTS/requirements.txt" ]; then
-    # Install test dependencies
-    pip_install "$LETP_TESTS/requirements.txt"
-fi
+python3 package.py --install -p $LETP_PATH
 
 # Go back to the initial directory
 cd $INITIAL_DIR

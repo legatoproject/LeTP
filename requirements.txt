@@ -18,5 +18,5 @@ colorlog
 future
 jinja2
 requests
-
+junitparser
 setuptools-scm
