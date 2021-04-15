@@ -10,12 +10,13 @@ import sys
 import argparse
 from collections import OrderedDict
 import requests
-from build_configuration import PytestResult, Components
+from build_configuration import PytestResult, Components, Environment
 from report_template import HTMLRender
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 ALL_COMPONENTS = [x.name for x in Components]
+ALL_ENVIRONMENT_TYPES = list(Environment)
 
 
 # pylint: disable=too-many-instance-attributes
@@ -360,7 +361,41 @@ class BuildConfiguration:
         info_keys = self.get_info_keys()
         if info_keys:
             env_dict.update(self.json_data["info"])
+
+        for env_type in ALL_ENVIRONMENT_TYPES:
+            env_dict = self.consolidate_runtime_env_info(
+                env_dict, environment_type=env_type
+            )
+
         return env_dict
+
+    def consolidate_runtime_env_info(
+        self, env_dict, environment_type=Environment.Plugins
+    ):
+        """Consolidate runtime environment information."""
+        env_name = self.get_runtime_env_name(environment_type)
+        if env_name:
+            env_val = None
+            for name, version in self.json_data["environment"][env_name].items():
+                consolidate_val = "{}:{}".format(name, version)
+                env_val = (
+                    consolidate_val
+                    if not env_val
+                    else "{}, {}".format(env_val, consolidate_val)
+                )
+
+            env_dict.update({environment_type.name: env_val})
+
+        return env_dict
+
+    def get_runtime_env_name(self, environment_type=Environment.Plugins):
+        """!Get runtime environment name from the metadata."""
+        if (
+            "environment" in self.json_data
+            and environment_type.name in self.json_data["environment"]
+        ):
+            return environment_type.name
+        return None
 
     def get_jenkins_build_number(self):
         """!Get jenkins build number."""
@@ -557,9 +592,14 @@ class TestReportBuilder:
         for build_cfg in self.build_cfg_list:
             assert isinstance(build_cfg, BuildConfiguration)
             current_info_keys = build_cfg.get_info_keys()
-            if not current_info_keys:
-                continue
-            info_keys.update(current_info_keys)
+
+            if current_info_keys:
+                info_keys.update(current_info_keys)
+
+            for env_type in ALL_ENVIRONMENT_TYPES:
+                current_env_name = build_cfg.get_runtime_env_name(env_type)
+                if current_env_name:
+                    info_keys.update([current_env_name])
 
         self.info_keys = list(info_keys)
         self.info_keys.sort()

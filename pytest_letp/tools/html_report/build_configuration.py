@@ -34,6 +34,13 @@ class Components(enum.Enum):
     modem = enum.auto()
 
 
+class Environment(enum.Enum):
+    """!Metadata of testing environment."""
+
+    Plugins = enum.auto()
+    Packages = enum.auto()
+
+
 class PytestResult(dict):
     """!Pytest result genereate from pytest_jsonreport."""
 
