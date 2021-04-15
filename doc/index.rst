@@ -14,6 +14,7 @@ Welcome to LeTP's documentation!
    installation.rst
    concepts.rst
    getting_started_tutorial.rst
+   first_script.rst
    command_line.rst
    scripting_concepts/test_script_samples.rst
    references.rst

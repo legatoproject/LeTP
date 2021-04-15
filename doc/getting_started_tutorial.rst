@@ -37,7 +37,7 @@ The Legato development environment must be functional in order to build the hell
 
 4. Install and configure LeTP as described in :ref:`installation`.
 
-Test scripts creation
+Test script example
 ^^^^^^^^^^^^^^^^^^^^^
 
 1. Go to your test repository::
