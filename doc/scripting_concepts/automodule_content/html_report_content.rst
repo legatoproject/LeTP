@@ -6,10 +6,3 @@ build_configuration
     :undoc-members:
     :show-inheritance:
 
-junitparser
---------------------------------------
-
-.. automodule:: pytest_letp.tools.html_report.junitparser
-    :members:
-    :undoc-members:
-    :show-inheritance:
