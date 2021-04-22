@@ -69,7 +69,7 @@ def target(request, read_config):
         Most of the functions are based on the pexpect library.
         See `the Pexpect documentation <https://pexpect.readthedocs.io/en/stable/>`_
 
-    - :py:func:`target.run <lib.com.target_ssh_qct.run>` : \
+    - :py:func:`target.run <lib.ssh_linux.target_ssh_qct.run>` : \
         Send a command and wait for the prompt
 
     - :py:func:`target.run_at_cmd <lib.com.target_at.run_at_cmd>` : \
@@ -81,7 +81,7 @@ def target(request, read_config):
 
     - target.read: Read data
 
-    - :py:func:`target.run <lib.com.target_ssh_qct.expect>` : \
+    - :py:func:`target.run <lib.ssh_linux.target_ssh_qct.expect>` : \
         Wait for one or more patterns. \
          Use target.before, target.after or target.match to get the found data \
         (see below target.expect examples).
@@ -98,18 +98,19 @@ def target(request, read_config):
 
     Functions related to the reboot
 
-    - :py:func:`target.reboot <lib.com.target_ssh_qct.reboot>`
+    - :py:func:`target.reboot <lib.ssh_linux.target_ssh_qct.reboot>`
 
-    - :py:func:`target.wait_for_reboot <lib.com.target_ssh_qct.wait_for_reboot>`
+    - :py:func:`target.wait_for_reboot <lib.ssh_linux.target_ssh_qct.wait_for_reboot>`
 
-    - :py:func:`target.wait_for_device_up <lib.com.target_ssh_qct.wait_for_device_up>`
+    - :py:func:`target.wait_for_device_up \
+                <lib.ssh_linux.target_ssh_qct.wait_for_device_up>`
 
     - :py:func:`target.wait_for_device_down \
-        <lib.com.target_ssh_qct.wait_for_device_down>`
+        <lib.ssh_linux.target_ssh_qct.wait_for_device_down>`
 
-    - :py:func:`target.reinit <lib.com.target_ssh_qct.reinit>`
+    - :py:func:`target.reinit <lib.ssh_linux.target_ssh_qct.reinit>`
 
-    - :py:func:`target.login <lib.com.target_ssh_qct.login>`
+    - :py:func:`target.login <lib.ssh_linux.target_ssh_qct.login>`
 
     .. warning::
         Always use the reboot functions of LeTP

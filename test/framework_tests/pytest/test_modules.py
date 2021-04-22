@@ -139,7 +139,7 @@ def test_define_target_linux_two_links(letp_cmd, module_name):
 def test_define_target_linux_two_links_and_ssh(letp_cmd, module_name):
     with patch("pytest_letp.lib.com.target_serial_at", autospec=True), patch(
         "pytest_letp.lib.com.target_serial_qct", autospec=True
-    ), patch("pytest_letp.lib.com.target_ssh_qct", autospec=True), patch(
+    ), patch("pytest_letp.lib.ssh_linux.target_ssh_qct", autospec=True), patch(
         "pytest_letp.lib.com.ComPortDevice", autospec=True
     ):
         _run_test_define_target_with_two_slinks_and_ssh(letp_cmd, module_name)

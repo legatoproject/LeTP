@@ -1,6 +1,6 @@
 # pylint: disable=broad-except
 # pylint: disable=no-member
-"""module dependant functions.
+"""Module dependant functions.
 
 Set of functions for Linux modules.
 """
@@ -9,13 +9,17 @@ import re
 import os
 import pexpect
 import pexpect.fdpexpect
-import pexpect.pxssh
+
 from pytest_letp.lib import swilog
 from pytest_letp.lib import com
 from pytest_letp.lib import app
-from pytest_letp.lib.modules import SwiModule, SlinkInfo, ModuleLink
-from pytest_letp.lib.module_exceptions import SlinkException, TargetException
+
 from pytest_letp.lib.versions_linux import LinuxVersions
+from pytest_letp.lib.module_exceptions import SlinkException, TargetException
+from pytest_letp.lib.modules import SwiModule, SlinkInfo, ModuleLink
+
+if os.name != "nt":
+    from pytest_letp.lib import ssh_linux
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -257,7 +261,7 @@ class ModuleLinux(SwiModule):
 
     def create_ssh_connection(self):
         """Start a SSH session between host and target."""
-        return com.target_ssh_qct(
+        return ssh_linux.target_ssh_qct(
             self.target_ip,
             self._ssh_port,
             config_target=self.config_target,

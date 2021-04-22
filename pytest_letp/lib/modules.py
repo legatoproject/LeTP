@@ -17,7 +17,6 @@ import pkgutil
 
 import pexpect
 import pexpect.fdpexpect
-import pexpect.pxssh
 
 from pytest_letp import TestConfig
 from pytest_letp.lib import com, com_port_detector, swilog
