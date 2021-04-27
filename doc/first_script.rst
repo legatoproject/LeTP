@@ -99,13 +99,13 @@ Other Target Functions
 ======================
 Functions below can be used to control the target device as well as get information from it.
 
-- :py:func:`target.reboot <lib.com.target_ssh_qct.reboot>`
+- :py:func:`target.reboot <lib.ssh_linux.target_ssh_qct.reboot>`
 
-- :py:func:`target.wait_for_reboot <lib.com.target_ssh_qct.wait_for_reboot>`
+- :py:func:`target.wait_for_reboot <lib.ssh_linux.target_ssh_qct.wait_for_reboot>`
 
-- :py:func:`target.wait_for_device_up <lib.com.target_ssh_qct.wait_for_device_up>`
+- :py:func:`target.wait_for_device_up <lib.ssh_linux.target_ssh_qct.wait_for_device_up>`
 
-- :py:func:`target.wait_for_device_down <lib.com.target_ssh_qct.wait_for_device_down>`
+- :py:func:`target.wait_for_device_down <lib.ssh_linux.target_ssh_qct.wait_for_device_down>`
 
 - :py:func:`target.imei <lib.modules_linux.ModuleLinux.imei>`
 
