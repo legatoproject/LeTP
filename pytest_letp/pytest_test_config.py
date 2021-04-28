@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from difflib import SequenceMatcher
 
 from pytest_letp.lib import swilog
+from pytest_letp.lib.misc import convert_path
 from pytest_letp.tools.html_report.test_report import ALL_COMPONENTS
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
@@ -191,12 +192,18 @@ class LeTPConfigPath:
 
 class TestConfig:
     # pylint: disable=too-many-public-methods
-    """Target config object for the test."""
+    """Target config object for the test.
 
-    default_cfg_file = "config/testbench.xml"
-    test_base_report_cache = "log/letp_test_results.json"  # letp_tests_info
-    default_cfg_xml_cache = "log/default_test_cfg.xml"
-    last_test_config_file = "log/last_test_cfg.xml"
+    For referencing attributes in xml, the representation must be in a
+    convention of "<parent_tag_name>/<child_tag_name>"
+    """
+
+    default_cfg_file = os.path.join("config", "testbench.xml")
+    test_base_report_cache = os.path.join(
+        "log", "letp_test_results.json"
+    )  # letp_tests_info
+    default_cfg_xml_cache = os.path.join("log", "default_test_cfg.xml")
+    last_test_config_file = os.path.join("log", "last_test_cfg.xml")
     default_cfg = None
     test_list = []
 
@@ -502,6 +509,7 @@ class TestConfig:
             key = match.group(1)
             val = self._search_for_value(key, config_container)
             config_file = config_file.replace(match.group(0), val)
+        config_file = convert_path(config_file)  # for platform compatibility
         return config_file
 
     def create_cfg_xml(self, config_files):
@@ -790,7 +798,6 @@ class TestConfig:
         """Build config from user config parameters and default config xml."""
         # Create configuration. Add the default config file first
         cmd_line_cfgs = cmd_line_cfgs if cmd_line_cfgs is not None else []
-
         target_config = TestConfig(cmd_line_cfgs)
         print(
             "Read default configuration from %s \n%s"

@@ -725,7 +725,7 @@ class SlinkInfo:
         """Return how many links are configured."""
         used_links_cnt = 0
         link_idx = 1
-        path_template = os.path.join(base_path, slink_template)
+        path_template = "{}/{}".format(base_path, slink_template)
 
         if link_config:
             while link_config.find(path_template % link_idx):

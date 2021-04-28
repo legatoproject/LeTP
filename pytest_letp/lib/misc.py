@@ -1,6 +1,8 @@
 """Miscellaneous for testing."""
 import select
 import sys
+import pathlib
+import os
 
 from pytest_letp.lib import swilog
 
@@ -28,3 +30,11 @@ def input_timeout(msg, timeout):
     rsp = sys.stdin.readline()
     swilog.debug("Read input:%s" % rsp)
     return rsp
+
+
+def convert_path(path=None):
+    """Covert path format to align with OS env."""
+    if path:
+        generic_path = pathlib.PurePath(path)
+        return os.path.join(generic_path)
+    return path

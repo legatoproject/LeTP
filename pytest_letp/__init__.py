@@ -105,21 +105,33 @@ def get_git_info(git_repo_path):
 
     Return: git remote name and its version.
     """
+    name_str = ""
+    cmd_remote_url = ""
     if not os.path.exists(git_repo_path):
         return "", ""
     curr_path = os.getcwd()
     os.chdir(git_repo_path)
-    try:
-        name = subprocess.check_output(
-            "basename $(git remote get-url origin 2> /dev/null) 2> /dev/null",
-            shell=True,
+
+    if os.name == "nt":
+        cmd_remote_url = "git remote get-url origin"
+        cmd_ver = "git describe --tags --always"
+    else:
+        cmd_remote_url = (
+            "basename $(git remote get-url origin 2> /dev/null) 2> /dev/null"
         )
+        cmd_ver = "git describe --tags --always 2> /dev/null"
+
+    try:
+        name = subprocess.check_output(cmd_remote_url, shell=True)
     except subprocess.CalledProcessError:
         return "", ""
-    name_str = name.decode("utf-8").strip("\n")
-    version = subprocess.check_output(
-        "git describe --tags --always 2> /dev/null", shell=True
-    )
+
+    if os.name == "nt":
+        name_str = os.path.basename(os.path.normpath(name))
+    else:
+        name_str = name.decode("utf-8").strip("\n")
+
+    version = subprocess.check_output(cmd_ver, shell=True)
     version_str = version.decode("utf-8").strip("\n")
     os.chdir(curr_path)
     return name_str, version_str
