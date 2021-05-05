@@ -7,16 +7,19 @@ import time
 import stat
 import struct
 import re
+import serial
+import serial.tools.list_ports as ser_lst
 from enum import Enum
 import colorama
 import pexpect
-import pexpect.fdpexpect
 from pytest_letp.lib import swilog
 from pytest_letp.lib.com_exceptions import ComException
 
 if os.name == "nt":
     termios = {}
+    from pytest_letp.lib.serial_windows import SerialSpawn
 else:
+    from pexpect.fdpexpect import fdspawn as SerialSpawn
     import termios
     import fcntl
 
@@ -433,7 +436,7 @@ class TTYLog:
         swilog.trace(line)
 
 
-class ttyspawn(pexpect.fdpexpect.fdspawn):
+class ttyspawn(SerialSpawn):
     """Wrap fdPExpect to hold reference to file object."""
 
     def __init__(self, fd=None, **kwargs):
@@ -567,9 +570,12 @@ class ttyspawn(pexpect.fdpexpect.fdspawn):
         return data
 
     def close(self):
-        """Close the fd."""
+        """Close the serial connection."""
         try:
-            os.close(self.fd)
+            if os.name == "posix":
+                os.close(self.fd)
+            else:
+                self.fd.close()
             super().close()
         except OSError as e:
             swilog.debug(e)
@@ -580,7 +586,7 @@ class SerialPort:
 
     # Available baud rates.
     if os.name == "nt":
-        BAUD = {}
+        BAUD = [115200]
     else:
         BAUD = {
             9600: termios.B9600,
@@ -622,19 +628,22 @@ class SerialPort:
         :returns: Port instance, or None if device not found.
         """
         port = None
-        device_stat = None
 
         if not device:
             return None
 
-        try:
-            device_stat = os.stat(device)
-        except OSError:
-            pass
-
-        if device_stat and stat.S_ISCHR(device_stat.st_mode):
+        if SerialPort.is_valid_port(device):
             port = SerialPort(device, baudrate, rtscts)
         return port
+
+    @staticmethod
+    def is_valid_port(device_name=None):
+        """Check if the given device name is a valid port."""
+        if device_name:
+            for elmt in ser_lst.comports():
+                if device_name in elmt.device or elmt.device in device_name:
+                    return True
+        return False
 
     def __init__(self, device, baudrate, rtscts=False):
         """Instantiate serial port wrapper.
@@ -646,49 +655,19 @@ class SerialPort:
         self._device = device
         self._baudrate = None
         swilog.debug("Init of %s" % str(self._device))
-        device_stat = None
-        try:
-            device_stat = os.stat(device)
-        except OSError:
-            pass
-        if self._device and stat.S_ISCHR(device_stat.st_mode):
-            self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
-        else:
-            assert 0, "%s not a valid port" % self._device
-        self._tty_attr = termios.tcgetattr(self.fd)
-        self._tty_attr[self.IFLAG] = termios.IGNBRK
-        self._tty_attr[self.OFLAG] = 0
-        self._tty_attr[self.LFLAG] = 0
-        self._tty_attr[self.CC] = [0] * 32
-        if not baudrate:
-            self._tty_attr[self.CFLAG] = termios.CS8 | (
-                self._tty_attr[self.CFLAG] & termios.CBAUD
-            )
-        else:
-            self._tty_attr[self.CFLAG] = termios.CS8 | self.BAUD[baudrate]
-            self._tty_attr[self.ISPEED] = self._tty_attr[self.OSPEED] = self.BAUD[
-                baudrate
-            ]
-        # Enable receiver, ignore modem control lines
-        self._tty_attr[self.CFLAG] |= termios.CREAD | termios.CLOCAL
-        # Flow control
-        if rtscts:
-            swilog.debug("Hardware flow control is activated")
-            self._tty_attr[self.CFLAG] |= termios.CRTSCTS
-        else:
-            self._tty_attr[self.CFLAG] &= ~termios.CRTSCTS
 
-        termios.tcsetattr(self.fd, termios.TCSADRAIN, self._tty_attr)
-        self._tty_attr = termios.tcgetattr(self.fd)
+        if SerialPort.is_valid_port(device):
+            if os.name == "nt":
+                self.fd = serial.Serial(port=device, baudrate=baudrate, timeout=0)
+                self._baudrate = baudrate
+            else:
+                self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+                self._config_posix_port(baudrate)
+        else:
+            raise ComException("{} in't a valid serial port".format(device))
 
-        if not baudrate:
-            baud_value = self._tty_attr[self.CFLAG] & termios.CBAUD
-            for b, v in self.BAUD.items():
-                if v == baud_value:
-                    baudrate = b
-                    break
-        self._baudrate = baudrate
-        assert self._baudrate in self.BAUD
+        if self._baudrate not in self.BAUD:
+            raise ComException("Missing baudrate configuration for {}".format(device))
 
     def flush(self):
         """Flush serial port input and output buffers."""
@@ -742,6 +721,43 @@ class SerialPort:
         return "SerialPort<{0} @ {1} | {2}>".format(
             self._device, self.baudrate, self.fd
         )
+
+    def _config_posix_port(self, baudrate=None, rtscts=False):
+        """Configure the port."""
+        if os.name == "posix":
+            self._tty_attr = termios.tcgetattr(self.fd)
+            self._tty_attr[self.IFLAG] = termios.IGNBRK
+            self._tty_attr[self.OFLAG] = 0
+            self._tty_attr[self.LFLAG] = 0
+            self._tty_attr[self.CC] = [0] * 32
+            if not baudrate:
+                self._tty_attr[self.CFLAG] = termios.CS8 | (
+                    self._tty_attr[self.CFLAG] & termios.CBAUD
+                )
+            else:
+                self._tty_attr[self.CFLAG] = termios.CS8 | self.BAUD[baudrate]
+                self._tty_attr[self.ISPEED] = self._tty_attr[self.OSPEED] = self.BAUD[
+                    baudrate
+                ]
+            # Enable receiver, ignore modem control lines
+            self._tty_attr[self.CFLAG] |= termios.CREAD | termios.CLOCAL
+            # Flow control
+            if rtscts:
+                swilog.debug("Hardware flow control is activated")
+                self._tty_attr[self.CFLAG] |= termios.CRTSCTS
+            else:
+                self._tty_attr[self.CFLAG] &= ~termios.CRTSCTS
+
+            termios.tcsetattr(self.fd, termios.TCSADRAIN, self._tty_attr)
+            self._tty_attr = termios.tcgetattr(self.fd)
+
+            if not baudrate:
+                baud_value = self._tty_attr[self.CFLAG] & termios.CBAUD
+                for b, v in self.BAUD.items():
+                    if v == baud_value:
+                        baudrate = b
+                        break
+            self._baudrate = baudrate
 
 
 class CommandFailedException(Exception):
