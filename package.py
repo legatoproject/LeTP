@@ -1,9 +1,10 @@
 """Package management for LeTP."""
-# Copyright (C) Sierra Wireless Inc.
 import os
 import shutil
 import argparse
 import hashlib
+
+__copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 def _parse_args():
@@ -28,6 +29,16 @@ def _parse_args():
     return parser.parse_args()
 
 
+def _get_python_cmd():
+    """Determine the python cmd and return the compatible one."""
+    python = "python3"
+
+    if not shutil.which(python):
+        python = "python"
+
+    return python
+
+
 def remove_pkg(letp_path=None):
     """Remove the required packages for LeTP."""
     if letp_path:
@@ -42,7 +53,9 @@ def remove_pkg(letp_path=None):
             shutil.rmtree(python_cache)
 
         if os.path.exists(requirement):
-            os.system("python -m pip uninstall -y -r {}".format(requirement))
+            os.system(
+                "{} -m pip uninstall -y -r {}".format(_get_python_cmd(), requirement)
+            )
 
         print("Packages were removed")
 
@@ -72,12 +85,9 @@ def install_pkg(letp_path=None):
 
             print("LeTP dependencies: install {}".format(requirement))
 
-            python = "python3"
-
-            if not shutil.which(python):
-                python = "python"
-
-            os.system("{} -m pip install --user -r {}".format(python, requirement))
+            os.system(
+                "{} -m pip install --user -r {}".format(_get_python_cmd(), requirement)
+            )
 
             # Not failing on purpose in case the source folder is read-only
             os.mkdir(req_cache)

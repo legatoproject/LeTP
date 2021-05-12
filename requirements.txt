@@ -1,22 +1,22 @@
 # Install lxml by apt-get as it requires some compilation and extra packages (python-dev, ...)
 pytest==6.1.0
-lxml
+lxml==4.6.2
 
 # pytest-plugin
-pytest-json-report
-pytest-timeout
-pytest-cov
+pytest-json-report==1.2.4
+pytest-timeout==1.4.2
+pytest-cov==2.11.1
 
 # For modules
-colorama
-pyserial
-pexpect
-ptyprocess
-colorlog
+colorama==0.4.4
+pyserial==3.5
+pexpect==4.8.0
+ptyprocess==0.7.0
+colorlog==4.7.2
 
 # For html generation
-future
-jinja2
-requests
-junitparser
-setuptools-scm
+future==0.18.2
+jinja2==2.11.3
+requests==2.25.1
+junitparser==2.0.0
+setuptools-scm==5.0.1
