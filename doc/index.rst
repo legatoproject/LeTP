@@ -17,6 +17,7 @@ Welcome to LeTP's documentation!
    first_script.rst
    command_line.rst
    scripting_concepts/test_script_samples.rst
+   windows_support.rst
    references.rst
 
 Indices and tables
