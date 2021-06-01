@@ -7,6 +7,7 @@ import datetime
 import json
 import os
 import sys
+import re
 import argparse
 from collections import OrderedDict
 import requests
@@ -792,6 +793,36 @@ class TestReportJSONBuilder(TestReportBuilder):
             sys.exit(1)
         print("OK")
 
+    @staticmethod
+    def convert_list_to_json(list_tcs, json_file_path):
+        """Convert test case list to json file."""
+        json_data = []
+        for test_name in list_tcs:
+            temp = {"name": test_name}
+            json_data.append(temp)
+        with open(json_file_path, "w") as file:
+            json.dump(json_data, file, indent=4)
+
+
+class TestReportJSONParser:
+    """Test report Json parser."""
+
+    def __init__(self, json_path):
+        assert os.path.exists(json_path), "Could not find JSON file"
+        with open(json_path) as f:
+            self.json_parser_data = json.load(f)
+
+    def get_test(self, status="failed"):
+        """Get failed/passed tests from the json report."""
+        test_list = []
+        print("========== List of {} tests ==========".format(status))
+        for index in range(len(self.json_parser_data["tests"])):
+            if status in self.json_parser_data["tests"][index]["outcome"]:
+                test = self.json_parser_data["tests"][index]["nodeid"]
+                test_list.append(test)
+                print(test)
+        return test_list
+
 
 def parse_args():
     """!Parse all arguments for test_report."""
@@ -838,20 +869,29 @@ def parse_args():
         help="Generate a basic version of the HTML report (for email)",
     )
     parser.add_argument("--online-link", help="URL to the online report")
+    parser.add_argument(
+        "--get-failing-tc",
+        action="store_true",
+        help="Dump the list of failing test cases to a json format",
+    )
     args = parser.parse_args()
     return args
 
 
 if __name__ == "__main__":
     args = parse_args()
-
-    if args.output_format == "HTML":
-        TestReportHTMLBuilder().run(args)
-    elif args.output_format == "JSON":
-        test_report_builder = TestReportJSONBuilder()
-        test_report_builder.run(args)
-        if args.elasticsearch_url:
-            test_report_builder.upload(args.elasticsearch_url)
+    if args.get_failing_tc:
+        test_list = TestReportJSONParser(args.json_path[0]).get_test()
+        if re.search(".json", args.output):
+            TestReportJSONBuilder().convert_list_to_json(test_list, args.output)
     else:
-        print("Unknown format %s" % args.output_format)
-        sys.exit(1)
+        if args.output_format == "HTML":
+            TestReportHTMLBuilder().run(args)
+        elif args.output_format == "JSON":
+            test_report_builder = TestReportJSONBuilder()
+            test_report_builder.run(args)
+            if args.elasticsearch_url:
+                test_report_builder.upload(args.elasticsearch_url)
+        else:
+            print("Unknown format %s" % args.output_format)
+            sys.exit(1)
