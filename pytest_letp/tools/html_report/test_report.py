@@ -813,7 +813,7 @@ class TestReportJSONParser:
             self.json_parser_data = json.load(f)
 
     def get_test(self, status="failed"):
-        """Get failed/passed tests from the json report."""
+        """Get test cases base on the returned status."""
         test_list = []
         print("========== List of {} tests ==========".format(status))
         for index in range(len(self.json_parser_data["tests"])):
@@ -870,9 +870,13 @@ def parse_args():
     )
     parser.add_argument("--online-link", help="URL to the online report")
     parser.add_argument(
-        "--get-failing-tc",
-        action="store_true",
-        help="Dump the list of failing test cases to a json format",
+        "--get-tc",
+        action="append",
+        dest="status",
+        help="""
+        Dump the list of based on the value of the status to a json file.\n
+        Usage: --get-tc <status>; \n
+        status can be "failed", "passed", "error", "xfailed", "skipped" \n""",
     )
     args = parser.parse_args()
     return args
@@ -880,8 +884,12 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    if args.get_failing_tc:
-        test_list = TestReportJSONParser(args.json_path[0]).get_test()
+    if args.status:
+        test_list = []
+        for status in args.status:
+            test_list.extend(
+                TestReportJSONParser(args.json_path[0]).get_test(status=status)
+            )
         if re.search(".json", args.output):
             TestReportJSONBuilder().convert_list_to_json(test_list, args.output)
     else:
