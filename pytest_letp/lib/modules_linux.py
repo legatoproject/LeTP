@@ -18,9 +18,10 @@ from pytest_letp.lib.versions_linux import LinuxVersions
 from pytest_letp.lib.module_exceptions import SlinkException, TargetException
 from pytest_letp.lib.modules import SwiModule, SlinkInfo, ModuleLink
 
-if os.name != "nt":
+if os.name == "posix":
     from pytest_letp.lib import ssh_linux
-
+elif os.name == "nt":
+    from pytest_letp.lib import ssh_windows
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
@@ -261,17 +262,22 @@ class ModuleLinux(SwiModule):
 
     def create_ssh_connection(self):
         """Start a SSH session between host and target."""
-        return ssh_linux.target_ssh_qct(
-            self.target_ip,
-            self._ssh_port,
-            config_target=self.config_target,
-            options={
-                "StrictHostKeyChecking": "no",
-                "UserKnownHostsFile": "/dev/null",
-                "ServerAliveInterval": "5",
-                "ServerAliveCountMax": "1",
-            },
-        )
+        ssh_client = None
+        if os.name == "posix":
+            ssh_client = ssh_linux.target_ssh_qct(
+                self.target_ip,
+                self._ssh_port,
+                config_target=self.config_target,
+                options={
+                    "StrictHostKeyChecking": "no",
+                    "UserKnownHostsFile": "/dev/null",
+                    "ServerAliveInterval": "5",
+                    "ServerAliveCountMax": "1",
+                },
+            )
+        elif os.name == "nt":
+            ssh_client = ssh_windows.TargetSSH(self.target_ip)
+        return ssh_client
 
     def is_ssh_connection_accessible(self):
         """Return True if the ssh connection is accessible."""

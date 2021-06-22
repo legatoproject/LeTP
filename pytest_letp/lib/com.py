@@ -15,18 +15,21 @@ import pexpect
 from pytest_letp.lib import swilog
 from pytest_letp.lib.com_exceptions import ComException
 
+PROMPT_swi_qct = None
 if os.name == "nt":
     termios = {}
     from pytest_letp.lib.serial_windows import SerialSpawn
-else:
+
+    PROMPT_swi_qct = r"root@.+\:.+\#.*"
+elif os.name == "posix":
     from pexpect.fdpexpect import fdspawn as SerialSpawn
     import termios
     import fcntl
 
+    PROMPT_swi_qct = "root@.+:.+#"
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
-PROMPT_swi_qct = "root@.+:.+#"
 LOGIN_swi_qct = "[^ ]+ login:"
 
 # Some constant for termios

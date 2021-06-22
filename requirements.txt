@@ -20,3 +20,7 @@ jinja2==2.11.3
 requests==2.25.1
 junitparser==2.0.0
 setuptools-scm==5.0.1
+
+# For ssh connectivity in Windows
+paramiko==2.7.2
+paramiko-expect==0.3.0
