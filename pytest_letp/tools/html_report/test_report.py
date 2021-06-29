@@ -191,6 +191,21 @@ class TestCaseResult:
         """Set system err."""
         self._system_err = "{}\n{}".format(self._system_err, logs)
 
+    def update_pytest_logs(self, pytest_result, update_before_log=False):
+        """Update tcs pytest log."""
+        for run_phase in ["setup", "call", "teardown"]:
+            if pytest_result.get(run_phase):
+                pytest_log = [
+                    pytest_result[run_phase].get("stdout", ""),
+                    pytest_result[run_phase].get("stderr", ""),
+                ]
+                if update_before_log:
+                    self._system_out = pytest_log[0]
+                    self._system_err = pytest_log[1]
+                else:
+                    self.system_out = pytest_log[0]
+                    self.system_err = pytest_log[1]
+
 
 class GlobalTestCase:
     """!Test case for multiple systems.
@@ -440,22 +455,43 @@ class BuildConfiguration:
         return global_test_case
 
     @staticmethod
-    def _convert_result_to_summary(result: str, summary):
+    def _convert_result_to_summary(test_result, summary):
         """Convert result into summary."""
-        summary.stat_tcs += 1
+        for value in test_result.items():
+            if "pass" in value[1]:
+                summary.stat_passed += 1
+            elif "skip" in value[1]:
+                summary.stat_skipped += 1
+            elif "fail" in value[1]:
+                summary.stat_failures += 1
+            elif "error" in value[1]:
+                summary.stat_errors += 1
+        summary.stat_tcs = len(test_result)
 
-        if not result or "pass" in result.lower():
-            summary.stat_passed += 1
-        elif "skip" in result.lower():
-            summary.stat_skipped += 1
-        elif "fail" in result.lower():
-            summary.stat_failures += 1
-        elif "error" in result.lower():
-            summary.stat_errors += 1
+    @staticmethod
+    def _get_duplicate_element_indices(test_list):
+        """Get the value of duplicate element indices in list."""
+        res = [idx for idx, val in enumerate(test_list) if val in test_list[:idx]]
+        return res
+
+    def _update_result_of_duplicate_tcs(self, pytest_result, test_result):
+        """Update results of duplicate tcs in final report."""
+        res = self._get_duplicate_element_indices(self.pytest_test_name_array)
+        test_name = PytestResult(pytest_result).get_test_name()
+        for i in res:
+            if self.pytest_test_name_array[i] == test_name:
+                if pytest_result.get("outcome") == "passed":
+                    break
+                pytest_result.update(self.pytest_results[i])
+                test_result.update_pytest_logs(pytest_result, update_before_log=True)
+                test_result.pytest_json_result.update(pytest_result)
+        return res
 
     def _iter_pytest_report(self, global_test_data, summary):
         """Iterate the test report and collect summary."""
         tests = self.json_data.get("tests", [])
+        res = []
+        verify_duplicate_tcs = {}
         for elmt in tests:
             test_name = PytestResult(elmt).get_test_name()
             pytest_result = self._lookup_pytest_json_result(test_name)
@@ -468,9 +504,17 @@ class BuildConfiguration:
                 global_test_data, test_name
             )
             test_result = global_test_case.get_create_target_result(self.name)
-            test_result.add_pytest_json_result(pytest_result)
+
+            if test_name not in verify_duplicate_tcs:
+                test_result.add_pytest_json_result(pytest_result)
+            else:
+                res = self._update_result_of_duplicate_tcs(pytest_result, test_result)
+
+            verify_duplicate_tcs[test_name] = pytest_result.get("outcome")
             self._add_pytest_test_logs(global_test_data, pytest_result)
-            self._convert_result_to_summary(pytest_result.get("outcome"), summary)
+
+        summary.collected_tests_num -= len(res)
+        self._convert_result_to_summary(verify_duplicate_tcs, summary)
 
     def _add_pytest_test_logs(self, global_test_data, pytest_result):
         """Try to recover the test logs using pytest results."""
@@ -481,14 +525,7 @@ class BuildConfiguration:
                     PytestResult(pytest_result).get_test_name() == test_name
                     and test_result_to_recover
                 ):
-                    for run_phase in ["setup", "call", "teardown"]:
-                        if pytest_result.get(run_phase):
-                            test_result_to_recover.system_out = pytest_result[
-                                run_phase
-                            ].get("stdout", "")
-                            test_result_to_recover.system_err = pytest_result[
-                                run_phase
-                            ].get("stderr", "")
+                    test_result_to_recover.update_pytest_logs(pytest_result)
 
     def process_test_data(self, global_test_data):
         """!Build test summary."""
