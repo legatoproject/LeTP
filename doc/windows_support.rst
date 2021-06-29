@@ -33,6 +33,16 @@ Download and setup the framework:
     cd letp
     configLeTP.bat
 
-3. Command to run LeTP test on Command Prompt Windows::
+3. Command to run LeTP test on Command Prompt Windows:
 
-    python pytest_letp\tools\letp.py run <PATH_TO_THE_TEST_SCRIPT::TEST_CASE> --config 'module\slink1(used)=1' --config 'module\slink1\name='<DEVICE_CLI_PORT>' --config 'module\slink2(used)=1' --config 'module\slink2\name=<DEVICE_AT_PORT>'
+- Use the module's com port::
+
+    python pytest_letp\tools\letp.py run <PATH_TO_THE_TEST_SCRIPT::TEST_CASE>  --config module/name=NAME_OF_MODULE --config module/slink1(used)=1 --config module/slink1/name=<DEVICE_CLI_PORT> --config module/slink2(used)=1 --config module/slink2/name=<DEVICE_AT_PORT>
+
+- Use SSH::
+
+    python pytest_letp\tools\letp.py run <PATH_TO_THE_TEST_SCRIPT::TEST_CASE> --config module/name=NAME_OF_MODULE  --config module/ssh(used)=1 --config module/ssh/ip_address=IP_ADDRESS
+
+Also, you can edit that configuration at pytest_letp\config\target.xml before running tcs. Then you can run tcs with the command::
+
+    python pytest_letp\tools\letp.py run <PATH_TO_THE_TEST_SCRIPT::TEST_CASE>
