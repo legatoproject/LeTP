@@ -136,6 +136,8 @@ class ComPortDevice:
         self.name = name
         self.dev_tty_regx = r"(?P<dev_tty>/dev/tty[A-Z]+[0-9]+)"
         self.pcie_interface_regx = r"(?P<dev_mhitty>/dev/mhitty+[0-9]+)"
+        self.cmux_interface_regx = r"(?P<dev_cmux>/dev/mux+[0-9]+)"
+        self.mbim_interface_regx = r"(?P<dev_mbim>/dev/cdc-wdm+[0-9]+)"
         self.tty_regx = r"(?P<tty>tty[A-Z]+[0-9]+)"
         self.usb_interface_regx = (
             r"(?P<usb_interface>[0-9]+-[0-9]+(\.[0-9]+)*:[0-9]+(\.[0-9]+)*)"
@@ -171,6 +173,28 @@ class ComPortDevice:
         if self.name:
             if os.path.exists(self.name) and re.search(
                 self.pcie_interface_regx, self.name
+            ):
+                return True
+
+        return False
+
+    def is_cmux_interface(self):
+        """Check if the name follows /dev/muxxx device format.
+        """
+        if self.name:
+            if os.path.exists(self.name) and re.search(
+                self.cmux_interface_regx, self.name
+            ):
+                return True
+
+        return False
+
+    def is_mbim_interface(self):
+        """Check if the name follows /dev/cdc-wdmxx device format.
+        """
+        if self.name:
+            if os.path.exists(self.name) and re.search(
+                self.mbim_interface_regx, self.name
             ):
                 return True
 

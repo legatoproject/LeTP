@@ -710,6 +710,10 @@ class SlinkInfo:
             return com_port_device.name
         elif com_port_device.is_pcie_interface():
             return com_port_device.name
+        elif com_port_device.is_cmux_interface():
+            return com_port_device.name
+        elif com_port_device.is_mbim_interface():
+            return com_port_device.name
         else:
             swilog.warning("Unrecognized device name: %s" % device_name)
 
