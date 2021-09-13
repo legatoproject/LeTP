@@ -248,11 +248,21 @@
                             {% for test_case_view in test_case_views %}
                                 <td class="{{ test_case_view.html_class }}">
                                     {% if not basic %}
-                                        <a data-toggle="modal"
-                                        href="#info-{{ test_case_view.id|clean_pytest_name }}"
-                                        data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
-                                            {{ test_case_view.result }}
-                                        </a>
+                                        {% if test_case_view.target_name == "Jira ID" %}
+                                            {% if test_case_view.result == "N/A"%}
+                                                <a style="color:#007bff">N/A</a>
+                                            {% else %}
+                                                <a href="https://issues.sierrawireless.com/browse/{{ test_case_view.result }}">
+                                                    {{ test_case_view.result }}
+                                                </a>
+                                            {% endif %}
+                                        {% else %}
+                                            <a data-toggle="modal"
+                                            href="#info-{{ test_case_view.id|clean_pytest_name }}"
+                                            data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
+                                                {{ test_case_view.result }}
+                                            </a>
+                                        {%endif %}
                                     {% else %}
                                         {{ test_case_view.result }}
                                     {% endif %}

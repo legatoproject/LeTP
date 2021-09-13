@@ -243,9 +243,12 @@ class GlobalTestCase:
 class TestCaseView:
     """!Test case view for ninja template."""
 
-    def __init__(self, test_name, target_name, test_case: TestCaseResult):
+    def __init__(
+        self, test_name, target_name, test_case: TestCaseResult, xfailed_ID=None
+    ):
         self.test_name = test_name
         self.target_name = target_name
+        self.xfailed_ID = xfailed_ID
         if test_case:
             assert isinstance(test_case, TestCaseResult)
         self.test_case = test_case
@@ -265,8 +268,9 @@ class TestCaseView:
         If there is no test on the system, return N/A.
         """
         if not self.test_case:
+            if self.xfailed_ID:
+                return self.xfailed_ID
             return "N/A"
-
         return self.test_case.pytest_json_result.get("outcome", "N/A")
 
     @property
@@ -684,6 +688,28 @@ class TestReportBuilder:
         status = self.test_summary.status()
         return status
 
+    @staticmethod
+    def _add_xfailedJira_ID(
+        target_name, test_name, test_case, is_xfailed, xfailed_ID
+    ):
+        if (target_name == "Jira ID" and is_xfailed):
+            test_case_view = TestCaseView(
+                test_name, target_name, test_case, xfailed_ID=xfailed_ID
+            )
+        else:
+            test_case_view = TestCaseView(test_name, target_name, test_case)
+            if test_case_view.result.lower() == "xfailed":
+                xFailed_mes = test_case.pytest_json_result["call"]["crash"][
+                    "message"
+                ]
+                xfailed_reg = re.search(
+                    r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
+                )
+                if xfailed_reg:
+                    xfailed_ID = xfailed_reg.group("xfailed_ticket")
+                is_xfailed = True
+        return test_case_view, is_xfailed, xfailed_ID
+
     def gen_results_table(self, filter_fn=None):
         """!Get results table with filtering."""
         results = []
@@ -695,13 +721,17 @@ class TestReportBuilder:
                     continue
 
             c_res = []
+            is_xfailed = False
+            xfailed_ID = None
             all_targets = self.results_headers[1:]
             for target_name in all_targets:
                 if target_name in global_test_case.results:
                     test_case = global_test_case.results[target_name]
                 else:
                     test_case = None
-                test_case_view = TestCaseView(test_name, target_name, test_case)
+                test_case_view, is_xfailed, xfailed_ID = self._add_xfailedJira_ID(
+                    target_name, test_name, test_case, is_xfailed, xfailed_ID
+                )
                 c_res.append(test_case_view)
 
             results.append(c_res)
@@ -718,6 +748,7 @@ class TestReportBuilder:
         """
         results_headers = ["Testcases"]
         build_cfg_names = [c.name for c in self.build_cfg_list]
+        build_cfg_names.append("Jira ID")
         results_headers.extend(build_cfg_names)
         self.results_headers = results_headers
 
