@@ -137,12 +137,10 @@ class TestSummary:
             # collected but not run.
             return "RUNNING"
 
-        for s in self.sub_summary:
-            print(
-                "Processed test report for %s: %s" % (s, self.sub_summary[s].status())
-            )
-            if self.sub_summary[s].status() != "PASSED":
-                return self.sub_summary[s].status()
+        for key, value in self.sub_summary.items():
+            print(f"Processed test report for {key}: {value.status()}")
+            if value.status() != "PASSED":
+                return value.status()
 
         return "PASSED"
 
@@ -179,7 +177,7 @@ class TestCaseResult:
     @system_out.setter
     def system_out(self, logs):
         """Set system out."""
-        self._system_out = "{}\n{}".format(self._system_out, logs)
+        self._system_out = f"{self._system_out}\n{logs}"
 
     @property
     def system_err(self):
@@ -189,7 +187,7 @@ class TestCaseResult:
     @system_err.setter
     def system_err(self, logs):
         """Set system err."""
-        self._system_err = "{}\n{}".format(self._system_err, logs)
+        self._system_err = f"{self._system_err}\n{logs}"
 
     def update_pytest_logs(self, pytest_result, update_before_log=False):
         """Update tcs pytest log."""
@@ -283,7 +281,7 @@ class BuildConfiguration:
     """!Describes a specific build/test configuration."""
 
     def __init__(self, json_file, name=None):
-        with open(json_file) as f:
+        with open(json_file, encoding="utf8") as f:
             self.json_data = json.load(f)
 
         self.error = False
@@ -397,11 +395,9 @@ class BuildConfiguration:
         if env_name:
             env_val = None
             for name, version in self.json_data["environment"][env_name].items():
-                consolidate_val = "{}:{}".format(name, version)
+                consolidate_val = f"{name}:{version}"
                 env_val = (
-                    consolidate_val
-                    if not env_val
-                    else "{}, {}".format(env_val, consolidate_val)
+                    consolidate_val if not env_val else f"{env_val}, {consolidate_val}"
                 )
 
             env_dict.update({environment_type.name: env_val})
@@ -442,10 +438,10 @@ class BuildConfiguration:
     def _build_element_name(elmt, prefix):
         """!Build element name with prefix."""
         if elmt.classname:
-            basename = "%s.%s" % (elmt.classname, elmt.name)
+            basename = f"{elmt.classname}.{elmt.name}"
         else:
             basename = elmt.name
-        elmt_name = "%s%s" % (prefix, basename)
+        elmt_name = f"{prefix}{basename}"
         return elmt_name
 
     @staticmethod
@@ -501,7 +497,7 @@ class BuildConfiguration:
             pytest_result = self._lookup_pytest_json_result(test_name)
 
             if not pytest_result:
-                print("Unable to get the test result for {}".format(pytest_result))
+                print(f"Unable to get the test result for {pytest_result}")
                 continue
 
             global_test_case = self._get_create_global_test_case(
@@ -572,7 +568,7 @@ class TestReportBuilder:
         build_idx to build the name that it's unique in test report.
         """
         if build_cfg.name in self.build_names:
-            build_cfg.name = "{}-{}".format(build_cfg.name, self.build_idx)
+            build_cfg.name = f"{build_cfg.name}-{self.build_idx}"
             self.build_idx += 1
         self.build_names.append(build_cfg.name)
 
@@ -598,18 +594,38 @@ class TestReportBuilder:
             entry_path = entry_split[0]
             entry_name = None
         else:
-            print("Too many '=' signs in %s" % entry)
+            print(f"Too many '=' signs in {entry}")
             sys.exit(1)
         if os.path.exists(entry_path) is False:
-            print("Could not find JSON file for %s" % (entry_path))
+            print(f"Could not find JSON file for {entry_path}")
             sys.exit(1)
         return entry_name, entry_path
 
-    def _add_build_cfgs(self, json_path):
+    def sort_file_by_times(self, json_path):
+        """Sort json file by time."""
+        dt_obj = {}
+        list_build_cfg = []
+        cre_time = ""
         for entry in json_path:
             entry_name, entry_path = self._get_entry_path(entry)
             build_cfg = BuildConfiguration(entry_path, entry_name)
-            print("[%s] %s %s" % (entry_name, entry_path, build_cfg))
+            if "created" in build_cfg.json_data:
+                cre_time = build_cfg.json_data["created"]
+            else:
+                cre_time = os.path.getctime(entry_path)
+            cre_time = datetime.datetime.fromtimestamp(cre_time)
+            print(f"[{entry_name}] {entry_path} {build_cfg} {cre_time}")
+            dt_obj[cre_time] = entry_path
+        for i in sorted(dt_obj):
+            list_build_cfg.append(dt_obj[i])
+        print("========== The result of sorting the JSON file by time ==========")
+        print(list_build_cfg)
+        return list_build_cfg
+
+    def _add_build_cfgs(self, json_path):
+        list_build_cfg = self.sort_file_by_times(json_path)
+        for entry in list_build_cfg:
+            build_cfg = BuildConfiguration(entry)
             self.set_unique_name(build_cfg)
             registered_cfg = self.register_new_build_configuration(build_cfg)
             if registered_cfg == build_cfg:
@@ -661,14 +677,14 @@ class TestReportBuilder:
             for e in global_env:
                 kv = e.split("=")
                 if len(kv) < 2:
-                    raise Exception("Invalid key value '%s', format should be k=v" % e)
+                    raise Exception(f"Invalid key value '{e}', format should be k=v")
 
                 k = kv.pop(0)
                 v = "=".join(kv)
                 self.env_global_list[k] = {"text": v}
         # From file
         if global_env_path:
-            with open(global_env_path) as f:
+            with open(global_env_path, encoding="utf8") as f:
                 j = json.load(f)
                 self.env_global_list.update(j)
 
@@ -689,10 +705,8 @@ class TestReportBuilder:
         return status
 
     @staticmethod
-    def _add_xfailedJira_ID(
-        target_name, test_name, test_case, is_xfailed, xfailed_ID
-    ):
-        if (target_name == "Jira ID" and is_xfailed):
+    def _add_xfailedJira_ID(target_name, test_name, test_case, is_xfailed, xfailed_ID):
+        if target_name == "Jira ID" and is_xfailed:
             test_case_view = TestCaseView(
                 test_name, target_name, test_case, xfailed_ID=xfailed_ID
             )
@@ -767,9 +781,9 @@ class TestReportBuilder:
         }
         output = self.generate_report(results_all, status, other_contents)
         if args.output:
-            with open(args.output, "w") as f:
+            with open(args.output, "w", encoding="utf8") as f:
                 f.write(output)
-            print("Generating report in {}".format(args.output))
+            print(f"Generating report in {args.output}")
 
 
 class TestReportHTMLBuilder(TestReportBuilder):
@@ -812,7 +826,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
         other_contents = {"title": title, "section": "all"}
         output = self.generate_report(results_all, status, other_contents)
         if output_name:
-            with open(output_name, "w") as f:
+            with open(output_name, "w", encoding="utf8") as f:
                 f.write(output)
 
 
@@ -820,7 +834,7 @@ class TestReportJSONBuilder(TestReportBuilder):
     """!Test report JSON format builder."""
 
     def __init__(self):
-        super(TestReportJSONBuilder, self).__init__()
+        super().__init__()
         self.content = None
 
     def generate_report(self, results_all, status, other_contents: dict):
@@ -847,15 +861,15 @@ class TestReportJSONBuilder(TestReportBuilder):
 
     def upload(self, url):
         """!Upload the content to remote URL."""
-        print("Publishing to %s" % url)
+        print(f"Publishing to {url}")
         self.content["@timestamp"] = datetime.datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
         print(self.content["@timestamp"])
         self.content["type"] = "report"
         r = requests.post(url, json=self.content)
-        if r.status_code != 200 and r.status_code != 201:
-            print("[%s] Error while publishing to elasticsearch:" % r.status_code)
+        if r.status_code not in (200, 201):
+            print(f"[{r.status_code}] Error while publishing to elasticsearch:")
             print(r.content)
             sys.exit(1)
         print("OK")
@@ -867,7 +881,7 @@ class TestReportJSONBuilder(TestReportBuilder):
         for test_name in list_tcs:
             temp = {"name": test_name}
             json_data.append(temp)
-        with open(json_file_path, "w") as file:
+        with open(json_file_path, "w", encoding="utf8") as file:
             json.dump(json_data, file, indent=4)
 
 
@@ -876,13 +890,13 @@ class TestReportJSONParser:
 
     def __init__(self, json_path):
         assert os.path.exists(json_path), "Could not find JSON file"
-        with open(json_path) as f:
+        with open(json_path, encoding="utf8") as f:
             self.json_parser_data = json.load(f)
 
     def get_test(self, status="failed"):
         """Get test cases base on the returned status."""
         test_list = []
-        print("========== List of {} tests ==========".format(status))
+        print(f"========== List of {status} tests ==========")
         for index in range(len(self.json_parser_data["tests"])):
             if status in self.json_parser_data["tests"][index]["outcome"]:
                 test = self.json_parser_data["tests"][index]["nodeid"]
@@ -968,5 +982,5 @@ if __name__ == "__main__":
             if args.elasticsearch_url:
                 test_report_builder.upload(args.elasticsearch_url)
         else:
-            print("Unknown format %s" % args.output_format)
+            print(f"Unknown format {args.output_format}")
             sys.exit(1)
