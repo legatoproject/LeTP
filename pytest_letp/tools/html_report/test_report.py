@@ -699,15 +699,14 @@ class TestReportBuilder:
         else:
             test_case_view = TestCaseView(test_name, target_name, test_case)
             if test_case_view.result.lower() == "xfailed":
-                xFailed_mes = test_case.pytest_json_result["call"]["crash"][
-                    "message"
-                ]
-                xfailed_reg = re.search(
-                    r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
-                )
-                if xfailed_reg:
-                    xfailed_ID = xfailed_reg.group("xfailed_ticket")
-                is_xfailed = True
+                if "call" in test_case.pytest_json_result:
+                    xFailed_mes = test_case.message
+                    xfailed_reg = re.search(
+                        r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
+                    )
+                    if xfailed_reg:
+                        xfailed_ID = xfailed_reg.group("xfailed_ticket")
+                    is_xfailed = True
         return test_case_view, is_xfailed, xfailed_ID
 
     def gen_results_table(self, filter_fn=None):
