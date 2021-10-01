@@ -7,14 +7,13 @@ set "LETP_TESTS="
 set "PYTHONPATH="
 set "LETP_INTERNAL_PATH="
 set "QA_ROOT="
-set "testPath="
+set "testPath=%~1"
 
 set LETP_PATH=%CD%
 
 IF "%LEGATO_ROOT%"=="" ECHO WARNING: LEGATO_ROOT is not defined.You won't be able to compile a legato application
 set defaultTestPath=%LETP_PATH%\testing_target
-ECHO Enter your root test directory (default: %defaultTestPath%):
-set /p testPath=
+IF %testPath% == "" ECHO Enter your root test directory (default: %defaultTestPath%): && set /p testPath=
 
 IF "%testPath%" equ "" set testPath=%defaultTestPath%
 
