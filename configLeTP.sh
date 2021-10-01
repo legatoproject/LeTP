@@ -26,8 +26,17 @@ export LETP_PATH=$PWD
 DEFAULT_TEST_DIR="$LETP_PATH/testing_target"
 letp_tests=$1
 
+
 if [ -z "$LEGATO_ROOT" ]; then
-    echo -e "\e[31mWARNING\e[0m: LEGATO_ROOT is not defined.You won't be able to compile a legato application"
+    if [ -d "$LETP_PATH/../legato" ]; then
+        export LEGATO_ROOT=$(cd "$LETP_PATH/../legato" && pwd)
+
+        echo "Set LEGATO_ROOT to $LEGATO_ROOT"
+    else
+        echo -e "\e[31mWARNING\e[0m: LEGATO_ROOT is not defined.You won't be able to compile a legato application"
+    fi
+else
+    echo "Using LEGATO_ROOT is $LEGATO_ROOT"
 fi
 
 if [ "$letp_tests" = "" ]; then
@@ -40,8 +49,8 @@ export LETP_TESTS=$(cd $letp_tests; pwd)
 echo "Set LETP_TESTS to $LETP_TESTS"
 
 # try to find qa testbase with relative path
-if [[ $letp_tests == *"qa/letp"* ]]; then
-    export QA_ROOT=${letp_tests/qa*/qa}
+if [[ $LETP_TESTS == *"qa/letp"* ]]; then
+    export QA_ROOT=${LETP_TESTS%/qa*}/qa
     echo "Set QA_ROOT to $QA_ROOT"
 fi
 
