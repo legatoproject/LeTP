@@ -1,12 +1,13 @@
 inherited: true
 owners:
-- wwang
-- broussel
-- willin
+- akasilingam
+- lpacyk
+- jnorthway
+- nmquan
 matchers:
 - regex: test/*
   owners:
-      [wwang]
+      [lpacyk]
 - regex: framework/*
   owners:
-      [wwang]
+      [lpacyk]
