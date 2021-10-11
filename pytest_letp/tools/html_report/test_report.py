@@ -162,8 +162,13 @@ class TestCaseResult:
     @property
     def message(self):
         """Property mesage."""
-        call_phase = self.pytest_json_result.get("call")
-        crash_reason = call_phase.get("crash")
+        if "call" in self.pytest_json_result:
+            exit_phase = self.pytest_json_result.get("call")
+        elif "setup" in self.pytest_json_result:
+            exit_phase = self.pytest_json_result.get("setup")
+        else:
+            return ""
+        crash_reason = exit_phase.get("crash")
         if crash_reason:
             # non-passing testcases
             return crash_reason.get("message", "N/A")
@@ -713,14 +718,13 @@ class TestReportBuilder:
         else:
             test_case_view = TestCaseView(test_name, target_name, test_case)
             if test_case_view.result.lower() == "xfailed":
-                if "call" in test_case.pytest_json_result:
-                    xFailed_mes = test_case.message
-                    xfailed_reg = re.search(
-                        r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
-                    )
-                    if xfailed_reg:
-                        xfailed_ID = xfailed_reg.group("xfailed_ticket")
-                    is_xfailed = True
+                xFailed_mes = test_case.message
+                xfailed_reg = re.search(
+                    r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
+                )
+                if xfailed_reg:
+                    xfailed_ID = xfailed_reg.group("xfailed_ticket")
+                is_xfailed = True
         return test_case_view, is_xfailed, xfailed_ID
 
     def gen_results_table(self, filter_fn=None):
