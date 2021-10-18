@@ -153,7 +153,8 @@ class LeTPConfigPath:
         if os.path.exists(xml_file):
             return xml_file
         xml_dir_name = os.path.dirname(xml_file)
-        if os.path.exists(xml_dir_name) and xml_dir_name.endswith("/module"):
+        if (os.path.exists(xml_dir_name) and
+                xml_dir_name.endswith(("/module", "\\module"))):
             file_name = os.path.basename(xml_file)
             return LeTPConfigPath._find_matched_module_config(xml_dir_name, file_name)
         return None
