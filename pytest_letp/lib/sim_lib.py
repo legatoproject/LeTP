@@ -112,12 +112,19 @@ class SimDBParser:
     def parse_sim_info(self, iccid, imsi):
         """Parse and set Sim information based on ICCID and IMSI.
 
-        :param iccid: Current device's ICCID
-        :param imsi: Current device's IMSI
-
+        :param iccid: Current device's ICCID as a non-empty string
+        :param imsi: Current device's IMSI as a non-empty string
         @Returns SimInfo object with updated Carrier,APN,PDP,Band if successful.
             None otherwise
         """
+        # Check parameters
+        if iccid is None or not isinstance(iccid, str) or iccid == "":
+            swilog.warning("No ICCID from current device")
+            return None
+        elif imsi is None or not isinstance(imsi, str) or imsi == "":
+            swilog.warning("No IMSI from current device")
+            return None
+
         is_detail_info = False
 
         sim_info = []
@@ -125,6 +132,7 @@ class SimDBParser:
         # get detail sim info
         for uicc in self.root.findall("simdb/uicc"):
             curr_iccid = uicc.find("iccid").text
+
             # found iccid
             if curr_iccid in iccid:
                 is_detail_info = True
@@ -151,7 +159,7 @@ class SimDBParser:
                 sim_tuple = [carrier, apn, pdp, band]
                 break
         else:
-            swilog.info("warning: Could not parse Sim Information")
+            swilog.warning("Unable to parse Sim Information")
             return None
         sim_tuple.extend(sim_info if is_detail_info else [None] * 8)
         return SimInfo._make(sim_tuple)
