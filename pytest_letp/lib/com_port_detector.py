@@ -40,7 +40,7 @@ class ComPortDetector:
         most_likely_dev_tty = None
         com_port_info = self.com_port_info[com_port_name]
         if not com_port_info:
-            raise Exception("No description for port %s" % com_port_name)
+            raise Exception(f"No description for port {com_port_name}")
 
         usb_interface = com_port_info.usb_interface
         com_port_device = com.ComPortDevice(usb_interface)
@@ -48,29 +48,39 @@ class ComPortDetector:
         if com_port_device.is_usb_interface():
             # Look up usb-interface
             most_likely_dev_tty = com_port_device.get_dev_tty()
-            swilog.info(
-                "%s is likely the %s port" % (most_likely_dev_tty, com_port_name)
-            )
+            swilog.info(f"{most_likely_dev_tty} is likely the {com_port_name} port")
 
             if most_likely_dev_tty:
                 possible_devices_lst.append(most_likely_dev_tty)
 
                 return possible_devices_lst
 
-        com_port_desc = com_port_info.desc
-        if not com_port_desc:
+        com_port_desc_list = com_port_info.desc
+
+        # Check if the list has valid parameters
+        if com_port_desc_list is None or len(com_port_desc_list) < 1:
             swilog.warning(
-                "Unable to find the description of the port %s", com_port_name
+                "Unable to find the description list of the port %s", com_port_name
             )
             return possible_devices_lst
+        elif not isinstance(com_port_desc_list, list):
+            raise Exception(f"Unknown description list type for port {com_port_name}")
 
-        # Look up port description
+        # Try and find the device description from com port list
         for port_obj in serial.tools.list_ports.comports():
             device = port_obj.device
             device_description = port_obj.description
 
-            if com_port_desc in device_description:
-                possible_devices_lst.append(device)
+            # Iterate through the com_port_desc_list
+            for com_port_desc in com_port_desc_list:
+                if com_port_desc is None or type(com_port_desc) is not type(
+                    device_description
+                ):
+                    swilog.warning(
+                        "Unusual description present in port %s", com_port_name
+                    )
+                elif com_port_desc in device_description:
+                    possible_devices_lst.append(device)
 
         return possible_devices_lst
 
@@ -89,10 +99,11 @@ class ComPortDetector:
         default_baudrate = 115200
 
         if not baudrate:
-            swilog.warning(
-                "Undefined baudrate for %s, so the default baudrate %d would be used"
-                % (com_port_name, default_baudrate)
+            warning_message = (
+                f"Undefined baudrate for {com_port_name}, "
+                f"so the default baudrate {str(default_baudrate)} would be used"
             )
+            swilog.warning(warning_message)
             return default_baudrate  # the most common baudrate for swi modules
 
         return baudrate
@@ -103,7 +114,7 @@ class ComPortDetector:
             self.serial_port = com.SerialPort.open(port, baudrate)
             self.tty_session = com.ttyspawn(self.serial_port.fd)
         except:
-            swilog.warning("Unable to open %s" % port)
+            swilog.warning(f"Unable to open {port}")
             return False
 
         return True
@@ -150,8 +161,8 @@ class ComPortDetector:
 
         for i in range(max_retry):
             swilog.info(
-                "%d iteration to scan through all possible %s ports"
-                % ((i + 1), com_port_name)
+                f"{str(i + 1)} iteration to scan through all possible "
+                f"{com_port_name} ports"
             )
 
             if len(possible_devices_lst) == 0:
@@ -160,8 +171,8 @@ class ComPortDetector:
             for usb_device_path in possible_devices_lst:
                 has_port_found = False
                 swilog.info(
-                    "Try to open %s and see if it is a %s port"
-                    % (usb_device_path, com_port_name)
+                    f"Try to open {usb_device_path}"
+                    f" and see if it is a {com_port_name} port"
                 )
 
                 baudrate = self._get_baudrate(com_port_name)
@@ -170,14 +181,16 @@ class ComPortDetector:
                 self.close()
 
                 if has_port_found:
-                    swilog.info("%s is the %s port!" % (usb_device_path, com_port_name))
+                    swilog.info(f"{usb_device_path} is the {com_port_name} port!")
                     com_port_device = com.ComPortDevice(usb_device_path)
                     self.com_port_info[com_port_name].update_usb_interface(
                         com_port_device.get_usb_interface()
                     )
                     return usb_device_path
 
-            swilog.info("Wait for %d seconds before the next retry..." % max_wait_time)
+            swilog.info(
+                f"Wait for {str(max_wait_time)} seconds before the next retry..."
+            )
             time.sleep(max_wait_time)
 
         return None

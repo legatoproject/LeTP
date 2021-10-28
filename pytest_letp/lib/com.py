@@ -85,15 +85,17 @@ class ComPort:
     """Store com port information."""
 
     def __init__(
-        self,
-        name=ComPortType.CLI.name,
-        desc="Sierra Wireless WP7603",
-        baudrate=115200,
-        usb_interface=None,
+        self, name=ComPortType.CLI.name, desc=None, baudrate=115200, usb_interface=None
     ):
         """Initialize the com port information."""
+        self.desc = []
         self.name = name
-        self.desc = desc
+        if isinstance(desc, str):
+            self.desc.append(desc)
+        elif isinstance(desc, list):
+            self.desc = desc
+        else:
+            swilog.warning("Unknown Com Port description parameter")
         self.baudrate = baudrate
         self.usb_interface = usb_interface
 
@@ -179,8 +181,7 @@ class ComPortDevice:
         return False
 
     def is_cmux_interface(self):
-        """Check if the name follows /dev/muxxx device format.
-        """
+        """Check if the name follows /dev/muxxx device format."""
         if self.name:
             if os.path.exists(self.name) and re.search(
                 self.cmux_interface_regx, self.name
@@ -190,8 +191,7 @@ class ComPortDevice:
         return False
 
     def is_mbim_interface(self):
-        """Check if the name follows /dev/cdc-wdmxx device format.
-        """
+        """Check if the name follows /dev/cdc-wdmxx device format."""
         if self.name:
             if os.path.exists(self.name) and re.search(
                 self.mbim_interface_regx, self.name
@@ -683,17 +683,25 @@ class SerialPort:
         """
         self._device = device
         self._baudrate = None
-        swilog.debug("Init of {}, baudrate [{}], rtscts [{}]" .format(self._device, baudrate, rtscts))
+        swilog.debug(
+            "Init of {}, baudrate [{}], rtscts [{}]".format(
+                self._device, baudrate, rtscts
+            )
+        )
         if SerialPort.is_valid_port(device):
             if os.name == "nt":
-                self.fd = serial.Serial(port=device, baudrate=baudrate, rtscts=rtscts, timeout=0)
+                self.fd = serial.Serial(
+                    port=device, baudrate=baudrate, rtscts=rtscts, timeout=0
+                )
                 self._baudrate = baudrate
                 self._rtscts = rtscts
             else:
                 if rtscts == True:
                     self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY)
                 else:
-                    self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+                    self.fd = os.open(
+                        self._device, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK
+                    )
 
             self._config_posix_port(baudrate, rtscts)
         else:
@@ -1137,7 +1145,7 @@ class target_serial_at(target_at, ttyspawn):
         target_at.__init__(self, self.dev_tty, bd, rtscts)
 
     def flow_control(self, enable):
-        """Enable flow control for the serial"""
+        """Enable flow control for the serial."""
         self.reinit(rtscts=True)
         self.run_at_cmd("AT&K3", 10, ["OK"])
 
