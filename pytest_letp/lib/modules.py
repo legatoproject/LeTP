@@ -681,10 +681,10 @@ class SlinkInfo:
 
     def device(self):
         """Create a device instance using ComPortDevice."""
-        if self.name() is None:
-            return None
-
         device_name = self.name()
+
+        if device_name is None or not isinstance(device_name, str) or device_name == "":
+            return None
 
         if device_name.startswith("usb:"):
             device_name = self.name().replace("usb:", "")
