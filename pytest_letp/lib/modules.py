@@ -316,7 +316,12 @@ class SwiModule:
             match_obj = self.match
         else:
             rsp = self.run_at_cmd(cmd, check=False)
-            match_obj = re.search(pattern, rsp, re.M)
+
+            if rsp is not None or not isinstance(rsp, str):
+                swilog.error("Error: No response while checking for version!")
+                match_obj = None
+            else:
+                match_obj = re.search(pattern, rsp, re.M)
 
         return TargetVersions._match_version(match_obj)
 
