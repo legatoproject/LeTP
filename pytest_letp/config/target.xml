@@ -43,7 +43,7 @@
             <!-- Symbolic link in target fixture. Uart can be used with target."your description" -->
             <desc>at</desc>
             <port>4002</port>
-            <rtscts>0</rtscts>
+            <rtscts>1</rtscts>
             <speed>115200</speed>
         </slink2>
 

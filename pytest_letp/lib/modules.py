@@ -379,7 +379,7 @@ class SwiModule:
             return False
 
         # if CLI was pre-defined with a valid fd but device name has been changed
-        re_opened_port = com.SerialPort.open(link_obj.dev_tty)
+        re_opened_port = com.SerialPort.open(link_obj.dev_tty, link_obj.baudrate, link_obj.rtscts)
 
         if not re_opened_port:
             return False

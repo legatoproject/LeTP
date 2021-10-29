@@ -674,7 +674,7 @@ class SerialPort:
                     return True
         return False
 
-    def __init__(self, device, baudrate, rtscts=False):
+    def __init__(self, device, baudrate, rtscts):
         """Instantiate serial port wrapper.
 
         :param  device      Device name.
@@ -683,15 +683,19 @@ class SerialPort:
         """
         self._device = device
         self._baudrate = None
-        swilog.debug("Init of %s" % str(self._device))
-
+        swilog.debug("Init of {}, baudrate [{}], rtscts [{}]" .format(self._device, baudrate, rtscts))
         if SerialPort.is_valid_port(device):
             if os.name == "nt":
-                self.fd = serial.Serial(port=device, baudrate=baudrate, timeout=0)
+                self.fd = serial.Serial(port=device, baudrate=baudrate, rtscts=rtscts, timeout=0)
                 self._baudrate = baudrate
+                self._rtscts = rtscts
             else:
-                self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
-                self._config_posix_port(baudrate)
+                if rtscts == True:
+                    self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY)
+                else:
+                    self.fd = os.open(self._device, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+
+            self._config_posix_port(baudrate, rtscts)
         else:
             raise ComException("{} in't a valid serial port".format(device))
 
@@ -742,6 +746,33 @@ class SerialPort:
         self.flush()
         time.sleep(0.1)
 
+    @property
+    def rtscts(self):
+        """Get current rtscts.
+
+        :returns: Current rtscts.
+        """
+        return self._rtscts
+
+    @rtscts.setter
+    def rtscts(self, rtscts):
+        """Change the rtscts.
+
+        :param  rtscts    New rtscts to set.
+        """
+        self._rtscts = rtscts
+        swilog.debug("Set rtscts of %s to %d" % (self._device, rtscts))
+
+        # Flow control
+        if rtscts:
+            swilog.debug("Hardware flow control is activated")
+            self._tty_attr[self.CFLAG] |= termios.CRTSCTS
+        else:
+            self._tty_attr[self.CFLAG] &= ~termios.CRTSCTS
+
+        termios.tcsetattr(self.fd, termios.TCSADRAIN, self._tty_attr)
+        self._tty_attr = termios.tcgetattr(self.fd)
+
     def __repr__(self):
         """Get printable representation of port.
 
@@ -787,6 +818,7 @@ class SerialPort:
                         baudrate = b
                         break
             self._baudrate = baudrate
+            self._rtscts = rtscts
 
 
 class CommandFailedException(Exception):
@@ -1007,7 +1039,7 @@ class target_telnet_qct(target_qct):
 class target_at:
     """class to send AT commands."""
 
-    def __init__(self, dev_tty=None, baudrate=115200):
+    def __init__(self, dev_tty=None, baudrate=115200, rtscts=False):
         self.PROMPT = ["OK", "ERROR"]
         self.LOGIN = ""
 
@@ -1058,10 +1090,9 @@ class target_serial_at(target_at, ttyspawn):
         self.rtscts = rtscts
         self.save_kwargs = kwargs
         self.tty = SerialPort.open(dev_tty, baudrate, rtscts=rtscts)
-
         if self.tty:
             ttyspawn.__init__(self, fd=self.tty.fd, **kwargs)
-            target_at.__init__(self, dev_tty, baudrate)
+            target_at.__init__(self, dev_tty, baudrate, rtscts)
         else:
             swilog.warning("AT port %s is inaccessible at the moment" % dev_tty)
 
@@ -1090,17 +1121,23 @@ class target_serial_at(target_at, ttyspawn):
         """
         self.tty.baudrate = baudrate
 
-    def reinit(self, baudrate=None):
+    def reinit(self, baudrate=None, rtscts=None):
         """Reinit target connection."""
         bd = baudrate if baudrate else self.baudrate
-        self.tty = SerialPort.open(self.dev_tty, bd, rtscts=self.rtscts)
+        rtscts_reinit = rtscts if (rtscts is not None) else self.rtscts
+        self.tty = SerialPort.open(self.dev_tty, bd, rtscts=rtscts_reinit)
         if not self.tty:
             raise ComException(
                 "Unable to open tty %s baudrate[%d] rtscts[%s]"
                 % (self.dev_tty, bd, self.rtscts)
             )
         ttyspawn.__init__(self, fd=self.tty.fd, **self.save_kwargs)
-        target_at.__init__(self, self.dev_tty, bd)
+        target_at.__init__(self, self.dev_tty, bd, rtscts)
+
+    def flow_control(self, enable):
+        """Enable flow control for the serial"""
+        self.reinit(rtscts=True)
+        self.run_at_cmd("AT&K3", 10, ["OK"])
 
     def set_dtr(self, state):
         """Set terminal status line: Data Terminal Ready."""
