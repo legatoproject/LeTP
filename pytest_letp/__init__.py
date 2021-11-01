@@ -129,8 +129,8 @@ def get_git_info(git_repo_path):
     if os.name == "nt":
         name_str = os.path.basename(os.path.normpath(name))
     else:
-        name_str = name.decode("utf-8").strip("\n")
-
+        name_str = name
+    name_str = name_str.decode("utf-8").strip("\n")
     version = subprocess.check_output(cmd_ver, shell=True)
     version_str = version.decode("utf-8").strip("\n")
     os.chdir(curr_path)
