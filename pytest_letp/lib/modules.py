@@ -684,6 +684,9 @@ class SlinkInfo:
         device_name = self.name()
 
         if device_name is None or not isinstance(device_name, str) or device_name == "":
+            swilog.error(
+                "Empty module name!"
+            )
             return None
 
         if device_name.startswith("usb:"):
