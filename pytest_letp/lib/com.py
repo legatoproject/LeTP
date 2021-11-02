@@ -667,6 +667,8 @@ class SerialPort:
     def is_valid_port(device_name=None):
         """Check if the given device name is a valid port."""
         if device_name and isinstance(device_name, str):
+            if "/dev/mhitty" in device_name:
+                return True
             for elmt in ser_lst.comports():
                 if device_name in elmt.device or elmt.device in device_name:
                     return True
