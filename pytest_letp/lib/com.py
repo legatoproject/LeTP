@@ -828,10 +828,12 @@ class CommandFailedException(Exception):
 class target_qct:
     """Wrap fdPExpect to hold reference to file object."""
 
-    def __init__(self, dev_tty=None, baudrate=115200, **kwargs):
+    def __init__(self, dev_tty=None, baudrate=115200, rtscts=False, **kwargs):
         self.PROMPT = PROMPT_swi_qct
         self.LOGIN = LOGIN_swi_qct
         self.dev_tty = dev_tty
+        self.baudrate = baudrate
+        self.rtscts = rtscts
 
         swilog.debug("Serial init %s %s" % (dev_tty, baudrate))
         self.target = self
