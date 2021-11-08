@@ -21,6 +21,7 @@ ALL_ENVIRONMENT_TYPES = list(Environment)
 
 
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-lines
 class TestSummary:
     """!Test summary section in the table."""
 
@@ -553,7 +554,7 @@ class TestReportBuilder:
     def __init__(self):
         self.build_cfg_list = []  # List of build configurations
         self.build_number_dict = {}  # build_id: BuildConfiguration instance
-        self.build_names = []  # Build cfgs may have the same name.
+        self.build_names = {}  # Build cfgs may have the same name.
         # Build to differentiate the same name.
         self.build_idx = 1
         self.environment_dict = OrderedDict()  # List of env. info
@@ -572,10 +573,15 @@ class TestReportBuilder:
         One target may have multiple test runs in different env. We use
         build_idx to build the name that it's unique in test report.
         """
-        if build_cfg.name in self.build_names:
-            build_cfg.name = f"{build_cfg.name}-{self.build_idx}"
-            self.build_idx += 1
-        self.build_names.append(build_cfg.name)
+        list_name_build_cfg = [key[0] for key in self.build_names.items()]
+        if build_cfg.name in list_name_build_cfg:
+            temp_build_cfg_name = build_cfg.name
+            # Name of new build configuration
+            build_cfg.name = (
+                f"{temp_build_cfg_name}_{self.build_names[temp_build_cfg_name]}"
+            )
+            self.build_names[temp_build_cfg_name] += 1
+        self.build_names[build_cfg.name] = self.build_idx
 
     def register_new_build_configuration(self, build_cfg):
         """!Register a build configuration for the report."""
@@ -608,10 +614,10 @@ class TestReportBuilder:
 
     def sort_file_by_times(self, json_path):
         """Sort json file by time."""
-        dt_obj = {}
         list_build_cfg = []
         cre_time = ""
         for entry in json_path:
+            dt_obj = {}
             entry_name, entry_path = self._get_entry_path(entry)
             build_cfg = BuildConfiguration(entry_path, entry_name)
             if "created" in build_cfg.json_data:
@@ -619,21 +625,32 @@ class TestReportBuilder:
             else:
                 cre_time = os.path.getctime(entry_path)
             cre_time = datetime.datetime.fromtimestamp(cre_time)
-            print(f"[{entry_name}] {entry_path} {build_cfg} {cre_time}")
-            dt_obj[cre_time] = entry_path
-        for i in sorted(dt_obj):
-            list_build_cfg.append(dt_obj[i])
-        print("========== The result of sorting the JSON file by time ==========")
-        print(list_build_cfg)
+            dt_obj["time"] = cre_time
+            dt_obj["entry_name"] = entry_name
+            dt_obj["entry_path"] = entry_path
+            list_build_cfg.append(dt_obj)
+
+        list_build_cfg.sort(key=lambda item: item.get("time"))
         return list_build_cfg
 
     def _add_build_cfgs(self, json_path):
         list_build_cfg = self.sort_file_by_times(json_path)
+        temp_list_build_cfg = {}
         for entry in list_build_cfg:
-            build_cfg = BuildConfiguration(entry)
+            build_cfg = BuildConfiguration(entry["entry_path"], entry["entry_name"])
             self.set_unique_name(build_cfg)
+            print(f'[{build_cfg.name}] {entry["entry_path"]} {entry["time"]}')
             registered_cfg = self.register_new_build_configuration(build_cfg)
             if registered_cfg == build_cfg:
+                # Update the name of the build configuration in the report
+                if re.match(r"\w+\d+\_\d+", build_cfg.name):
+                    module_name = re.search(
+                        r"(?P<module_name>.*)_\d*", build_cfg.name
+                    ).group("module_name")
+                    build_cfg.name = f"{module_name}_{temp_list_build_cfg[module_name]}"
+                    temp_list_build_cfg[module_name] += 1
+
+                temp_list_build_cfg[build_cfg.name] = 1
                 self.build_cfg_list.append(build_cfg)
             else:
                 registered_cfg.consolidate(build_cfg)
