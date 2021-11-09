@@ -1,0 +1,135 @@
+#!/bin/bash
+# LeTP container initialization script.
+#
+# This tool ensures that the cases of internal source links and external volume mounts are handled
+# gracefully.  If a requirements.txt is found in a target directory, its contents are installed
+# using pip, and if an apt-requirements.txt is found, the packages listed in it are installed via
+# apt-get.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# Copyright (C) Sierra Wireless Inc.
+
+# @brief    Install the APT packages listed in a requirements file.
+#
+# @param    $1  Mount name that the dependencies are being installed for.
+# @param    $2  Requirements file.  Packages are listed one per line.  Lines beginning with # are
+#               considered comments.
+function apt_install() {
+    local name="${1}"
+    local requirement_list="$(grep -v '^#' "${2}" | tr -cd '[:alnum:]\n.+-')"
+
+    if [[ -n "${requirement_list}" ]]; then
+        echo "Installing extra APT dependencies for ${name}..." >&3
+        sudo apt-get install --yes $requirement_list
+    fi
+}
+
+# @brief    Install the pip packages listed in a requirements file.
+#
+# @param    $1  Mount name that the dependencies are being installed for.
+# @param    $2  Pip requirements file.
+function pip_install() {
+    local name="${1}"
+    local requirements="${2}"
+
+    echo "Installing extra Python dependencies for ${name}..." >&3
+    pip3 install --user --requirement "${requirements}"
+}
+
+# @brief    Process the mount point for one directory.
+#
+# @param    $1  Mount point directory.
+function prep_mount() {
+    local dest="${1}"
+
+    echo "Preparing ${dest}..." >&3
+    if [[ -r "${dest}/apt-requirements.txt" ]]; then
+        apt_install "$(basename "${dest}")" "${dest}/apt-requirements.txt"
+    fi
+    if [[ -r "${dest}/requirements.txt" ]]; then
+        pip_install "$(basename "${dest}")" "${dest}/requirements.txt"
+    fi
+
+    echo "${dest}" >> ~/.letp/mount.txt
+}
+
+# @brief    Generate an LeTP XML configuration file for one serial link.
+#
+# @param    $1  Ordinal number of the link.
+# @param    $2  Link name.
+function gen_slink_xml() {
+    local num="${1}"
+    local name="${2}"
+    local dev="/dev/tty$(echo "${name}" | tr '[:lower:]' '[:upper:]')0"
+    local used=0
+
+    if [[ -c "${dev}" ]]; then
+        used=1
+    fi
+
+    cat > ~/.letp/slink${num}.xml << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <module>
+        <slink${num} used="${used}">
+            <name>${dev}</name>
+            <desc>${name}</desc>
+        </slink${num}>
+    </module>
+</test>
+EOF
+}
+
+# @brief    Generate the LeTP XML configuration files for the current container configuration.
+#
+# @param    $1  Module name of the device under test.
+function gen_target_xml() {
+    local module="${1}"
+
+    echo "Generating testbench configuration..." >&3
+    cat > ~/.letp/name.xml << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<test><module><name>${module}</name></module></test>
+EOF
+
+    gen_slink_xml 1 cli
+    gen_slink_xml 2 at
+}
+
+# @brief    Script entry point.
+#
+# @param    $1  Debug level (currently "debug" or anything else for "info").
+# @param    $2  Target module name.
+# @param    ... Additional secondary directories to prepare.
+function main() {
+    local level="${1}"
+    local module="${2}"
+    shift 2
+
+    # Redirect most output to /dev/null unless we are in debug mode.
+    if [[ "${level}" = "debug" ]]; then
+        exec 3>&1
+    else
+        exec 3>&1 &>/dev/null
+    fi
+
+    rm -vf ~/.letp/mount.txt
+
+    # Prepare each primary directory.
+    prep_mount ~/letp
+    prep_mount ~/tests
+    prep_mount ~/tools
+    prep_mount ~/artifacts
+
+    # Prepare any secondary directories.
+    while [[ -n "${1}" ]]; do
+        prep_mount "${1}"
+        shift
+    done
+
+    # Generate a target.xml file for LeTP based on the current container configuration.
+    gen_target_xml "${module}"
+}
+
+main "$@"

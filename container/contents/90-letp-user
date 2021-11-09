@@ -1,0 +1,11 @@
+# Set sudo permissions for LeTP user.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# Copyright (C) Sierra Wireless Inc.
+
+Cmnd_Alias LETP =   sha256:tdfS3FB8vpSz4JYAznRgvGjGPOU9Sgx9ILGegieB/7g= /usr/local/sbin/gsmMuxd, \
+                    /usr/bin/pkill --full gsmMuxd,                                               \
+                    /usr/bin/apt-get install --yes [a-z]*
+
+letp ALL = NOPASSWD: LETP

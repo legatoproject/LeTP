@@ -43,16 +43,24 @@ def _unregister_library():
 
 def _get_version():
     """Get the version of LeTP."""
-    version = ""
-    if os.name == "nt":
-        version = subprocess.check_output(
-            "git -C {} describe --tag".format(script_dir), shell=True
-        )
-    else:
-        version = subprocess.check_output(
-            "git -C {} describe --tag 2> /dev/null".format(script_dir), shell=True
-        )
-    return version.decode("utf-8")
+    version = "unknown"
+    try:
+        with open(os.path.join(script_dir, '.version'), 'r') as f:
+            version = f.readline()
+    except:
+        try:
+            if os.name == "nt":
+                version = subprocess.check_output(
+                    "git -C {} describe --tag".format(script_dir), shell=True
+                ).decode('utf-8')
+            else:
+                version = subprocess.check_output(
+                    "git -C {} describe --tag 2> /dev/null".format(script_dir),
+                    shell=True
+                ).decode('utf-8')
+        except subprocess.CalledProcessError:
+            pass
+    return version
 
 
 def _get_arguments():

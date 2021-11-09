@@ -1,0 +1,8 @@
+# APT packages to install in order to provide tools for LeTP.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# Copyright (C) Sierra Wireless Inc.
+
+# By default, just install swiflash.
+swiflash

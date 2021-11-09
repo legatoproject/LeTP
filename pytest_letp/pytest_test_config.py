@@ -167,13 +167,13 @@ class LeTPConfigPath:
         2. letp-internal
         3. LeTP
         """
-        if "$LETP_TESTS" in self.config_path:
+        if "$" in self.config_path:
             xml_file = os.path.expandvars(self.config_path)
             return self._find_xml_config(xml_file)
         else:
             current_path = pathlib.Path(os.path.abspath(__file__))
-            letp_test_config_dir = os.path.expandvars("$LETP_TESTS")
-            letp_internal_config_dir = os.path.expandvars("$LETP_INTERNAL_PATH")
+            letp_test_config_dir = os.environ["LETP_TESTS"]
+            letp_internal_config_dir = os.environ["LETP_INTERNAL_PATH"]
             letp_config_dir = os.path.join(current_path.parent)
             for dir_name in [
                 letp_test_config_dir,
@@ -199,7 +199,8 @@ class TestConfig:
     convention of "<parent_tag_name>/<child_tag_name>"
     """
 
-    default_cfg_file = os.path.join("config", "testbench.xml")
+    default_cfg_file = os.environ.get("LETP_CONFIG_XML",
+                                      os.path.join("config", "testbench.xml"))
     test_base_report_cache = os.path.join(
         "log", "letp_test_results.json"
     )  # letp_tests_info

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+LeTP testbench configuration overrides for Docker container environment.
+
+SPDX-License-Identifier: MPL-2.0
+
+Copyright (C) Sierra Wireless Inc.
+-->
+<test>
+    <include_xml>
+        <!-- Include the default testbench.xml file. -->
+        <file>config/testbench.xml</file>
+
+        <!-- Override the portion of the target config which is provided by the container. -->
+        <file>${LETP_USER_CONFIG_DIR}/name.xml</file>
+        <file>config/module/$("module/name").xml</file>
+        <file>${LETP_USER_CONFIG_DIR}/slink1.xml</file>
+        <file>${LETP_USER_CONFIG_DIR}/slink2.xml</file>
+    </include_xml>
+</test>

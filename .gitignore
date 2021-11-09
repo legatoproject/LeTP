@@ -31,7 +31,7 @@ doc/legato_io_style/
 doc/latex
 doc/letp.pdf
 
-# Automaticly generated letp version file
+# Automatically generated letp version file
 module/version
 
 # letp build
@@ -44,6 +44,7 @@ log/
 test/framework_tests/letp/log/*
 test/framework_tests/letp/jenkins.json
 test/framework_tests/letp/test_results_letp.qa.xml
+pytest_letp/tools/.version
 
 # internal files
 letp-internal

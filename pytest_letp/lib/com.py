@@ -1,19 +1,20 @@
 # pylint: skip-file
 # Reenable pylint after error fixes.
 """Communication links (e.g. serial link)."""
+import colorama
 import os
-import sys
-import time
-import stat
-import struct
+import pexpect
 import re
 import serial
 import serial.tools.list_ports as ser_lst
+import struct
+import sys
+import time
+
 from enum import Enum
-import colorama
-import pexpect
 from pytest_letp.lib import swilog
 from pytest_letp.lib.com_exceptions import ComException
+from pytest_letp.lib.misc import in_container
 
 PROMPT_swi_qct = None
 if os.name == "nt":
@@ -664,7 +665,7 @@ class SerialPort:
         return port
 
     @staticmethod
-    def is_valid_port(device_name=None):
+    def is_valid_port(device_name):
         """Check if the given device name is a valid port."""
         if device_name and isinstance(device_name, str):
             if "/dev/mhitty" in device_name:
@@ -672,6 +673,8 @@ class SerialPort:
             for elmt in ser_lst.comports():
                 if device_name in elmt.device or elmt.device in device_name:
                     return True
+            if in_container() and os.access(device_name, os.R_OK|os.W_OK):
+                return True
         return False
 
     def __init__(self, device, baudrate, rtscts):

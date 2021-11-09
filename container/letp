@@ -1,0 +1,444 @@
+#!/usr/bin/env python3
+# Wrapper script for standard LeTP Docker container.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# Copyright (C) Sierra Wireless Inc.
+__copyright__ = 'Copyright (C) Sierra Wireless Inc.'
+
+import argparse
+import collections.abc
+import json
+import logging
+import os
+import shlex
+import subprocess
+import sys
+
+_CONFIG_FILE            = "letp.json"
+_DOCKER_REGISTRY        = "registry.legato"
+_LOG_LEVEL              = logging.INFO
+_WORKING_IMAGE_SUFFIX   = "-working"
+
+_WELL_KNOWN_VOLUMES = {
+    'letp':         "/home/letp/letp",
+    'tests':        "/home/letp/tests",
+    'artifacts':    "/home/letp/artifacts",
+    'tools':        "/home/letp/tools"
+}
+_WELL_KNOWN_DEVICES = {
+    'at':   "/dev/ttyAT0",
+    'cli':  "/dev/ttyCLI0"
+}
+
+_DEFAULT_CONFIG = {
+    'image':            "letp",
+    'container':        "letp",
+    'module':           "wp76xx",
+    'build': {
+        'source':       "",
+        'args':         {}
+    },
+    'mount': {
+        'letp':         "",
+        'tests':        "",
+        'artifacts':    "./build",
+        'tools':        ""
+    },
+    'serial': {
+        'at':           "",
+        'cli':          ""
+    },
+    'extra_parameters': [],
+    '_path':            ""
+}
+
+# Exit code if program doesn't bail out early.
+_final_exit_code = 0
+
+def _debug_mode() -> bool:
+    """
+    Determine if debug mode is active.
+
+    :return: Debug mode flag.
+    :rtype: bool
+    """
+    return logging.getLogger().isEnabledFor(logging.DEBUG)
+
+def _exec_cmd(cmd: list, **kwargs) -> subprocess.CompletedProcess:
+    """
+    Run a command, and optionally log the command.
+
+    :param cmd: Command and parameters.
+    :type cmd: list
+    :return: Execution result.
+    :rtype: subprocess.CompletedProcess
+    """
+    logging.debug("Command: {}".format(' '.join([shlex.quote(s) for s in cmd])))
+    return subprocess.run(cmd, **kwargs)
+
+def _bail(msg: str, code: int = 1, fail_fast: bool = True):
+    """
+    Exit from the tool with a logged message.
+
+    :param msg: Log message.
+    :type msg: str
+    :param code: Exit code, defaults to 1
+    :type code: int, optional
+    :param fail_fast: Exit immediately, defaults to True
+    :type fail_fast: bool, optional
+    """
+    global _final_exit_code
+    logging.critical(msg)
+    if fail_fast:
+        sys.exit(code)
+    else:
+        _final_exit_code = code
+
+def _update(d: dict, u: dict) -> dict:
+    """
+    Recursively update a dictionary.
+
+    :param d: Dictionary to update.
+    :type d: dict
+    :param u: Dictionary of the additional entries.
+    :type u: dict
+    :return: Updated dictionary.
+    :rtype: dict
+    """
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = _update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+
+def _load_config() -> dict:
+    """
+    Attempt to find the letp.json config file in the current directory or a parent.  If it is found,
+    merge its contents into the default configuration.
+
+    :return: Configuration dictionary.
+    :rtype: dict
+    """
+    config = _DEFAULT_CONFIG
+
+    # Try to find and read the config file.
+    json_config = {}
+    config_dir = os.getcwd().rstrip(os.path.sep)
+    while config_dir:
+        try:
+            config_file = os.path.join(config_dir, _CONFIG_FILE)
+            with open(config_file, 'r') as f:
+                json_config = json.load(f)
+                json_config['_path'] = config_dir
+                break
+        except:
+            config_dir = os.path.split(config_dir)[0]
+            if config_dir == os.path.sep:
+                break
+
+    # Merge the config.
+    if json_config:
+        _update(config, json_config)
+    else:
+        logging.info("No {} found, using default configuration.".format(_CONFIG_FILE))
+
+    # Perform some preliminary validation of essential fields.
+    if not config['image'] or not config['container'] or not config['module']:
+        _bail("The 'image,' 'container,' and 'module' fields may not be blank in the {} "
+              "configuration file!".format(_CONFIG_FILE))
+
+    return config
+
+def _update_image(config: dict):
+    """
+    Pull the latest version of the configured Docker image from the registry.
+
+    :param config: Current configuration.
+    :type config: dict
+    """
+    registry_path = _DOCKER_REGISTRY + "/" + config['image']
+    cmd = ["docker", "pull", registry_path]
+    logging.info("Fetching image '{}'...".format(registry_path))
+    result = _exec_cmd(cmd)
+    if result.returncode != 0:
+        _bail("Failed to fetch image '{}'.".format(registry_path))
+
+def _generate_arg_mappings(args: dict) -> list:
+    """
+    Generate the portion of the "docker build" command line parameter list which overrides the
+    default Dockerfile argument values.
+
+    :param args: Mapping of argument names to values.
+    :type args: dict
+    :return: Additional command line parameters to set the argument values.
+    :rtype: list
+    """
+
+    mappings = []
+    for name, value in args.items():
+        if value:
+            mappings += ["--build-arg", "{}={}".format(name, value)]
+    return mappings
+
+def _build_image(config: dict):
+    """
+    Build the Docker image using the local Dockerfile.
+
+    :param config: Current configuration.
+    :type config: dict
+    """
+    dockerfile = os.path.join(os.getcwd(), config['_path'], config['build']['source'], "Dockerfile")
+    if not config['build']['source'] or not os.access(dockerfile, os.R_OK):
+        _bail("'{}' is not a valid Dockerfile location.  Please update the {} configuration "
+              "file.".format(dockerfile, _CONFIG_FILE))
+
+    cmd = ["docker", "build", "--tag", config['image']]
+    cmd += _generate_arg_mappings(config['build']['args'])
+    cmd.append(".")
+
+    logging.info("Building image...")
+    result = _exec_cmd(cmd, cwd=os.path.dirname(dockerfile))
+    if result.returncode != 0:
+        _bail("Failed to build image '{}' from '{}'.".format(config['image'], dockerfile))
+
+def _image_exists(image: str) -> bool:
+    """
+    Determine if an image exists in the local Docker registry.
+
+    :param image: Image name.
+    :type image: str
+    :return: Existence of the image.
+    :rtype: bool
+    """
+    cmd = ["docker", "images", "--format", "{{.ID}}", image]
+    result = _exec_cmd(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    return result.returncode == 0 and result.stdout.strip()
+
+def _generate_volume_mappings(mounts: dict, path: str) -> list:
+    """
+    Generate the portion of the "docker run" command line parameter list which maps the provided
+    volumes into the container.
+
+    :param mounts: Mapping of mount names to external directories.  If a name is not one of the well
+                   known values it is assumed to be an absolute path within the container at which
+                   to map the volume.
+    :type mounts: dict
+    :param path: Directory containing the configuration file, so that other paths may be referenced
+                 relative to it.
+    :type path: str
+    :return: Additional command line parameters to map the volumes.
+    :rtype: list
+    """
+    mappings = []
+    for name, source in mounts.items():
+        if source:
+            dest = _WELL_KNOWN_VOLUMES.get(name, name)
+            source = os.path.join(os.getcwd(), path, source)
+            mappings += ["--volume", "{}:{}".format(os.path.abspath(source), os.path.abspath(dest))]
+    return mappings
+
+def _generate_device_mappings(devices: dict) -> list:
+    """
+    Generate the portion of the "docker run" command line parameter list which maps the provided
+    devices into the container.
+
+    :param devices: Mapping of device names to external devices.  If a name is not one of the well
+                   known values it is assumed to be an absolute path within the container at which
+                   to create the device.
+    :type mounts: dict
+    :return: Additional command line parameters to map the devices.
+    :rtype: list
+    """
+    mappings = []
+    for name, source in devices.items():
+        if source:
+            dest = _WELL_KNOWN_DEVICES.get(name, name)
+            mappings.append("--device={}:{}".format(os.path.abspath(source), os.path.abspath(dest)))
+    return mappings
+
+def _do_stop(container: str):
+    """
+    Stop a running container.
+
+    :param container: Container name.
+    :type container: str
+    """
+    cmd = ["docker", "stop", container]
+    logging.info("Stopping container '{}'...".format(container))
+    _exec_cmd(cmd)
+
+def _tidy(config: dict):
+    """
+    Clean up the container and image(s) used for maintaining container persistence.
+
+    :param config: Current configuration.
+    :type image: dict
+    """
+    _do_stop(config['container'])
+
+    cmd = ["docker", "rm", config['container']]
+    logging.info("Removing container '{}'...".format(config['container']))
+    _exec_cmd(cmd)
+
+    image = config['image'] + _WORKING_IMAGE_SUFFIX
+    cmd = ["docker", "image", "rm", image]
+    logging.info("Removing working image '{}'...".format(image))
+    _exec_cmd(cmd)
+
+def _execute_in_container(config: dict, command=[], fail_fast=True):
+    """
+    Run a command within the LeTP container.  The command is executed in a Bash shell and can take
+    advantage of environment variables defined within the container.
+
+    :param config: Current configuration.
+    :type config: dict
+    :param command: Command and parameter strings.  If no command is provided then an interactive
+                    shell will be started.
+    :type command: list, optional
+    :param fail_fast: Exit immediately, defaults to True
+    :type fail_fast: bool, optional
+    """
+    cmd = ["docker", "exec", "--interactive", "--tty", config['container'], "bash", "--login"]
+    if command:
+        cmd += ["-c", ' '.join([shlex.quote(s) for s in command])]
+
+    result = _exec_cmd(cmd)
+    if result.returncode != 0:
+        _bail("Container command execution failed.", result.returncode, fail_fast)
+
+def _start_container(config: dict):
+    """
+    Spin up the LeTP Docker container.
+
+    :param config: Current configuration.
+    :type config: dict
+    """
+    image = config['image'] + _WORKING_IMAGE_SUFFIX
+    if not _image_exists(image):
+        image = config['image']
+
+    cmd = ["docker", "run",
+            "--detach",
+            "--tty",
+            "--interactive",
+            "--name", config['container'],
+            "--hostname", config['container']]
+    cmd += _generate_volume_mappings(config['mount'], config['_path'])
+    cmd += _generate_device_mappings(config['serial'])
+    cmd += config['extra_parameters']
+    cmd += [image, "bash", "--login"]
+
+    logging.info("Starting container...")
+    result = _exec_cmd(cmd)
+    if result.returncode != 0:
+        _bail("Failed to start '{}' container from image '{}'.  You may need to run 'letp tidy' to "
+              "clean up.".format(config['container'], image))
+
+def _prepare_container(config: dict):
+    """
+    Initialize the container instance in preparation for running subsequent commands.
+
+    :param config: Current configuration.
+    :type config: dict
+    """
+    if not _image_exists(config['image']):
+        _update_image(config)
+    _start_container(config)
+
+    cmd = ["letp-container-init", "debug" if _debug_mode() else "info", config['module']]
+    for mount in config['mount']:
+        if mount not in _WELL_KNOWN_VOLUMES:
+            cmd.append(mount)
+
+    _execute_in_container(config, cmd)
+
+def _stop_container(config: dict):
+    """
+    Stop and clean up the active container, potentially saving a snapshot.
+
+    :param config: Current configuration.
+    :type config: dict
+    """
+    # First try to stop the container.
+    _do_stop(config['container'])
+
+    # Next, take a snapshot.
+    cmd = ["docker", "commit",
+            "--message", "LeTP working snapshot",
+            config['container'],
+            config['image'] + _WORKING_IMAGE_SUFFIX]
+
+    logging.info("Persisting container state...")
+    result = _exec_cmd(cmd)
+    if result.returncode != 0:
+        _bail("Failed to take snapshot of '{}' container.".format(config['container']))
+
+    # Remove the container.
+    cmd = ["docker", "rm", config['container']]
+    result = _exec_cmd(cmd)
+    if result.returncode != 0:
+        _bail("Failed to remove container '{}'.".format(config['container']))
+
+def main():
+    """
+    Entry point for the LeTP docker wrapper tool.
+    """
+    logging.basicConfig(
+        format="[{module}:{lineno}] {levelname}: {message}",
+        level=_LOG_LEVEL,
+        style='{'
+    )
+
+    # Set up command line parser
+    parser = argparse.ArgumentParser(description="LeTP test execution tool", allow_abbrev=False)
+    parser.add_argument('-d', '--debug', action='store_true', help="enable debug logging")
+    parser.add_argument('-i', '--image', type=str, help="override configuration's image name")
+
+    # Container commands
+    subparsers = parser.add_subparsers(title="sub-commands", dest='subcommand')
+    subparsers.add_parser('update', help="fetch the Docker image from the registry.")
+    subparsers.add_parser('build', help="locally (re)build the Docker image.")
+    subparsers.add_parser('login', help="start an interactive shell in the LeTP container.")
+    subparsers.add_parser('tidy', help="remove and clean up snapshot image(s).")
+
+    # Internal sub-commands
+    rp = subparsers.add_parser('run', help="run test(s); remaining arguments are passed to the "
+                                            "internal `letp run` command.")
+    rp.add_argument('args', nargs=argparse.REMAINDER)
+    subparsers.add_parser('version', help="display version of the internal letp command.")
+
+    args = parser.parse_args()
+
+    if args.debug:
+        logging.info("Debug logging enabled")
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    config = _load_config()
+    if args.image:
+        config['image'] = args.image
+
+    if args.subcommand == 'update':
+        _update_image(config)
+    elif args.subcommand == 'build':
+        _build_image(config)
+    elif args.subcommand == 'tidy':
+        _tidy(config)
+    elif args.subcommand in ('login', 'run', 'version'):
+        _prepare_container(config)
+        if args.subcommand == 'login':
+            _execute_in_container(config, fail_fast=False)
+        elif args.subcommand == 'run':
+            _execute_in_container(config, ['letp', 'run'] + args.args, fail_fast=False)
+        elif args.subcommand == 'version':
+            _execute_in_container(config, ['letp', 'version'])
+        _stop_container(config)
+    else:
+        parser.print_help()
+
+    sys.exit(_final_exit_code)
+
+# Invoke the entry point.
+if __name__ == '__main__':
+    main()

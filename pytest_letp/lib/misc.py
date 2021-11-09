@@ -33,8 +33,20 @@ def input_timeout(msg, timeout):
 
 
 def convert_path(path=None):
-    """Covert path format to align with OS env."""
+    """Convert path format to align with OS env."""
     if path:
         generic_path = pathlib.PurePath(path)
         return os.path.join(generic_path)
     return path
+
+
+def in_container() -> bool:
+    """Determine if the host of LeTP is a Docker container.
+
+    :return: Containerization status.
+    :rtype: bool
+    """
+    cgroup = ''
+    with open('/proc/self/cgroup', 'r') as f:
+        cgroup = f.read()
+    return 'docker' in cgroup
