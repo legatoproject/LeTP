@@ -121,7 +121,9 @@
                             {% for entry in summary_headers %}
                                 {% if entry == "Passed" and row[entry] != 0 %}
                                     {% set summary_class = "passed" %}
-                                {% elif entry == "Failures" and row[entry] != 0 %}
+                                {% elif entry == "xFailed" and row[entry] != 0 %}
+                                    {% set summary_class = "xfailed" %}
+                                {% elif entry == "Failed" and row[entry] != 0 %}
                                     {% set summary_class = "failed" %}
                                 {% elif entry == "Errors" and row[entry] != 0 %}
                                     {% set summary_class = "error" %}

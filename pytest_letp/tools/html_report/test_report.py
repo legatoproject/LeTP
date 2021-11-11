@@ -32,9 +32,10 @@ class TestSummary:
             "CollectedTests",
             "TestcasesRun",
             "Passed",
-            "Skipped",
-            "Failures",
+            "Failed",
+            "xFailed",
             "Errors",
+            "Skipped",
         ]
 
     def __init__(self, cfg="global", collected=0, tcs=0, failures=0, errors=0):
@@ -44,6 +45,7 @@ class TestSummary:
         self.stat_tcs = tcs
         self.stat_passed = 0
         self.stat_skipped = 0
+        self.stat_xfailed = 0
         self.stat_failures = failures
         self.stat_errors = errors
         self.sub_summary = {}
@@ -68,19 +70,25 @@ class TestSummary:
         return self.stat_tcs + sum([s.total_tcs() for s in self.sub_summary.values()])
 
     def total_passed(self):
-        """Get passed test cases."""
+        """Get total passed test cases."""
         return self.stat_passed + sum(
             [s.total_passed() for s in self.sub_summary.values()]
         )
 
     def total_skipped(self):
-        """Get skipped test cases."""
+        """Get total skipped test cases."""
         return self.stat_skipped + sum(
             [s.total_skipped() for s in self.sub_summary.values()]
         )
 
+    def total_xfailed(self):
+        """Get total failed test cases with known issue."""
+        return self.stat_xfailed + sum(
+            [s.total_xfailed() for s in self.sub_summary.values()]
+        )
+
     def total_failures(self):
-        """Get total failed test cases."""
+        """Get total failed test cases without knowing issue."""
         return self.stat_failures + sum(
             [s.total_failures() for s in self.sub_summary.values()]
         )
@@ -93,7 +101,6 @@ class TestSummary:
 
     def stats(self):
         """Get Statistics of tests results."""
-        # Don't include skipped tests in percentage calculation
         divider = float(self.total_tcs()) / 100
         if divider == 0:
             divider = 1
@@ -112,7 +119,11 @@ class TestSummary:
                 "count": self.total_skipped(),
                 "percentage": self.total_skipped() / divider,
             },
-            "Failures": {
+            "xFailed": {
+                "count": self.total_xfailed(),
+                "percentage": self.total_xfailed() / divider,
+            },
+            "Failed": {
                 "count": self.total_failures(),
                 "percentage": self.total_failures() / divider,
             },
@@ -468,6 +479,8 @@ class BuildConfiguration:
                 summary.stat_passed += 1
             elif "skip" in value[1]:
                 summary.stat_skipped += 1
+            elif "xfailed" in value[1]:
+                summary.stat_xfailed += 1
             elif "fail" in value[1]:
                 summary.stat_failures += 1
             elif "error" in value[1]:
