@@ -139,7 +139,7 @@ class ComPortDevice:
         self.name = name
         self.dev_tty_regx = r"(?P<dev_tty>/dev/tty[A-Z]+[0-9]+)"
         self.pcie_interface_regx = r"(?P<dev_mhitty>/dev/mhitty+[0-9]+)"
-        self.cmux_interface_regx = r"(?P<dev_cmux>/dev/mux+[0-9]+)"
+        self.cmux_interface_regx = r"(?P<dev_cmux>/dev/c?mux[0-9]+)"
         self.mbim_interface_regx = r"(?P<dev_mbim>/dev/cdc-wdm+[0-9]+)"
         self.tty_regx = r"(?P<tty>tty[A-Z]+[0-9]+)"
         self.usb_interface_regx = (

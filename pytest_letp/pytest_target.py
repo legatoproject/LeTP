@@ -2,6 +2,7 @@
 
 Use the pytest_target pytest plugin to communicate with targets.
 """
+import os
 import pytest
 
 from pytest_letp.lib import com
@@ -213,6 +214,57 @@ def target_at(request, read_config):
         dev_tty=slink1_name, baudrate=int(baudrate1), target_name="AT", target_ip=None
     )
     return slink1
+
+
+@pytest.fixture
+def cmux(request: pytest.fixture, sudo: pytest.fixture, target: pytest.fixture):
+    """Set up and tear down virtual CMUX devices attached to the main AT port.
+
+    :param request: Fixture request state.
+    :type request: pytest.fixture
+    :param sudo: Fixture for executing commmands with elevated privileges.
+    :type sudo: pytest.fixture
+    :param target: Connected device under test.
+    :type target: pytest.fixture
+    :yield: List of open CMUX ports.
+    :rtype: list[target_serial_at]
+    """
+    count = request.keywords.get("cmux_count", 4)
+    assert count > 0
+    if not target.slink2:
+        pytest.skip("No AT port (slink2) configured.")
+        return
+    at_port = target.slink2.dev_tty
+    baudrate = target.slink2.baudrate
+    sim_iccid = target.sim_iccid
+    sim_imsi = target.sim_imsi
+
+    # Start the CMUX daemon.
+    cmd = ["gsmMuxd", "-w", "-p", at_port, "-b", str(baudrate), "-s", "/dev/cmux"]
+    cmd += ["/dev/ptmx"] * count
+    sudo(cmd)
+
+    # Create device wrappers for each CMUX channel.
+    channels = []
+    for i in range(count):
+        port = f"/dev/cmux{i}"
+        assert os.access(port, os.R_OK | os.W_OK, follow_symlinks=True)
+
+        slink = com.target_serial_at(dev_tty=port, baudrate=baudrate, rtscts=False)
+
+        # Add some extra properties to allow the link to be used with
+        # sim_lib.get_sim_info().  Maybe there is a better way to compose an
+        # appropriate object?
+        slink.sim_iccid = sim_iccid
+        slink.sim_imsi = sim_imsi
+
+        channels.append(slink)
+
+    # Yield to the test execution.
+    yield channels
+
+    # Stop the CMUX daemon.
+    sudo(["pkill", "--full", "gsmMuxd"])
 
 
 # @}

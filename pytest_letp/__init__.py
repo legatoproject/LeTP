@@ -33,6 +33,7 @@ pytest_plugins = [
     "pytest_session_timeout",
     "pytest_letp_log",
     "pytest_test_report",
+    "pytest_host"
 ]
 
 
