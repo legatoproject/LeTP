@@ -91,6 +91,10 @@ class SimDBParser:
         """Get the SIM APN in sim capability xml file."""
         return self._get_sim_detail(sim_type, "APN")
 
+    def get_sim_apn_tcp(self, sim_type="Telus"):
+        """Get the SIM APN_TCP in sim capability xml file."""
+        return self._get_sim_detail(sim_type, "APN_TCP")
+
     def get_sim_pdp(self, sim_type="Telus"):
         """Get the SIM PDP in sim capability xml file."""
         return self._get_sim_detail(sim_type, "PDP")
@@ -154,9 +158,10 @@ class SimDBParser:
                 carrier = self.get_sim_carrier(element)
                 if apn is None:
                     apn = self.get_sim_apn(sim_type=carrier)
+                apn_tcp = self.get_sim_apn_tcp(sim_type=carrier)
                 pdp = self.get_sim_pdp(sim_type=carrier)
                 band = self.get_rf_band(sim_type=carrier)
-                sim_tuple = [carrier, apn, pdp, band]
+                sim_tuple = [carrier, apn, apn_tcp, pdp, band]
                 break
         else:
             swilog.warning("Unable to parse Sim Information")
@@ -167,7 +172,7 @@ class SimDBParser:
 
 class SimInfo(
     collections.namedtuple(
-        "SimInfo", "Carrier,APN,PDP,Band,Iccid,Imsi,Mcc,Mnc,Tel,Pin,Puk,Smsc"
+        "SimInfo", "Carrier,APN,APN_TCP,PDP,Band,Iccid,Imsi,Mcc,Mnc,Tel,Pin,Puk,Smsc"
     )
 ):
     """Class for Sim Information."""
