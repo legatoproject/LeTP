@@ -317,7 +317,7 @@ class SwiModule:
         else:
             rsp = self.run_at_cmd(cmd, check=False)
 
-            if rsp is not None or not isinstance(rsp, str):
+            if rsp is None or not isinstance(rsp, str):
                 swilog.error("Error: No response while checking for version!")
                 match_obj = None
             else:
