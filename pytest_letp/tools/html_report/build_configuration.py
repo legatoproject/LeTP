@@ -48,8 +48,8 @@ class PytestResult(dict):
     def build_test_id(test_path):
         """Build test id from test path.
 
-        Make 'scenario/command/test.py::test_json_report_stub'
-        into scenario.command.test.test_json_report_stub
+        Make 'scenario/command/test.py::sub_module_name::test_json_report_stub'
+        into scenario.command.test.sub_module_name.test_json_report_stub
 
         Key: classname and name.
         """
@@ -59,9 +59,12 @@ class PytestResult(dict):
         if match:
             python_file = os.path.basename(match.group("file_name"))
             test_path = test_path.replace(python_file, python_file.replace(".py", ""))
-            module_name, test_name = test_path.split("::")
-            module_name = module_name.replace("/", ".")
-            return "{}.{}".format(module_name, test_name)
+            test_path_elements = test_path.split("::")
+
+            # test_path_elements[0] is module name
+            test_path_elements[0] = test_path_elements[0].replace("/", ".")
+
+            return ".".join(test_path_elements)
         return ""
 
     def get_test_name(self):
