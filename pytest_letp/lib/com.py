@@ -10,6 +10,7 @@ import serial.tools.list_ports as ser_lst
 import struct
 import sys
 import time
+import stat
 
 from enum import Enum
 from pytest_letp.lib import swilog
@@ -476,7 +477,7 @@ class ttyspawn(SerialSpawn):
             maxread=PEXPECT_MAXREAD,
             encoding=encoding,
             codec_errors="replace",
-            **kwargs
+            **kwargs,
         )
         self.config_logging()
 
@@ -673,7 +674,17 @@ class SerialPort:
             for elmt in ser_lst.comports():
                 if device_name in elmt.device or elmt.device in device_name:
                     return True
-            if in_container() and os.access(device_name, os.R_OK|os.W_OK):
+            else:
+                swilog.debug(f"{device_name} is not in available comports.")
+                device_stat = None
+                try:
+                    device_stat = os.stat(device_name)
+                except OSError:
+                    pass
+
+                if device_stat and stat.S_ISCHR(device_stat.st_mode):
+                    return True
+            if in_container() and os.access(device_name, os.R_OK | os.W_OK):
                 return True
         return False
 
