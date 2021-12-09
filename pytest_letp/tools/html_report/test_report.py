@@ -9,7 +9,7 @@ import os
 import sys
 import re
 import argparse
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import requests
 from build_configuration import PytestResult, Components, Environment
 from report_template import HTMLRender
@@ -155,6 +155,29 @@ class TestSummary:
                 return value.status()
 
         return "PASSED"
+
+    def merge_summary(self, duplicated_system, update_system):
+        """Merge the status with the same system type."""
+        duplicated_summary = self.sub_summary[duplicated_system]
+        update_system_summary = self.sub_summary[update_system]
+
+        final_summary = {"Config": update_system_summary.cfg}
+        if "FAILED" in (
+            update_system_summary.status() + duplicated_summary.status()
+        ):
+            final_summary["Status"] = "FAILED"
+        else:
+            final_summary["Status"] = "PASSED"
+        for key in update_system_summary.stats().keys():
+            elmt_1 = Counter(duplicated_summary.stats()[key])
+            elmt_2 = Counter(update_system_summary.stats()[key])
+            elmt_1.update(elmt_2)
+            final_summary[key] = dict(elmt_1)
+            if "percentage" in final_summary[key].keys():
+                final_summary[key]["percentage"] = float(
+                    final_summary[key]["percentage"] / 2
+                )
+        return final_summary
 
 
 class TestCaseResult:
@@ -660,9 +683,13 @@ class TestReportBuilder:
                     module_name = re.search(
                         r"(?P<module_name>.*)_\d*", build_cfg.name
                     ).group("module_name")
-                    build_cfg.name = f"{module_name}_{temp_list_build_cfg[module_name]}"
-                    temp_list_build_cfg[module_name] += 1
-
+                    # Check if module_name is in temp_list_build_cfg
+                    # to update build configuration name in report
+                    if module_name in temp_list_build_cfg:
+                        build_cfg.name = (
+                            f"{module_name}_{temp_list_build_cfg[module_name]}"
+                        )
+                        temp_list_build_cfg[module_name] += 1
                 temp_list_build_cfg[build_cfg.name] = 1
                 self.build_cfg_list.append(build_cfg)
             else:
@@ -723,27 +750,47 @@ class TestReportBuilder:
                 j = json.load(f)
                 self.env_global_list.update(j)
 
-    def _add_summary_section(self):
+    def _add_summary_section(self, merge_report=False):
         summary_global = {"Config": self.test_summary.cfg}
         summary_global["Status"] = self.test_summary.status()
         summary_global.update(self.test_summary.stats())
         self.summary[self.test_summary.cfg] = summary_global
 
-        for k in sorted(self.test_summary.sub_summary.keys()):
-            sub_s = self.test_summary.sub_summary[k]
-            s = {"Config": sub_s.cfg}
-            s["Status"] = sub_s.status()
-            s.update(sub_s.stats())
-            self.summary[sub_s.cfg] = s
+        sub_systems_name = sorted(self.test_summary.sub_summary.keys())
+
+        if merge_report:
+            target_type = {}
+            for k in sub_systems_name:
+                if k[0:4] not in target_type:
+                    target_type[k[0:4]] = k
+                    sub_s = self.test_summary.sub_summary[k]
+                    s = {"Config": sub_s.cfg}
+                    s["Status"] = sub_s.status()
+                    s.update(sub_s.stats())
+                    self.summary[sub_s.cfg] = s
+                else:
+                    self.summary[target_type[k[0:4]]] = self.test_summary.merge_summary(
+                        k, target_type[k[0:4]]
+                    )
+        else:
+            for k in sub_systems_name:
+                sub_s = self.test_summary.sub_summary[k]
+                s = {"Config": sub_s.cfg}
+                s["Status"] = sub_s.status()
+                s.update(sub_s.stats())
+                self.summary[sub_s.cfg] = s
 
         status = self.test_summary.status()
         return status
 
     @staticmethod
-    def _add_xfailedJira_ID(target_name, test_name, test_case, is_xfailed, xfailed_ID):
-        if target_name == "Jira ID" and is_xfailed:
+    def _add_xfailedJira_ID(target_name, test_name, test_case, xfailed_element: dict):
+        if target_name == "Jira ID" and xfailed_element["is_xfailed"]:
             test_case_view = TestCaseView(
-                test_name, target_name, test_case, xfailed_ID=xfailed_ID
+                test_name,
+                target_name,
+                test_case,
+                xfailed_ID=xfailed_element["xfailed_ID"]
             )
         else:
             test_case_view = TestCaseView(test_name, target_name, test_case)
@@ -753,11 +800,46 @@ class TestReportBuilder:
                     r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
                 )
                 if xfailed_reg:
-                    xfailed_ID = xfailed_reg.group("xfailed_ticket")
-                is_xfailed = True
-        return test_case_view, is_xfailed, xfailed_ID
+                    xfailed_element["xfailed_ID"] = xfailed_reg.group("xfailed_ticket")
+                xfailed_element["is_xfailed"] = True
+        return test_case_view, xfailed_element
 
-    def gen_results_table(self, filter_fn=None):
+    def collect_test_result(
+        self,
+        global_test_case,
+        test_name,
+        xfailed_element: dict,
+        merge_report=False
+    ):
+        """Collect test result from the test data."""
+        result = []
+        all_targets = self.results_headers[1:]
+
+        for target_name in all_targets:
+            for original_name in global_test_case.results.keys():
+                if target_name in original_name:
+                    test_case = global_test_case.results[original_name]
+                else:
+                    test_case = None
+
+                test_case_view, xfailed_element = self._add_xfailedJira_ID(
+                    target_name,
+                    test_name,
+                    test_case,
+                    xfailed_element
+                )
+                if (
+                    target_name in original_name and
+                    test_case_view.result != "N/A" and
+                    merge_report
+                ):
+                    final_test_case_view = test_case_view
+                    break
+                final_test_case_view = test_case_view
+            result.append(final_test_case_view)
+        return result
+
+    def gen_results_table(self, filter_fn=None, merge_report=False):
         """!Get results table with filtering."""
         results = []
 
@@ -767,53 +849,68 @@ class TestReportBuilder:
                 if not filter_fn(global_test_case):
                     continue
 
-            c_res = []
-            is_xfailed = False
-            xfailed_ID = None
-            all_targets = self.results_headers[1:]
-            for target_name in all_targets:
-                if target_name in global_test_case.results:
-                    test_case = global_test_case.results[target_name]
-                else:
-                    test_case = None
-                test_case_view, is_xfailed, xfailed_ID = self._add_xfailedJira_ID(
-                    target_name, test_name, test_case, is_xfailed, xfailed_ID
-                )
-                c_res.append(test_case_view)
-
-            results.append(c_res)
+            xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
+            result = self.collect_test_result(
+                global_test_case,
+                test_name,
+                xfailed_element,
+                merge_report
+            )
+            results.append(result)
         return results
 
-    def generate_report(self, results_all, status, other_contents: dict):
+    def generate_report(
+        self,
+        results_all,
+        status,
+        other_contents: dict,
+        merge_report=False
+    ):
         """!Generate the test report."""
         raise NotImplementedError
 
-    def _add_results_headers(self):
+    def _add_results_headers(self, merge_report=False):
         """Add the result header.
 
         e.g.Testcases | HL7800 | WP76.
         """
         results_headers = ["Testcases"]
-        build_cfg_names = [c.name for c in self.build_cfg_list]
+        if merge_report:
+            build_cfg_names = []
+            target_type = {}
+            for c in self.build_cfg_list:
+                if c.name[0:4] not in target_type:
+                    target_type[c.name[0:4]] = c.name
+                    build_cfg_names.append(c.name[0:6])
+        else:
+            build_cfg_names = [c.name for c in self.build_cfg_list]
         build_cfg_names.append("Jira ID")
         results_headers.extend(build_cfg_names)
+
         self.results_headers = results_headers
 
     def run(self, args):
         """!Run the builder to generate report."""
+        # Enable merge report for nightly master
+        merge_report = False
+        for path in args.json_path:
+            if re.search("nightly_.*_master", path):
+                print("Enable merge report.")
+                merge_report = True
+                break
         self._add_build_cfgs(args.json_path)
         self._add_env_list_header()
         self._process_all_build_cfgs()
         self._add_env_global_list(args.global_env, args.global_env_path)
-        self._add_results_headers()
-        status = self._add_summary_section()
-        results_all = self.gen_results_table()
+        self._add_results_headers(merge_report=merge_report)
+        status = self._add_summary_section(merge_report=merge_report)
+        results_all = self.gen_results_table(merge_report=merge_report)
         other_contents = {
             "title": args.title,
             "basic": args.basic,
             "section": args.html_section,
         }
-        output = self.generate_report(results_all, status, other_contents)
+        output = self.generate_report(results_all, status, other_contents, merge_report)
         if args.output:
             with open(args.output, "w", encoding="utf8") as f:
                 f.write(output)
@@ -823,10 +920,18 @@ class TestReportBuilder:
 class TestReportHTMLBuilder(TestReportBuilder):
     """!Test report HTML format builder."""
 
-    def generate_report(self, results_all, status, other_contents: dict):
+    def generate_report(
+        self,
+        results_all,
+        status,
+        other_contents: dict,
+        merge_report=False
+    ):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
-        results_failed = self.gen_results_table(lambda x: not x.is_passed())
+        results_failed = self.gen_results_table(
+            lambda x: not x.is_passed(), merge_report
+        )
         summary_headers = ["Config", "Status"]
         summary_headers.extend(TestSummary.stat_keys())
 
@@ -871,7 +976,13 @@ class TestReportJSONBuilder(TestReportBuilder):
         super().__init__()
         self.content = None
 
-    def generate_report(self, results_all, status, other_contents: dict):
+    def generate_report(
+        self,
+        results_all,
+        status,
+        other_contents: dict,
+        merge_report=False
+    ):
         """!Generate report in JSON format."""
         print("Generating JSON")
         tests = []
