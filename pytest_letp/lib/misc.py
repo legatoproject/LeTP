@@ -28,7 +28,7 @@ def input_timeout(msg, timeout):
     assert len(i) != 0, "Nothing read on input"
 
     rsp = sys.stdin.readline()
-    swilog.debug("Read input:%s" % rsp)
+    swilog.debug(f"Read input:{rsp}")
     return rsp
 
 
@@ -46,7 +46,10 @@ def in_container() -> bool:
     :return: Containerization status.
     :rtype: bool
     """
-    cgroup = ''
-    with open('/proc/self/cgroup', 'r') as f:
-        cgroup = f.read()
-    return 'docker' in cgroup
+    if os.path.isfile("/proc/self/cgroup"):
+        cgroup = ""
+        with open("/proc/self/cgroup", "r", encoding="utf-8") as f:
+            cgroup = f.read()
+        return "docker" in cgroup
+    else:
+        return False
