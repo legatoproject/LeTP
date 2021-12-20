@@ -156,27 +156,44 @@ class TestSummary:
 
         return "PASSED"
 
-    def merge_summary(self, duplicated_system, update_system):
-        """Merge the status with the same system type."""
-        duplicated_summary = self.sub_summary[duplicated_system]
-        update_system_summary = self.sub_summary[update_system]
+    @staticmethod
+    def merge_status(list_status: list):
+        """Merge all status in the list."""
+        final_status = "PASSED"
+        for status in list_status:
+            if status == "FAILED":
+                return status
+            if status != "PASSED":
+                final_status = status
+        return final_status
 
-        final_summary = {"Config": update_system_summary.cfg}
-        if "FAILED" in (
-            update_system_summary.status() + duplicated_summary.status()
-        ):
-            final_summary["Status"] = "FAILED"
-        else:
-            final_summary["Status"] = "PASSED"
-        for key in update_system_summary.stats().keys():
-            elmt_1 = Counter(duplicated_summary.stats()[key])
-            elmt_2 = Counter(update_system_summary.stats()[key])
-            elmt_1.update(elmt_2)
-            final_summary[key] = dict(elmt_1)
+    def merge_summary(self, update_system, duplicated_system):
+        """Merge the status with the same system type."""
+        update_sys_summary = self.sub_summary[update_system]
+        duplicated_sys_summary = self.sub_summary[duplicated_system]
+
+        final_summary = {"Config": update_sys_summary.cfg}
+        list_status = [update_sys_summary.status(), duplicated_sys_summary.status()]
+        final_summary["Status"] = self.merge_status(list_status)
+
+        for key in update_sys_summary.stats().keys():
+            duplicated_count = Counter(duplicated_sys_summary.stats()[key])
+            update_count = Counter(update_sys_summary.stats()[key])
+            update_count.update(duplicated_count)
+            final_summary[key] = dict(update_count)
+
             if "percentage" in final_summary[key].keys():
-                final_summary[key]["percentage"] = float(
-                    final_summary[key]["percentage"] / 2
-                )
+                if key == "CollectedTests":
+                    final_summary[key]["percentage"] = float(
+                        final_summary[key]["percentage"] / 2
+                    )
+                else:
+                    divider = float(final_summary["TestcasesRun"]["count"]) / 100
+                    if divider == 0:
+                        divider = 1
+                    final_summary[key]["percentage"] = float(
+                        final_summary[key]["count"] / divider
+                    )
         return final_summary
 
 
@@ -648,6 +665,41 @@ class TestReportBuilder:
             sys.exit(1)
         return entry_name, entry_path
 
+    @staticmethod
+    def _parse_sys_type_name(sys_name):
+        """Return the type of system."""
+        if len(sys_name) < 4:
+            if re.search(r"_", sys_name):
+                sys_type = re.search(
+                    r"(?P<sys_type>.*)_", sys_name
+                ).group("sys_type")
+            else:
+                sys_type = sys_name
+        else:
+            sys_type = sys_name[0:4]
+        return sys_type
+
+    @staticmethod
+    def _add_xfailedJira_ID(target_name, test_name, test_case, xfailed_element: dict):
+        if target_name == "Jira ID" and xfailed_element["is_xfailed"]:
+            test_case_view = TestCaseView(
+                test_name,
+                target_name,
+                test_case,
+                xfailed_ID=xfailed_element["xfailed_ID"]
+            )
+        else:
+            test_case_view = TestCaseView(test_name, target_name, test_case)
+            if test_case_view.result.lower() == "xfailed":
+                xFailed_mes = test_case.message
+                xfailed_reg = re.search(
+                    r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
+                )
+                if xfailed_reg:
+                    xfailed_element["xfailed_ID"] = xfailed_reg.group("xfailed_ticket")
+                xfailed_element["is_xfailed"] = True
+        return test_case_view, xfailed_element
+
     def sort_file_by_times(self, json_path):
         """Sort json file by time."""
         list_build_cfg = []
@@ -756,53 +808,34 @@ class TestReportBuilder:
         summary_global.update(self.test_summary.stats())
         self.summary[self.test_summary.cfg] = summary_global
 
-        sub_systems_name = sorted(self.test_summary.sub_summary.keys())
+        sub_systems_names = sorted(self.test_summary.sub_summary.keys())
 
         if merge_report:
-            target_type = {}
-            for k in sub_systems_name:
-                if k[0:4] not in target_type:
-                    target_type[k[0:4]] = k
-                    sub_s = self.test_summary.sub_summary[k]
-                    s = {"Config": sub_s.cfg}
-                    s["Status"] = sub_s.status()
-                    s.update(sub_s.stats())
-                    self.summary[sub_s.cfg] = s
+            sys_type_dict = {}
+            for sys_name in sub_systems_names:
+                sys_type = self._parse_sys_type_name(sys_name)
+                if sys_type not in sys_type_dict:
+                    sys_type_dict[sys_type] = sys_name
+                    sub_summary = self.test_summary.sub_summary[sys_name]
+                    cache_summary = {"Config": sub_summary.cfg}
+                    cache_summary["Status"] = sub_summary.status()
+                    cache_summary.update(sub_summary.stats())
+                    self.summary[sub_summary.cfg] = cache_summary
                 else:
-                    self.summary[target_type[k[0:4]]] = self.test_summary.merge_summary(
-                        k, target_type[k[0:4]]
+                    merged_summary = self.test_summary.merge_summary(
+                        sys_type_dict[sys_type], sys_name
                     )
+                    self.summary[sys_type_dict[sys_type]] = merged_summary
         else:
-            for k in sub_systems_name:
-                sub_s = self.test_summary.sub_summary[k]
-                s = {"Config": sub_s.cfg}
-                s["Status"] = sub_s.status()
-                s.update(sub_s.stats())
-                self.summary[sub_s.cfg] = s
+            for sys_name in sub_systems_names:
+                sub_summary = self.test_summary.sub_summary[sys_name]
+                cache_summary = {"Config": sub_summary.cfg}
+                cache_summary["Status"] = sub_summary.status()
+                cache_summary.update(sub_summary.stats())
+                self.summary[sub_summary.cfg] = cache_summary
 
         status = self.test_summary.status()
         return status
-
-    @staticmethod
-    def _add_xfailedJira_ID(target_name, test_name, test_case, xfailed_element: dict):
-        if target_name == "Jira ID" and xfailed_element["is_xfailed"]:
-            test_case_view = TestCaseView(
-                test_name,
-                target_name,
-                test_case,
-                xfailed_ID=xfailed_element["xfailed_ID"]
-            )
-        else:
-            test_case_view = TestCaseView(test_name, target_name, test_case)
-            if test_case_view.result.lower() == "xfailed":
-                xFailed_mes = test_case.message
-                xfailed_reg = re.search(
-                    r"XFailed:\s(?P<xfailed_ticket>.*)", xFailed_mes
-                )
-                if xfailed_reg:
-                    xfailed_element["xfailed_ID"] = xfailed_reg.group("xfailed_ticket")
-                xfailed_element["is_xfailed"] = True
-        return test_case_view, xfailed_element
 
     def collect_test_result(
         self,
@@ -877,13 +910,22 @@ class TestReportBuilder:
         results_headers = ["Testcases"]
         if merge_report:
             build_cfg_names = []
-            target_type = {}
-            for c in self.build_cfg_list:
-                if c.name[0:4] not in target_type:
-                    target_type[c.name[0:4]] = c.name
-                    build_cfg_names.append(c.name[0:6])
+            sys_type_dict = {}
+            for build_cfg in self.build_cfg_list:
+                sys_type = self._parse_sys_type_name(build_cfg.name)
+
+                if sys_type not in sys_type_dict:
+                    sys_type_dict[sys_type] = build_cfg.name
+                    if re.search(r"_", build_cfg.name):
+                        cfg_name = re.search(
+                            r"(?P<sys_name>.*)_", build_cfg.name
+                        ).group("sys_name")
+                    else:
+                        cfg_name = build_cfg.name
+
+                    build_cfg_names.append(cfg_name)
         else:
-            build_cfg_names = [c.name for c in self.build_cfg_list]
+            build_cfg_names = [build_cfg.name for build_cfg in self.build_cfg_list]
         build_cfg_names.append("Jira ID")
         results_headers.extend(build_cfg_names)
 
