@@ -668,15 +668,12 @@ class TestReportBuilder:
     @staticmethod
     def _parse_sys_type_name(sys_name):
         """Return the type of system."""
-        if len(sys_name) < 4:
-            if re.search(r"_", sys_name):
-                sys_type = re.search(
-                    r"(?P<sys_type>.*)_", sys_name
-                ).group("sys_type")
-            else:
-                sys_type = sys_name
+        if re.search(r"_", sys_name):
+            sys_type = re.search(
+                r"(?P<sys_type>.*)_", sys_name
+            ).group("sys_type")
         else:
-            sys_type = sys_name[0:4]
+            sys_type = sys_name
         return sys_type
 
     @staticmethod
