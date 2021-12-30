@@ -138,7 +138,7 @@ class SimDBParser:
             curr_iccid = uicc.find("iccid").text
 
             # found iccid
-            if curr_iccid in iccid:
+            if (curr_iccid is not None) and (curr_iccid in iccid):
                 is_detail_info = True
                 apn = self._get_sim_info_detail(uicc, "apn")
                 sim_info.append(self._get_sim_info_detail(uicc, "iccid"))
