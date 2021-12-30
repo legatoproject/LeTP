@@ -670,7 +670,7 @@ class TestReportBuilder:
         """Return the type of system."""
         if re.search(r"_", sys_name):
             sys_type = re.search(
-                r"(?P<sys_type>.*)_", sys_name
+                r"(?P<sys_type>.*?)_", sys_name
             ).group("sys_type")
         else:
             sys_type = sys_name
