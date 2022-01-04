@@ -814,6 +814,7 @@ class TestReportBuilder:
                 if sys_type not in sys_type_dict:
                     sys_type_dict[sys_type] = sys_name
                     sub_summary = self.test_summary.sub_summary[sys_name]
+                    sub_summary.cfg = sys_type
                     cache_summary = {"Config": sub_summary.cfg}
                     cache_summary["Status"] = sub_summary.status()
                     cache_summary.update(sub_summary.stats())
@@ -913,14 +914,7 @@ class TestReportBuilder:
 
                 if sys_type not in sys_type_dict:
                     sys_type_dict[sys_type] = build_cfg.name
-                    if re.search(r"_", build_cfg.name):
-                        cfg_name = re.search(
-                            r"(?P<sys_name>.*)_", build_cfg.name
-                        ).group("sys_name")
-                    else:
-                        cfg_name = build_cfg.name
-
-                    build_cfg_names.append(cfg_name)
+                    build_cfg_names.append(sys_type)
         else:
             build_cfg_names = [build_cfg.name for build_cfg in self.build_cfg_list]
         build_cfg_names.append("Jira ID")
