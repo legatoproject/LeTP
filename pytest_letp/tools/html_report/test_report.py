@@ -1076,7 +1076,7 @@ class TestReportJSONParser:
         test_list = []
         print(f"========== List of {status} tests ==========")
         for index in range(len(self.json_parser_data["tests"])):
-            if status in self.json_parser_data["tests"][index]["outcome"]:
+            if status == self.json_parser_data["tests"][index]["outcome"]:
                 test = self.json_parser_data["tests"][index]["nodeid"]
                 test_list.append(test)
                 print(test)
