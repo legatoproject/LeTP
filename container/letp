@@ -101,12 +101,14 @@ def _update(d: dict, u: dict) -> dict:
     return d
 
 
-def _load_config() -> dict:
+def _load_config(config_path) -> dict:
     """Attempt to find the letp.json config file in the current directory.
 
     Also will look in parent directories.
     If it is found, merge its contents into the default configuration.
 
+    :param config_path: Path to configuration file.
+    :type config_path: str
     :return: Configuration dictionary.
     :rtype: dict
     """
@@ -117,7 +119,10 @@ def _load_config() -> dict:
     config_dir = os.getcwd().rstrip(os.path.sep)
     while config_dir:
         try:
-            config_file = os.path.join(config_dir, _CONFIG_FILE)
+            if config_path:
+                config_file = config_path
+            else:
+                config_file = os.path.join(config_dir, _CONFIG_FILE)
             with open(config_file, "r") as f:
                 json_config = json.load(f)
                 json_config["_path"] = config_dir
@@ -442,6 +447,9 @@ def main():
     parser.add_argument(
         "-i", "--image", type=str, help="override configuration's image name"
     )
+    parser.add_argument(
+        "-c", "--config", type=str, help="override default configuration file location"
+    )
 
     # Container commands
     subparsers = parser.add_subparsers(title="sub-commands", dest="subcommand")
@@ -469,7 +477,7 @@ def main():
         logging.info("Debug logging enabled")
         logging.getLogger().setLevel(logging.DEBUG)
 
-    config = _load_config()
+    config = _load_config(args.config)
     if args.image:
         config["image"] = args.image
 
