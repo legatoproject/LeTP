@@ -669,9 +669,7 @@ class TestReportBuilder:
     def _parse_sys_type_name(sys_name):
         """Return the type of system."""
         if re.search(r"_", sys_name):
-            sys_type = re.search(
-                r"(?P<sys_type>.*?)_", sys_name
-            ).group("sys_type")
+            sys_type = re.search(r"(?P<sys_type>.*?)_", sys_name).group("sys_type")
         else:
             sys_type = sys_name
         return sys_type
@@ -683,7 +681,7 @@ class TestReportBuilder:
                 test_name,
                 target_name,
                 test_case,
-                xfailed_ID=xfailed_element["xfailed_ID"]
+                xfailed_ID=xfailed_element["xfailed_ID"],
             )
         else:
             test_case_view = TestCaseView(test_name, target_name, test_case)
@@ -757,6 +755,7 @@ class TestReportBuilder:
 
     def _add_test_env_infos(self):
         self.testing_env_infos.append("Config")
+        self.testing_env_infos.append("Execution_time")
         info_keys = set()
         for build_cfg in self.build_cfg_list:
             assert isinstance(build_cfg, BuildConfiguration)
@@ -779,6 +778,12 @@ class TestReportBuilder:
         """Add test summary section."""
         for build_cfg in self.build_cfg_list:
             self.environment_dict[build_cfg.name] = build_cfg.get_env_dict()
+            if "jenkins.build_url" in self.environment_dict[build_cfg.name].keys():
+                build_url = self.environment_dict[build_cfg.name]["jenkins.build_url"]
+                exe_time = self.get_execution_time(build_url)
+                self.environment_dict[build_cfg.name]["Execution_time"] = exe_time
+            else:
+                self.environment_dict[build_cfg.name]["Execution_time"] = "N/A"
             new_summary = build_cfg.process_test_data(self.global_test_data)
             self.test_summary.add_summary(build_cfg.name, new_summary)
 
@@ -835,12 +840,29 @@ class TestReportBuilder:
         status = self.test_summary.status()
         return status
 
+    @staticmethod
+    def get_execution_time(jenkins_build_url):
+        """Get the execution time of the Jenkins job."""
+        url = f"{jenkins_build_url}/api/json"
+        print(f"url: {url}")
+        response = requests.get(url, verify=False).content.decode("utf-8")
+        result = re.search(r'"duration":(?P<time>\d+)', response)
+        if result:
+            milli_time = result.group("time")
+            time = str(datetime.timedelta(seconds=int(milli_time) // 1000))
+            duration = time.split(":")
+            if "day" in time:
+                execution_time = f"{duration[0]} hr"
+            elif duration[0] == "0":
+                execution_time = f"{duration[1]} min, {duration[2]} s"
+            else:
+                execution_time = f"{duration[0]} hr, {duration[1]} min"
+        else:
+            execution_time = "N/A"
+        return execution_time
+
     def collect_test_result(
-        self,
-        global_test_case,
-        test_name,
-        xfailed_element: dict,
-        merge_report=False
+        self, global_test_case, test_name, xfailed_element: dict, merge_report=False
     ):
         """Collect test result from the test data."""
         result = []
@@ -854,15 +876,12 @@ class TestReportBuilder:
                     test_case = None
 
                 test_case_view, xfailed_element = self._add_xfailedJira_ID(
-                    target_name,
-                    test_name,
-                    test_case,
-                    xfailed_element
+                    target_name, test_name, test_case, xfailed_element
                 )
                 if (
-                    target_name in original_name and
-                    test_case_view.result != "N/A" and
-                    merge_report
+                    target_name in original_name
+                    and test_case_view.result != "N/A"
+                    and merge_report
                 ):
                     final_test_case_view = test_case_view
                     break
@@ -882,20 +901,13 @@ class TestReportBuilder:
 
             xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
             result = self.collect_test_result(
-                global_test_case,
-                test_name,
-                xfailed_element,
-                merge_report
+                global_test_case, test_name, xfailed_element, merge_report
             )
             results.append(result)
         return results
 
     def generate_report(
-        self,
-        results_all,
-        status,
-        other_contents: dict,
-        merge_report=False
+        self, results_all, status, other_contents: dict, merge_report=False
     ):
         """!Generate the test report."""
         raise NotImplementedError
@@ -954,11 +966,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
     """!Test report HTML format builder."""
 
     def generate_report(
-        self,
-        results_all,
-        status,
-        other_contents: dict,
-        merge_report=False
+        self, results_all, status, other_contents: dict, merge_report=False
     ):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
@@ -1010,11 +1018,7 @@ class TestReportJSONBuilder(TestReportBuilder):
         self.content = None
 
     def generate_report(
-        self,
-        results_all,
-        status,
-        other_contents: dict,
-        merge_report=False
+        self, results_all, status, other_contents: dict, merge_report=False
     ):
         """!Generate report in JSON format."""
         print("Generating JSON")
