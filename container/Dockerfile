@@ -46,15 +46,21 @@ COPY contents/90-letp-user /etc/sudoers.d/90-letp-user
 # Install the CMUX daemon.
 COPY contents/gsmMuxd /usr/local/sbin/gsmMuxd
 
+# Install the initialization scripts.
+COPY --chown=letp:letp contents/letp /home/letp
+RUN (                                                                       \
+        if [ -f "/home/letp/tools/apt-requirements.txt" ]; then             \
+            cat /home/letp/tools/apt-requirements.txt | grep "#" -v         \
+                | xargs sudo apt-get install --yes || exit 0;               \
+        fi                                                                  \
+    )
+
 # Switch to the new non-root user.
 WORKDIR /home/letp
 USER letp
 
 # Install the Python dependencies for the local user.
 RUN pip3 install --user configparser
-
-# Install the initialization scripts.
-COPY --chown=letp:letp contents/letp /home/letp
 
 # Install the internal copy of the public LeTP source.
 ARG LETP_VERSION=master

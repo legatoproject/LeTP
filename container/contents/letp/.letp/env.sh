@@ -25,6 +25,7 @@ function _get_env_mounts() {
 export ARTIFACTS_DIR=~/artifacts
 export LETP_PATH=~/letp
 export LETP_TESTS=~/tests
+export LEGATO_ROOT=~/legato
 export LETP_USER_CONFIG_DIR=~/.letp
 export TOOLS_DIR=~/tools
 
