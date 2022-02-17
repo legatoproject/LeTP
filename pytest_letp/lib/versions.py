@@ -74,6 +74,10 @@ class TargetVersions:
 
         e.g. 20.04.0
         """
+        if target is not None:
+            if target.__class__.__module__.endswith("modules_altair"):
+                console = com.ComPortType.AT
+
         return self.get_version(
             cmd=self.legato_cmd,
             pattern=target.legato_pattern,
