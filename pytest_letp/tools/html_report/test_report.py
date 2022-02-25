@@ -619,6 +619,8 @@ class TestReportBuilder:
         self.test_summary = TestSummary()
         self.global_test_data = OrderedDict()
         self.results_headers = None
+        self.test_groups = {}
+        self.group_len = {}
 
     def set_unique_name(self, build_cfg):
         """!Set build configure name as the build configuration ID.
@@ -889,21 +891,35 @@ class TestReportBuilder:
             result.append(final_test_case_view)
         return result
 
+    def gen_groups(self):
+        """!Create groups of test cases."""
+        for test_name, result in self.global_test_data.items():
+            test_suite = test_name.split(".")
+            if len(test_suite) > 1:
+                test_suite = test_suite[-2]
+            if test_suite not in self.test_groups.keys():
+                self.test_groups[test_suite] = {test_name: result}
+            else:
+                self.test_groups[test_suite][test_name] = result
+
     def gen_results_table(self, filter_fn=None, merge_report=False):
         """!Get results table with filtering."""
         results = []
 
-        for test_name, global_test_case in self.global_test_data.items():
+        self.gen_groups()
 
-            if filter_fn:
-                if not filter_fn(global_test_case):
-                    continue
+        for group, test_cases in self.test_groups.items():
+            self.group_len[group] = len(test_cases)
+            for test_name, global_test_case in test_cases.items():
+                if filter_fn:
+                    if not filter_fn(global_test_case):
+                        continue
 
-            xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
-            result = self.collect_test_result(
-                global_test_case, test_name, xfailed_element, merge_report
-            )
-            results.append(result)
+                xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
+                result = self.collect_test_result(
+                    global_test_case, test_name, xfailed_element, merge_report
+                )
+                results.append(result)
         return results
 
     def generate_report(
@@ -989,6 +1005,8 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "environment_dict": self.environment_dict,
             "results_headers": self.results_headers,
             "results_failed": results_failed,
+            "test_groups": self.test_groups,
+            "group_len": self.group_len,
             "results_all": results_all,
             "test_data": self.global_test_data,
         }

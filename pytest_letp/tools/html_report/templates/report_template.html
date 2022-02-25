@@ -278,13 +278,66 @@
             </div>
         {%- endmacro %}
 
+        {% macro render_results_group(title, headers, results) -%}
+            <div style="margin-top: 50px">
+                <h4 style="text-align: center">{{ title }}</h4>
+                <table align="center">
+                    <thead>
+                        <tr>
+                            {% for entry in headers %}
+                                <th scope="col">{{ entry }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in test_groups %}
+                        <tr>
+                            <th scope="row"> <b>Group: {{ group }} ({{group_len[group]}} TCs)</b> </th>
+                        </tr>
+                            {% for test_case_views in results %}
+                                {% if test_case_views[0].test_name in test_groups[group] %}
+                                <tr>
+                                    <th scope="row">{{ test_case_views[0].test_name }}</th>
+                                    {% for test_case_view in test_case_views %}
+                                        <td class="{{ test_case_view.html_class }}">
+                                            {% if not basic %}
+                                                {% if test_case_view.target_name == "Jira ID" %}
+                                                    {% if test_case_view.result == "N/A"%}
+                                                        <a style="color:#007bff">N/A</a>
+                                                    {% else %}
+                                                        <a href="https://issues.sierrawireless.com/browse/{{ test_case_view.result }}">
+                                                            {{ test_case_view.result }}
+                                                        </a>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <a data-toggle="modal"
+                                                    href="#info-{{ test_case_view.id|clean_pytest_name }}"
+                                                    data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
+                                                        {{ test_case_view.result }}
+                                                    </a>
+                                                {%endif %}
+                                            {% else %}
+                                                {{ test_case_view.result }}
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {{ caller() }}
+            </div>
+        {%- endmacro %}
+
         <!-- Results (failed) -->
         {% call render_results('Test Results (failed)', results_headers,
             results_failed) %}
         {% endcall %}
 
         <!-- Results (all) -->
-        {% call render_results('Test Results (all)', results_headers,
+        {% call render_results_group('Test Results (all)', results_headers,
             results_all) %}
         {% endcall %}
         {% endif %}
