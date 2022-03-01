@@ -22,10 +22,20 @@ function _get_env_mounts() {
     cat "${LETP_USER_CONFIG_DIR}/mount.txt" 2>/dev/null
 }
 
+if [ -d "/ws/work" ]
+then
+    export LETP_PATH=/ws/work/letp
+    export LETP_TESTS=/ws/work/qa
+    export LEGATO_ROOT=/ws/work/legato
+    if [ -d /ws/work/modem ]; then
+        sudo chown -R letp:letp /ws/work/modem
+    fi
+else
+    export LETP_PATH=~/letp
+    export LETP_TESTS=~/tests
+    export LEGATO_ROOT=~/legato
+fi
 export ARTIFACTS_DIR=~/artifacts
-export LETP_PATH=~/letp
-export LETP_TESTS=~/tests
-export LEGATO_ROOT=~/legato
 export LETP_USER_CONFIG_DIR=~/.letp
 export TOOLS_DIR=~/tools
 

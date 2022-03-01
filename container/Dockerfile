@@ -36,12 +36,23 @@ RUN apt-get clean
 
 # Create a non-root user with sudo access for normal operations.
 RUN (                                                                       \
-        adduser --disabled-password --gecos "LeTP,,," letp               && \
+        adduser --disabled-password --gecos "" letp                      && \
         adduser letp dialout                                             && \
         adduser letp tty                                                 && \
+        adduser letp sudo                                                && \
         printf '\nsource ~/.letp/env.sh\n' >> /home/letp/.profile           \
     )
+# New added for disable sudo password
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
 COPY contents/90-letp-user /etc/sudoers.d/90-letp-user
+
+# Add host to host file for sudo
+RUN printf 'if ! grep -q "127.0.1.1 letp" /etc/hosts; then echo "127.0.1.1 letp" | sudo tee -a /etc/hosts; fi' >> /home/letp/.profile
+
+# Set default shell to /bin/bash
+RUN echo "dash dash/sh boolean false" | sudo debconf-set-selections
+RUN sudo DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
 
 # Install the CMUX daemon.
 COPY contents/gsmMuxd /usr/local/sbin/gsmMuxd
@@ -49,11 +60,13 @@ COPY contents/gsmMuxd /usr/local/sbin/gsmMuxd
 # Install the initialization scripts.
 COPY --chown=letp:letp contents/letp /home/letp
 RUN (                                                                       \
-        if [ -f "/home/letp/tools/apt-requirements.txt" ]; then             \
-            cat /home/letp/tools/apt-requirements.txt | grep "#" -v         \
+        if [ -f "/home/letp/container_tools/apt-requirements.txt" ]; then             \
+            cat /home/letp/container_tools/apt-requirements.txt | grep "#" -v         \
                 | xargs sudo apt-get install --yes || exit 0;               \
         fi                                                                  \
     )
+RUN sudo dpkg -i /home/letp/container_tools/deb/*.deb || exit 0
+RUN sudo apt-get install -f || exit 0
 
 # Switch to the new non-root user.
 WORKDIR /home/letp

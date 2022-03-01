@@ -25,6 +25,18 @@ function apt_install() {
     fi
 }
 
+# @brief    Install the dpkg packages listed in a deb folder.
+#
+# @param    $1  Mount name that the dependencies are being installed for.
+# @param    $2  Deb directory.  Directory containing deb files
+function deb_install() {
+    local name="${1}"
+    local deb_dir="${2}"
+
+    sudo dpkg -i $deb_dir/*.deb
+    sudo apt-get install -f
+}
+
 # @brief    Install the pip packages listed in a requirements file.
 #
 # @param    $1  Mount name that the dependencies are being installed for.
@@ -49,6 +61,9 @@ function prep_mount() {
     fi
     if [[ -r "${dest}/requirements.txt" ]]; then
         pip_install "$(basename "${dest}")" "${dest}/requirements.txt"
+    fi
+    if [[ -d "${dest}/deb" ]]; then
+        deb_install "$(basename "${dest}")" "${dest}/deb"
     fi
 
     echo "${dest}" >> ~/.letp/mount.txt
@@ -117,6 +132,7 @@ function main() {
     rm -vf ~/.letp/mount.txt
 
     # Prepare each primary directory.
+    prep_mount ~/container_tools
     prep_mount ~/letp
     prep_mount ~/tests
     prep_mount ~/tools

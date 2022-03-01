@@ -195,7 +195,7 @@ def _build_image(config: dict):
             "file.".format(dockerfile, _CONFIG_FILE)
         )
 
-    cmd = ["docker", "build", "--tag", config["image"]]
+    cmd = ["docker", "build", "--no-cache", "--tag", config["image"]]
     cmd += _generate_arg_mappings(config["build"]["args"])
     cmd.append(".")
 
@@ -321,21 +321,22 @@ def _execute_in_container(config: dict, command=None, fail_fast=True):
     :param fail_fast: Exit immediately, defaults to True
     :type fail_fast: bool, optional
     """
-    cmd = [
-        "docker",
-        "exec",
-        "--interactive",
-        "--tty",
-        config["container"],
-        "bash",
-        "--login",
-    ]
+    cmd = ["docker", "exec", "--interactive"]
+    env_vars = config.get("environment_variables", [])
+    for env_var in env_vars:
+        val = os.getenv(env_var, None)
+        if val:
+            logging.debug("Adding environment variable: %s=%s", env_var, val)
+            cmd += ["-e", env_var]
+    cmd += [config["container"], "bash", "--login"]
     if command:
         if "run" in command:
             letp_args = config.get("letp_args", [])
             for arg in letp_args:
                 command[2:2] = ["--config", arg]
         cmd += ["-c", " ".join([shlex.quote(s) for s in command])]
+    else:
+        cmd.insert(3, "--tty")
 
     result = _exec_cmd(cmd)
     if result.returncode != 0:
