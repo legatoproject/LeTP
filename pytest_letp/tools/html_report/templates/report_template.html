@@ -127,8 +127,8 @@
                                     {% set summary_class = "failed" %}
                                 {% elif entry == "Errors" and row[entry] != 0 %}
                                     {% set summary_class = "error" %}
-
                                 {% endif %}
+
                                 {% if entry == "Config" %}
                                     <th>{{ row[entry] }}</th>
                                 {% elif entry == "Status" %}
@@ -148,6 +148,58 @@
                                 {% endif %}
                             {% endfor %}
                         </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Groups -->
+        <div style="margin-top: 50px">
+            <h4 style="text-align: center">Groups</h4>
+            <table align="center">
+                <thead>
+                    <tr>
+                        <th scope="col" id=Groups>Groups</th>
+                        {% for row in results_headers %}
+                        {% if row != "Testcases" and row != "Jira ID" %}
+                            <th>{{ row }}</th>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in test_groups %}
+                        {% if group != "Reinit" and group_len[group][1] != 0 %}
+                        <tr>
+                            <th scope="row"> <a href="#{{group}}">
+                                Group {{group_len[group][0]}} </a>: <b>{{ group }} ({{group_len[group][1]}} TCs)</b>
+                            </th>
+                            {% for row in results_headers %}
+                            {% if row != "Testcases" and row != "Jira ID" %}
+                                {% if group_summary[group][row]["passed"] == 0 and
+                                group_summary[group][row]["failed"] == 0 and
+                                group_summary[group][row]["xfailed"] == 0 and
+                                group_summary[group][row]["error"] == 0 %}
+                                    <th>N/A</th>
+                                {% else %}
+                                    <th>
+                                        {% for status in group_summary[group][row] %}
+                                            {% if status == "passed" and group_summary[group][row][status] != 0 %}
+                                            <span class="passed">{{ group_summary[group][row][status] }} Passed</span>
+                                            {% elif status == "failed" and group_summary[group][row][status] != 0 %}
+                                            <span class="failed">{{ group_summary[group][row][status] }} Failed</span>
+                                            {% elif status == "xfailed" and group_summary[group][row][status] != 0 %}
+                                            <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
+                                            {% elif status == "error" and group_summary[group][row][status] != 0 %}
+                                            <span class="error">{{ group_summary[group][row][status] }} Errors</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </th>
+                                {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -295,39 +347,41 @@
                     </thead>
                     <tbody>
                         {% for group in test_groups %}
-                        <tr>
-                            <th scope="row"> <b>Group: {{ group }} ({{group_len[group]}} TCs)</b> </th>
-                        </tr>
-                            {% for test_case_views in results %}
-                                {% if test_case_views[0].test_name in test_groups[group] %}
-                                <tr>
-                                    <th scope="row">{{ test_case_views[0].test_name }}</th>
-                                    {% for test_case_view in test_case_views %}
-                                        <td class="{{ test_case_view.html_class }}">
-                                            {% if not basic %}
-                                                {% if test_case_view.target_name == "Jira ID" %}
-                                                    {% if test_case_view.result == "N/A"%}
-                                                        <a style="color:#007bff">N/A</a>
+                            {% if group_len[group][1] != 0 %}
+                            <tr>
+                                <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> {{group_len[group][0]}}: {{ group }} ({{group_len[group][1]}} TCs)</b> </th>
+                            </tr>
+                                {% for test_case_views in results %}
+                                    {% if test_case_views[0].test_name in test_groups[group] %}
+                                    <tr>
+                                        <th scope="row">{{ test_case_views[0].test_name }}</th>
+                                        {% for test_case_view in test_case_views %}
+                                            <td class="{{ test_case_view.html_class }}">
+                                                {% if not basic %}
+                                                    {% if test_case_view.target_name == "Jira ID" %}
+                                                        {% if test_case_view.result == "N/A"%}
+                                                            <a style="color:#007bff">N/A</a>
+                                                        {% else %}
+                                                            <a href="https://issues.sierrawireless.com/browse/{{ test_case_view.result }}">
+                                                                {{ test_case_view.result }}
+                                                            </a>
+                                                        {% endif %}
                                                     {% else %}
-                                                        <a href="https://issues.sierrawireless.com/browse/{{ test_case_view.result }}">
+                                                        <a data-toggle="modal"
+                                                        href="#info-{{ test_case_view.id|clean_pytest_name }}"
+                                                        data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
                                                             {{ test_case_view.result }}
                                                         </a>
                                                     {% endif %}
                                                 {% else %}
-                                                    <a data-toggle="modal"
-                                                    href="#info-{{ test_case_view.id|clean_pytest_name }}"
-                                                    data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
-                                                        {{ test_case_view.result }}
-                                                    </a>
-                                                {%endif %}
-                                            {% else %}
-                                                {{ test_case_view.result }}
-                                            {% endif %}
-                                        </td>
-                                    {% endfor %}
-                                </tr>
-                                {% endif %}
-                            {% endfor %}
+                                                    {{ test_case_view.result }}
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>

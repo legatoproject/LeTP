@@ -625,6 +625,7 @@ class TestReportBuilder:
         self.results_headers = None
         self.test_groups = {}
         self.group_len = {}
+        self.group_summary = {}
 
     def set_unique_name(self, build_cfg):
         """!Set build configure name as the build configuration ID.
@@ -895,25 +896,110 @@ class TestReportBuilder:
             result.append(final_test_case_view)
         return result
 
+    def group_condition(self, test_name, result, colected_tcs):
+        """Create groups of test cases with conditions."""
+        group_condition = {
+            "Reinit": ("reinit_test",),
+            "TCP": ("TcpTest",),
+            "UDP": ("UdpTest",),
+            "FTP": ("FTP",),
+            "HTTP": ("HTTP",),
+            "PROTOCOM": ("PROTOCOM",),
+            "AVMS": ("AVMS", "FOTA", "SOTA", "at_av", "AVDATA", "le_av"),
+            "SANDBOX": ("sandbox", "Cgroups"),
+            "DATAHUB": ("dataHub",),
+            "SECSTORE": ("Secstore", "Securestorage"),
+            "ATSERVER": ("AtCommandsServer", "atserver"),
+            "App": ("le_app",),
+            "GNSS": ("gnss", "position"),
+        }
+        is_colected = False
+
+        for group, conditions in group_condition.items():
+            for condition in conditions:
+                if condition.lower() in test_name.lower():
+                    if group not in self.test_groups.keys():
+                        self.test_groups[group] = {test_name: result}
+                    else:
+                        self.test_groups[group][test_name] = result
+                    colected_tcs.append(test_name)
+                    is_colected = True
+                    break
+            if is_colected:
+                break
+        return colected_tcs
+
+    def temp_group(self, colected_tcs):
+        """Create temporary group of test cases by filename."""
+        temp_group = {}
+
+        for test_name, result in self.global_test_data.items():
+            if test_name not in colected_tcs:
+                group = test_name.split(".")
+                if len(group) > 1:
+                    group = group[-2]
+                    group = group.replace("test_", "")
+                    group = group.replace("le_", "")
+                    group = group.title()
+
+                if group not in temp_group.keys():
+                    temp_group[group] = {test_name: result}
+                else:
+                    temp_group[group][test_name] = result
+        return temp_group
+
     def gen_groups(self):
         """!Create groups of test cases."""
+        colected_tcs = []
+        min_len = 2
+
         for test_name, result in self.global_test_data.items():
-            test_suite = test_name.split(".")
-            if len(test_suite) > 1:
-                test_suite = test_suite[-2]
-            if test_suite not in self.test_groups.keys():
-                self.test_groups[test_suite] = {test_name: result}
-            else:
-                self.test_groups[test_suite][test_name] = result
+            colected_tcs = self.group_condition(test_name, result, colected_tcs)
+
+        temp_group = self.temp_group(colected_tcs)
+
+        for group, test_cases in temp_group.items():
+            if len(test_cases) >= min_len:
+                self.test_groups[group] = test_cases
+
+        self.test_groups["Other"] = {}
+        for test_cases in temp_group.values():
+            if len(test_cases) < min_len:
+                self.test_groups["Other"].update(test_cases)
+
+    def gen_group_table(self, group_status, group):
+        """Create status tables of groups."""
+        status = ["passed", "failed", "xfailed", "error"]
+        group_status[group] = {}
+        for sys_name in self.results_headers:
+            if sys_name not in ("Testcases", "Jira ID"):
+                group_status[group][sys_name] = {s: 0 for s in status}
+        return group_status
+
+    def summarize_group(self, group, result, group_status):
+        """Summarize groups by status."""
+        for sys_name, status in group_status[group].items():
+            for test_case_view in result:
+                pattern = sys_name + "$"
+                if re.search(pattern, test_case_view.id):
+                    if test_case_view.result in status.keys():
+                        status[test_case_view.result] += 1
+                    elif test_case_view.result == "xpassed":
+                        status["passed"] += 1
+        self.group_summary = group_status
 
     def gen_results_table(self, filter_fn=None, merge_report=False):
         """!Get results table with filtering."""
         results = []
+        index = 0
+        group_status = {}
 
         self.gen_groups()
 
         for group, test_cases in self.test_groups.items():
-            self.group_len[group] = len(test_cases)
+            self.group_len[group] = (index, len(test_cases))
+            index += 1
+            group_status = self.gen_group_table(group_status, group)
             for test_name, global_test_case in test_cases.items():
                 if filter_fn:
                     if not filter_fn(global_test_case):
@@ -924,6 +1010,8 @@ class TestReportBuilder:
                     global_test_case, test_name, xfailed_element, merge_report
                 )
                 results.append(result)
+                if not filter_fn:
+                    self.summarize_group(group, result, group_status)
         return results
 
     def generate_report(
@@ -1018,6 +1106,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "results_failed": results_failed,
             "test_groups": self.test_groups,
             "group_len": self.group_len,
+            "group_summary": self.group_summary,
             "results_all": results_all,
             "test_data": self.global_test_data,
         }
