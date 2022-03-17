@@ -933,6 +933,7 @@ class TestReportBuilder:
 
         e.g.Testcases | HL7800 | WP76.
         """
+        fixed_order = ["wp76xx", "wp76xx-onlycap", "wp77xx", "hl7802", "rc76"]
         results_headers = ["Testcases"]
         if merge_report:
             build_cfg_names = []
@@ -945,6 +946,12 @@ class TestReportBuilder:
                     build_cfg_names.append(sys_type)
         else:
             build_cfg_names = [build_cfg.name for build_cfg in self.build_cfg_list]
+
+        for name in fixed_order:
+            if name in build_cfg_names:
+                results_headers.append(name)
+                build_cfg_names.remove(name)
+
         build_cfg_names.append("Jira ID")
         results_headers.extend(build_cfg_names)
 
