@@ -54,31 +54,10 @@ class TestSummary:
         """Add summary for all tests.."""
         self.sub_summary[name] = summary
 
-    def total_collected(self):
-        """Total collected cases."""
-        if self.cfg == "global":
-            return self.collected_tests_num + sum(
-                [s.total_collected() for s in self.sub_summary.values()]
-            )
-        else:
-            if self.collected_tests_num != 0:
-                return self.collected_tests_num
-            return self.total_tcs()
-
-    def total_tcs(self):
-        """Get total test cases."""
-        return self.stat_tcs + sum([s.total_tcs() for s in self.sub_summary.values()])
-
     def total_passed(self):
         """Get total passed test cases."""
         return self.stat_passed + sum(
             [s.total_passed() for s in self.sub_summary.values()]
-        )
-
-    def total_skipped(self):
-        """Get total skipped test cases."""
-        return self.stat_skipped + sum(
-            [s.total_skipped() for s in self.sub_summary.values()]
         )
 
     def total_xfailed(self):
@@ -99,9 +78,36 @@ class TestSummary:
             [s.total_errors() for s in self.sub_summary.values()]
         )
 
+    def total_tcs(self):
+        """Get total ran test cases."""
+        return (
+            self.total_passed()
+            + self.total_failures()
+            + self.total_xfailed()
+            + self.total_errors()
+        )
+
+    def total_collected(self):
+        """Total collected cases."""
+        if self.cfg == "global":
+            return self.collected_tests_num + sum(
+                [s.total_collected() for s in self.sub_summary.values()]
+            )
+        else:
+            if self.collected_tests_num != 0:
+                return self.collected_tests_num
+            return self.total_tcs()
+
+    def total_skipped(self):
+        """Get total skipped test cases."""
+        return (
+            self.total_collected()
+            - self.total_tcs()
+        )
+
     def stats(self):
         """Get Statistics of tests results."""
-        divider = float(self.total_tcs()) / 100
+        divider = float(self.total_collected()) / 100
         if divider == 0:
             divider = 1
 
@@ -115,10 +121,6 @@ class TestSummary:
                 "count": self.total_passed(),
                 "percentage": self.total_passed() / divider,
             },
-            "Skipped": {
-                "count": self.total_skipped(),
-                "percentage": self.total_skipped() / divider,
-            },
             "xFailed": {
                 "count": self.total_xfailed(),
                 "percentage": self.total_xfailed() / divider,
@@ -130,6 +132,10 @@ class TestSummary:
             "Errors": {
                 "count": self.total_errors(),
                 "percentage": self.total_errors() / divider,
+            },
+            "Skipped": {
+                "count": self.total_skipped(),
+                "percentage": self.total_skipped() / divider,
             },
         }
 
@@ -549,7 +555,6 @@ class BuildConfiguration:
     def _iter_pytest_report(self, global_test_data, summary):
         """Iterate the test report and collect summary."""
         tests = self.json_data.get("tests", [])
-        res = []
         verify_duplicate_tcs = {}
         for elmt in tests:
             test_name = PytestResult(elmt).get_test_name()
@@ -567,12 +572,11 @@ class BuildConfiguration:
             if test_name not in verify_duplicate_tcs:
                 test_result.add_pytest_json_result(pytest_result)
             else:
-                res = self._update_result_of_duplicate_tcs(pytest_result, test_result)
+                self._update_result_of_duplicate_tcs(pytest_result, test_result)
 
             verify_duplicate_tcs[test_name] = pytest_result.get("outcome")
             self._add_pytest_test_logs(global_test_data, pytest_result)
 
-        summary.collected_tests_num -= len(res)
         self._convert_result_to_summary(verify_duplicate_tcs, summary)
 
     def _add_pytest_test_logs(self, global_test_data, pytest_result):
@@ -588,7 +592,7 @@ class BuildConfiguration:
 
     def process_test_data(self, global_test_data):
         """!Build test summary."""
-        collected_tests_num = self._get_json("test_collected")
+        collected_tests_num = self._get_json("test_collected_total")
         if collected_tests_num is None:
             collected_tests_num = 0
 

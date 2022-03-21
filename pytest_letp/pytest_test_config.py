@@ -647,6 +647,16 @@ class TestConfig:
             tests_array.append({"name": test})
         json_content = {"letp": {"tests": [{"main_config": values}] + tests_array}}
         json_content["test_collected"] = len(tests_array)
+        if "L_ReinitTest" in str(tests_array):
+            QA_ROOT = os.getenv("QA_ROOT")
+            TEST_CHOICE = os.getenv("TEST_CHOICE", None)
+            TC_json_path = f"{QA_ROOT}/testCampaign/{TEST_CHOICE}.json"
+            try:
+                with open(TC_json_path, encoding="utf8") as f:
+                    j = json.dumps(json.load(f))
+                json_content["test_collected_total"] = j.count("name") + 1
+            except:
+                json_content["test_collected_total"] = 0
         # Do not suppress this print
         print(pprint.pformat(json_content))
         self.test_base_reports = json_content

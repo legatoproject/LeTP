@@ -135,6 +135,10 @@
                                     <td class="status {{ row[entry] | lower }}">
                                         {{ row[entry] }}
                                     </td>
+                                {% elif entry == "TestcasesRun" %}
+                                    <td style="background-color: rgb(138, 225, 236)">{{ row[entry]["count"] }}
+                                        <small>({{ '%.2f' % row[entry]["percentage"]|float }} %)</small>
+                                    </td>
                                 {% else %}
                                     <td class="{{ summary_class }}">{{ row[entry]["count"] }}
                                         {% if entry != "Testcases" %}
