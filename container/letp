@@ -179,7 +179,7 @@ def _generate_arg_mappings(args: dict) -> list:
     return mappings
 
 
-def _build_image(config: dict):
+def _build_image(config: dict, no_cache=False, tag=None):
     """Build the Docker image using the local Dockerfile.
 
     :param config: Current configuration.
@@ -195,7 +195,13 @@ def _build_image(config: dict):
             "file.".format(dockerfile, _CONFIG_FILE)
         )
 
-    cmd = ["docker", "build", "--no-cache", "--tag", config["image"]]
+    cmd = ["docker", "build"]
+    if no_cache:
+        cmd.append("--no-cache")
+    if tag is not None:
+        cmd += ["--tag", tag]
+    else:
+        cmd += ["--tag", config["image"]]
     cmd += _generate_arg_mappings(config["build"]["args"])
     cmd.append(".")
 
@@ -451,6 +457,14 @@ def main():
     parser.add_argument(
         "-c", "--config", type=str, help="override default configuration file location"
     )
+    parser.add_argument(
+        "--no_cache",
+        action="store_true",
+        help="disables cache for docker build command",
+    )
+    parser.add_argument(
+        "-t", "--tag", type=str, help="tag docker container during build"
+    )
 
     # Container commands
     subparsers = parser.add_subparsers(title="sub-commands", dest="subcommand")
@@ -485,7 +499,7 @@ def main():
     if args.subcommand == "update":
         _update_image(config)
     elif args.subcommand == "build":
-        _build_image(config)
+        _build_image(config, args.no_cache, args.tag)
     elif args.subcommand == "tidy":
         _tidy(config)
     elif args.subcommand in ("login", "run", "version"):
