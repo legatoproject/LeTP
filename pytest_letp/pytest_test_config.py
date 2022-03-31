@@ -651,12 +651,17 @@ class TestConfig:
             QA_ROOT = os.getenv("QA_ROOT")
             TEST_CHOICE = os.getenv("TEST_CHOICE", None)
             TC_json_path = f"{QA_ROOT}/testCampaign/{TEST_CHOICE}.json"
-            try:
-                with open(TC_json_path, encoding="utf8") as f:
-                    j = json.dumps(json.load(f))
-                json_content["test_collected_total"] = j.count("name") + 1
-            except:
-                json_content["test_collected_total"] = 0
+            if TEST_CHOICE:
+                try:
+                    cmd = f"letp run {TC_json_path} --collect-only"
+                    rsp = os.popen(cmd).read()
+                    pattern = re.search(r"test_collected': (?P<number>\d+)", rsp)
+                    number_TC = int(pattern.group("number"))
+                    json_content["test_collected_total"] = number_TC + 1
+                except:
+                    swilog.info("Cannot open JSON file with the TEST_CHOICE")
+            else:
+                json_content["test_collected_total"] = len(tests_array)
         # Do not suppress this print
         print(pprint.pformat(json_content))
         self.test_base_reports = json_content
