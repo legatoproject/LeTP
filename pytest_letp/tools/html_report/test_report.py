@@ -100,10 +100,7 @@ class TestSummary:
 
     def total_skipped(self):
         """Get total skipped test cases."""
-        return (
-            self.total_collected()
-            - self.total_tcs()
-        )
+        return self.total_collected() - self.total_tcs()
 
     def stats(self):
         """Get Statistics of tests results."""
@@ -868,6 +865,18 @@ class TestReportBuilder:
             execution_time = "N/A"
         return execution_time
 
+    @staticmethod
+    def get_test_case(target_name, original_name, global_test_case, merge_report):
+        """Get test case if it is run for target."""
+        test_case = None
+        if merge_report and original_name != "wp76xx-onlycap":
+            if target_name in original_name:
+                test_case = global_test_case.results[original_name]
+        elif not merge_report or original_name == "wp76xx-onlycap":
+            if target_name == original_name:
+                test_case = global_test_case.results[original_name]
+        return test_case
+
     def collect_test_result(
         self, global_test_case, test_name, xfailed_element: dict, merge_report=False
     ):
@@ -877,22 +886,16 @@ class TestReportBuilder:
 
         for target_name in all_targets:
             for original_name in global_test_case.results.keys():
-                if target_name in original_name:
-                    test_case = global_test_case.results[original_name]
-                else:
-                    test_case = None
+                test_case = self.get_test_case(
+                    target_name, original_name, global_test_case, merge_report
+                )
 
                 test_case_view, xfailed_element = self._add_xfailedJira_ID(
                     target_name, test_name, test_case, xfailed_element
                 )
-                if (
-                    target_name in original_name
-                    and test_case_view.result != "N/A"
-                    and merge_report
-                ):
-                    final_test_case_view = test_case_view
-                    break
                 final_test_case_view = test_case_view
+                if test_case_view.result != "N/A":
+                    break
             result.append(final_test_case_view)
         return result
 
