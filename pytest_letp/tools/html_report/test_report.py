@@ -54,6 +54,10 @@ class TestSummary:
         """Add summary for all tests.."""
         self.sub_summary[name] = summary
 
+    def total_tcs(self):
+        """Get total test cases."""
+        return self.stat_tcs + sum([s.total_tcs() for s in self.sub_summary.values()])
+
     def total_passed(self):
         """Get total passed test cases."""
         return self.stat_passed + sum(
@@ -78,7 +82,7 @@ class TestSummary:
             [s.total_errors() for s in self.sub_summary.values()]
         )
 
-    def total_tcs(self):
+    def total_tcs_run(self):
         """Get total ran test cases."""
         return (
             self.total_passed()
@@ -88,19 +92,19 @@ class TestSummary:
         )
 
     def total_collected(self):
-        """Total collected cases."""
+        """Total collected cases in JSON input."""
         if self.cfg == "global":
             return self.collected_tests_num + sum(
                 [s.total_collected() for s in self.sub_summary.values()]
             )
         else:
             if self.collected_tests_num != 0:
-                return self.collected_tests_num
+                return self.collected_tests_num + 1
             return self.total_tcs()
 
     def total_skipped(self):
         """Get total skipped test cases."""
-        return self.total_collected() - self.total_tcs()
+        return self.total_collected() - self.total_tcs_run()
 
     def stats(self):
         """Get Statistics of tests results."""
@@ -111,8 +115,8 @@ class TestSummary:
         return {
             "CollectedTests": {"count": self.total_collected(), "percentage": 100},
             "TestcasesRun": {
-                "count": self.total_tcs(),
-                "percentage": self.total_tcs() / divider,
+                "count": self.total_tcs_run(),
+                "percentage": self.total_tcs_run() / divider,
             },
             "Passed": {
                 "count": self.total_passed(),
@@ -195,7 +199,7 @@ class TestSummary:
                         final_summary[key]["percentage"] / 2
                     )
                 else:
-                    divider = float(final_summary["TestcasesRun"]["count"]) / 100
+                    divider = float(final_summary["CollectedTests"]["count"]) / 100
                     if divider == 0:
                         divider = 1
                     final_summary[key]["percentage"] = float(

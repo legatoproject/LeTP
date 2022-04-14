@@ -657,11 +657,9 @@ class TestConfig:
                     rsp = os.popen(cmd).read()
                     pattern = re.search(r"test_collected': (?P<number>\d+)", rsp)
                     number_TC = int(pattern.group("number"))
-                    json_content["test_collected_total"] = number_TC + 1
+                    json_content["test_collected_total"] = number_TC
                 except:
                     swilog.info("Cannot open JSON file with the TEST_CHOICE")
-            else:
-                json_content["test_collected_total"] = len(tests_array)
         # Do not suppress this print
         print(pprint.pformat(json_content))
         self.test_base_reports = json_content
