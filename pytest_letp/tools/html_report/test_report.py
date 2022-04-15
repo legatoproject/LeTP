@@ -145,7 +145,11 @@ class TestSummary:
         if self.__status:
             return self.__status
 
-        if self.total_errors() != 0 or self.total_failures() != 0:
+        if (
+            self.total_errors() != 0
+            or self.total_failures() != 0
+            or self.total_skipped() != 0
+        ):
             return "FAILED"
 
         if self.total_collected() and not self.total_passed():
