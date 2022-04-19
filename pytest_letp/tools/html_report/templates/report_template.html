@@ -48,7 +48,7 @@
         font-size: 15px;
         white-space: nowrap;
         padding: .75rem;
-        vertical-align: top;
+        vertical-align: center;
         border-top: 1px solid #dee2e6;
     }
 
@@ -159,6 +159,7 @@
             <table align="center">
                 <thead>
                     <tr>
+                        <th>Platforms</th>
                         <th scope="col" id=Groups>Groups</th>
                         {% for row in results_headers %}
                         {% if row != "Testcases" and row != "Jira ID" %}
@@ -168,37 +169,42 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for group in test_groups %}
-                        {% if group != "Reinit" and group_len[group][1] != 0 %}
-                        <tr>
-                            <th scope="row"> <a href="#{{group}}">
-                                Group {{group_len[group][0]}} </a>: <b>{{ group }} ({{group_len[group][1]}} TCs)</b>
-                            </th>
-                            {% for row in results_headers %}
-                            {% if row != "Testcases" and row != "Jira ID" %}
-                                {% if group_summary[group][row]["passed"] == 0 and
-                                group_summary[group][row]["failed"] == 0 and
-                                group_summary[group][row]["xfailed"] == 0 and
-                                group_summary[group][row]["error"] == 0 %}
-                                    <th>N/A</th>
-                                {% else %}
-                                    <th>
-                                        {% for status in group_summary[group][row] %}
-                                            {% if status == "passed" and group_summary[group][row][status] != 0 %}
-                                            <span class="passed">{{ group_summary[group][row][status] }} Passed</span>
-                                            {% elif status == "failed" and group_summary[group][row][status] != 0 %}
-                                            <span class="failed">{{ group_summary[group][row][status] }} Failed</span>
-                                            {% elif status == "xfailed" and group_summary[group][row][status] != 0 %}
-                                            <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
-                                            {% elif status == "error" and group_summary[group][row][status] != 0 %}
-                                            <span class="error">{{ group_summary[group][row][status] }} Errors</span>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </th>
-                                {% endif %}
-                            {% endif %}
+                    {% set i = namespace(value=1) %}
+                    {% for platform in platform_info %}
+                        {% if platform != "Reinit" and platform_info[platform][1] != 0 %}
+                            <td rowspan={{platform_info[platform][1] + 1}}><big><b>{{ platform }}</b></big></td>
+                            {% for group in platform_info[platform][0] %}
+                            <tr>
+                                <th scope="row"> <a href="#{{group}}">
+                                    Group {{ i.value }} </a>: <b>{{ group }} ({{platform_info[platform][0][group]}} TCs)</b>
+                                    {% set i.value = i.value + 1 %}
+                                </th>
+                                {% for row in results_headers %}
+                                    {% if row != "Testcases" and row != "Jira ID" %}
+                                        {% if group_summary[group][row]["passed"] == 0 and
+                                        group_summary[group][row]["failed"] == 0 and
+                                        group_summary[group][row]["xfailed"] == 0 and
+                                        group_summary[group][row]["error"] == 0 %}
+                                            <th>N/A</th>
+                                        {% else %}
+                                            <th>
+                                                {% for status in group_summary[group][row] %}
+                                                    {% if status == "passed" and group_summary[group][row][status] != 0 %}
+                                                    <span class="passed">{{ group_summary[group][row][status] }} Passed</span>
+                                                    {% elif status == "failed" and group_summary[group][row][status] != 0 %}
+                                                    <span class="failed">{{ group_summary[group][row][status] }} Failed</span>
+                                                    {% elif status == "xfailed" and group_summary[group][row][status] != 0 %}
+                                                    <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
+                                                    {% elif status == "error" and group_summary[group][row][status] != 0 %}
+                                                    <span class="error">{{ group_summary[group][row][status] }} Errors</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </th>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
                             {% endfor %}
-                        </tr>
                         {% endif %}
                     {% endfor %}
                 </tbody>
@@ -346,10 +352,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for group in test_groups %}
-                            {% if group_len[group][1] != 0 %}
+                        {% set i = namespace(value=0) %}
+                        {% for platform in platform_info %}
+                        {% for group in platform_info[platform][0] %}
+                            {% if platform_info[platform][0][group] != 0 %}
                             <tr>
-                                <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> {{group_len[group][0]}}: {{ group }} ({{group_len[group][1]}} TCs)</b> </th>
+                                <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> {{ i.value }}: {{ group }} ({{platform_info[platform][0][group]}} TCs)</b> </th>
+                                {% set i.value = i.value + 1 %}
                             </tr>
                                 {% for test_case_views in results %}
                                     {% if test_case_views[0].test_name in test_groups[group] %}
@@ -382,6 +391,7 @@
                                     {% endif %}
                                 {% endfor %}
                             {% endif %}
+                        {% endfor %}
                         {% endfor %}
                     </tbody>
                 </table>

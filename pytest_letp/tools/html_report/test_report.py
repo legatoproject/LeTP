@@ -629,7 +629,7 @@ class TestReportBuilder:
         self.global_test_data = OrderedDict()
         self.results_headers = None
         self.test_groups = {}
-        self.group_len = {}
+        self.platform_info = {}
         self.group_summary = {}
 
     def set_unique_name(self, build_cfg):
@@ -929,7 +929,7 @@ class TestReportBuilder:
         for group, conditions in group_condition.items():
             for condition in conditions:
                 if condition.lower() in test_name.lower():
-                    if group not in self.test_groups.keys():
+                    if group not in self.test_groups:
                         self.test_groups[group] = {test_name: result}
                     else:
                         self.test_groups[group][test_name] = result
@@ -953,7 +953,7 @@ class TestReportBuilder:
                     group = group.replace("le_", "")
                     group = group.title()
 
-                if group not in temp_group.keys():
+                if group not in temp_group:
                     temp_group[group] = {test_name: result}
                 else:
                     temp_group[group][test_name] = result
@@ -985,7 +985,46 @@ class TestReportBuilder:
         for sys_name in self.results_headers:
             if sys_name not in ("Testcases", "Jira ID"):
                 group_status[group][sys_name] = {s: 0 for s in status}
+        group_status[group]["on_sys"] = []
         return group_status
+
+    def align_group(self, platforms, group, status):
+        """Align groups together by platform."""
+        if group == "Reinit":
+            platforms["Reinit"][group] = self.test_groups[group]
+            return platforms
+        if len(status["on_sys"]) == 2 and ("hl7812" and "rc76") in status["on_sys"]:
+            platforms["Common_RTOS"][group] = self.test_groups[group]
+        elif status["on_sys"] == ["hl7812"]:
+            platforms["FreeRTOS"][group] = self.test_groups[group]
+        elif status["on_sys"] == ["rc76"]:
+            platforms["ThreadX"][group] = self.test_groups[group]
+        elif ("hl7812" and "rc76") not in status["on_sys"]:
+            platforms["Linux"][group] = self.test_groups[group]
+        else:
+            platforms["Common_all_platforms"][group] = self.test_groups[group]
+        return platforms
+
+    def gen_result_platforms(self):
+        """Get platform information."""
+        platforms = {
+            "Reinit": {},
+            "Common_RTOS": {},
+            "FreeRTOS": {},
+            "ThreadX": {},
+            "Linux": {},
+            "Common_all_platforms": {},
+        }
+        temp = {}
+        for group, status in self.group_summary.items():
+            platforms = self.align_group(platforms, group, status)
+
+        for platform, groups in platforms.items():
+            self.platform_info[platform] = [{}, len(groups)]
+            for group, test_cases in groups.items():
+                self.platform_info[platform][0][group] = len(test_cases)
+            temp.update(groups)
+        self.test_groups = temp
 
     def summarize_group(self, group, result, group_status):
         """Summarize groups by status."""
@@ -997,19 +1036,21 @@ class TestReportBuilder:
                         status[test_case_view.result] += 1
                     elif test_case_view.result == "xpassed":
                         status["passed"] += 1
+                    if (
+                        test_case_view.result != "N/A"
+                        and sys_name not in group_status[group]["on_sys"]
+                    ):
+                        group_status[group]["on_sys"].append(sys_name)
         self.group_summary = group_status
 
     def gen_results_table(self, filter_fn=None, merge_report=False):
         """!Get results table with filtering."""
         results = []
-        index = 0
         group_status = {}
 
         self.gen_groups()
 
         for group, test_cases in self.test_groups.items():
-            self.group_len[group] = (index, len(test_cases))
-            index += 1
             group_status = self.gen_group_table(group_status, group)
             for test_name, global_test_case in test_cases.items():
                 if filter_fn:
@@ -1023,6 +1064,8 @@ class TestReportBuilder:
                 results.append(result)
                 if not filter_fn:
                     self.summarize_group(group, result, group_status)
+        if not filter_fn:
+            self.gen_result_platforms()
         return results
 
     def generate_report(
@@ -1036,7 +1079,7 @@ class TestReportBuilder:
 
         e.g.Testcases | HL7800 | WP76.
         """
-        fixed_order = ["wp76xx", "wp76xx-onlycap", "wp77xx", "hl7802", "rc76"]
+        fixed_order = ["wp76xx", "wp76xx-onlycap", "wp77xx", "hl7812", "rc76"]
         results_headers = ["Testcases"]
         if merge_report:
             build_cfg_names = []
@@ -1116,7 +1159,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "results_headers": self.results_headers,
             "results_failed": results_failed,
             "test_groups": self.test_groups,
-            "group_len": self.group_len,
+            "platform_info": self.platform_info,
             "group_summary": self.group_summary,
             "results_all": results_all,
             "test_data": self.global_test_data,
