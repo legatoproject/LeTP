@@ -1,0 +1,87 @@
+<testcase>
+    <release />
+    <cycle />
+    <suite />
+    <test_name />
+    <PID />
+    <status />
+    <issueID />
+    <Comment Type="field">
+        <name>Comment</name>
+        <id />
+        <value_id />
+        <value />
+    </Comment>
+    <Assigned_To Type="field">
+        <name>Assigned To</name>
+        <id />
+        <value_id />
+        <value />
+    </Assigned_To>
+    <Access_Technology Type="field">
+        <name>Access Technology</name>
+        <id />
+        <value_id />
+        <value />
+    </Access_Technology>
+    <SIM Type="field">
+        <name>SIM</name>
+        <id />
+        <value_id />
+        <value />
+    </SIM>
+    <LXSWI_Version Type="field">
+        <name>LXSWI Version</name>
+        <id />
+        <value_id />
+        <value />
+    </LXSWI_Version>
+    <FW_Version_HL78 Type="field">
+        <name>FW Version (HL78)</name>
+        <id />
+        <value_id />
+        <value />
+    </FW_Version_HL78>
+    <FW_Version_RC76 Type="field">
+        <name>FW Version (RC76)</name>
+        <id />
+        <value_id />
+        <value />
+    </FW_Version_RC76>
+    <FW_Version_WP76 Type="field">
+        <name>FW Version (WP76)</name>
+        <id />
+        <value_id />
+        <value />
+    </FW_Version_WP76>
+    <FW_Version_WP77 Type="field">
+        <name>FW Version (WP77)</name>
+        <id />
+        <value_id />
+        <value />
+    </FW_Version_WP77>
+    <FW_Version_RC51 Type="field">
+        <name>FW Version (RC51)</name>
+        <id />
+        <value_id />
+        <value />
+    </FW_Version_RC51>
+    <Legato_Version Type="field">
+        <name>Legato Version</name>
+        <id />
+        <value_id />
+        <value />
+    </Legato_Version>
+    <Module_Type Type="field">
+        <name>Module Type</name>
+        <id/>
+        <value_id />
+        <value />
+    </Module_Type>
+    <Module_Ref Type="field">
+        <name>Module Ref</name>
+        <id />
+        <value_id />
+        <value />
+    </Module_Ref>
+</testcase>
