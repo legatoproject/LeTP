@@ -522,14 +522,16 @@ class SwiModule:
 
     def sim_status(self, timeout=5):
         """Get SIM status."""
-        if not self.links[1].info.is_used():
-            # bypass checking sim status
-            return "0"
-        else:
-            rsp = self.run_at_cmd(self.target_at_cmd["KSREP?"], timeout)
-            return re.search(r"\+KSREP:\s*[0|1]{1},(?P<status_id>\d{1})", rsp).group(
-                "status_id"
-            )
+        # if not self.links[1].info.is_used():
+        #     # bypass checking sim status
+        #     return "0"
+        # else:
+        #     rsp = self.run_at_cmd(self.target_at_cmd["KSREP?"], timeout)
+        #     return re.search(r"\+KSREP:\s*[0|1]{1},(?P<status_id>\d{1})", rsp).group(
+        #         "status_id"
+        #     )
+        # bypass checking sim status because LE-16630
+        return "0"
 
     def sim_absent(self):
         """Check if SIM is absent."""
