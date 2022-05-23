@@ -40,32 +40,26 @@
         <name>FW Version (HL78)</name>
         <id />
         <value_id />
-        <value />
+        <value>N/A</value>
     </FW_Version_HL78>
     <FW_Version_RC76 Type="field">
         <name>FW Version (RC76)</name>
         <id />
         <value_id />
-        <value />
+        <value>N/A</value>
     </FW_Version_RC76>
     <FW_Version_WP76 Type="field">
         <name>FW Version (WP76)</name>
         <id />
         <value_id />
-        <value />
+        <value>N/A</value>
     </FW_Version_WP76>
     <FW_Version_WP77 Type="field">
         <name>FW Version (WP77)</name>
         <id />
         <value_id />
-        <value />
+        <value>N/A</value>
     </FW_Version_WP77>
-    <FW_Version_RC51 Type="field">
-        <name>FW Version (RC51)</name>
-        <id />
-        <value_id />
-        <value />
-    </FW_Version_RC51>
     <Legato_Version Type="field">
         <name>Legato Version</name>
         <id />

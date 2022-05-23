@@ -4,46 +4,40 @@ reference to: https://api.qasymphony.com/.
 """
 import json
 import os
-import enum
 import xml.etree.ElementTree as ET
 from datetime import datetime
-import pprint
 import requests
 
-server_url = "https://sierrawireless.qtestnet.com"
-config_path = "$PWD/test_data.xml"
-
-
-class StatusID(enum.Enum):
-    """Class for status ID."""
-
-    Passed = 601
-    Failed = 602
-    Incomplete = 603
-    Blocked = 604
+SERVER_URL = "https://sierrawireless.qtestnet.com/"
+CONFIG_PATH = "$PWD/test_data.xml"
 
 
 def read_test_config(path_dir):
     """Get test result config."""
-    test_config = ET.parse(os.path.expandvars(config_path)).getroot()
+    test_config = ET.parse(os.path.expandvars(CONFIG_PATH)).getroot()
     return test_config.findtext(path_dir)
 
 
 def write_config(path, value):
     """Set value result config."""
-    tree = ET.parse(os.path.expandvars(config_path))
+    tree = ET.parse(os.path.expandvars(CONFIG_PATH))
     tree.getroot().find(path).text = value
-    tree.write(os.path.expandvars(config_path))
+    tree.write(os.path.expandvars(CONFIG_PATH))
 
 
 class QTestAPI:
     """Class for upload the result by REST API."""
 
-    def __init__(self, accessToken):
+    def __init__(self, accessToken, project_name, release_name):
         # Get accesstoken with login
         self.access_token = accessToken
+        self.project_name = project_name
+        self.release_name = release_name
+        self.project_id = self.get_project_ID()
+        self.release_id = self.get_release_ID()
+        self.test_suite_names = self.get_testsuite_name()
 
-    def get_project_ID(self, project_name="Legato"):
+    def get_project_ID(self):
         """Get project ID assigned to user.
 
         Description:
@@ -52,18 +46,18 @@ class QTestAPI:
             Project ID (int)  project ID assigned to user
             0 if otherwise
         """
-        api_url = server_url + "/api/v3/projects"
+        api_url = SERVER_URL + "/api/v3/projects"
         params = {"access_token": self.access_token}
         headers = {}
         response = requests.request("GET", api_url, params=params, headers=headers)
         responsejson = response.json()
         for project in responsejson:
-            if project["name"] == project_name:
+            if project["name"] == self.project_name:
                 print(f'Project ID: {project["id"]}')
                 return project["id"]
         return 0
 
-    def get_release_ID(self, release_name, project_id=0):
+    def get_release_ID(self):
         """Get release ID with release name.
 
         Description:
@@ -72,38 +66,18 @@ class QTestAPI:
             release ID (int) release ID with release name
             0 if otherwise
         """
-        api_url = server_url + f"/api/v3/projects/{project_id}/releases"
+        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/releases"
         params = {"access_token": self.access_token}
         headers = {}
         response = requests.request("GET", api_url, params=params, headers=headers)
         responsejson = response.json()
         for release in responsejson:
-            if release["name"] == release_name:
+            if release["name"] == self.release_name:
                 print(f'Release ID: {release["id"]}')
                 return release["id"]
         return 0
 
-    def get_cycle_ID(self, cycle_name, project_id=0):
-        """Get test cycle ID with test cycle name.
-
-        Description:
-            API: /api/v3/projects/{Project_ID}/test-cycles
-        Returns:
-            testcycle ID (int) test cycle ID with test cycle name
-            0 if otherwise
-        """
-        api_url = server_url + f"/api/v3/projects/{project_id}/test-cycles"
-        params = {"access_token": self.access_token}
-        headers = {}
-        response = requests.request("GET", api_url, params=params, headers=headers)
-        responsejson = response.json()
-        for cycle in responsejson:
-            if cycle["name"] == cycle_name:
-                print(f'Test Cycle ID: {cycle["id"]}')
-                return cycle["id"]
-        return 0
-
-    def get_testSuite_ID(self, test_suite_name, project_id, release_id):
+    def get_testSuite_ID(self, test_suite_name):
         """Get test suite ID with test suite name on releaseName .
 
         Description:
@@ -112,11 +86,11 @@ class QTestAPI:
             test suite ID (int) test suite ID with test suite name
             0 if otherwise
         """
-        api_url = server_url + f"/api/v3/projects/{project_id}/test-suites"
+        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/test-suites"
         params = {"access_token": self.access_token}
-        if release_id != 0:
+        if self.release_id != 0:
             params["parentType"] = "release"
-            params["parentId"] = release_id
+            params["parentId"] = self.release_id
         headers = {}
         response = requests.request("GET", api_url, params=params, headers=headers)
         responsejson = response.json()
@@ -126,35 +100,55 @@ class QTestAPI:
                 return testSuite["id"]
         return 0
 
-    def get_testRun_ID(self, test_case_name, test_case_PID, project_id, testSuite_id):
-        """Get test run ID by test name or test case PID on the test suite.
+    def get_testRun_ID(self, TEST_SUITE_ID):
+        """Get test run ID by test name on the test suite.
 
         Description:
             API: /api/v3/projects/{Project_ID}/test-runs
         Returns:
-            test run ID (int) test run ID by the testcase name or PID of test case
+            test run ID (int) test run ID by the testcase name
             0 if otherwise
         """
-        api_url = server_url + f"/api/v3/projects/{project_id}/test-runs"
+        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/test-runs"
         params = {
             "access_token": self.access_token,
             "parentType": "test-suite",
-            "parentId": testSuite_id,
+            "parentId": TEST_SUITE_ID,
             "pageSize": 1000,
         }
         headers = {}
         response = requests.request("GET", api_url, params=params, headers=headers)
         responsejson = response.json()
+        dict_test_cases = {}
         for testRun in responsejson["items"]:
-            if test_case_PID != "":
-                if testRun["pid"] == test_case_PID:
-                    return testRun["id"]
-            else:
-                if testRun["name"] == test_case_name:
-                    return testRun["id"]
-        return 0
+            dict_test_cases[testRun["name"]] = testRun["id"]
+        return dict_test_cases
 
-    def get_field_ID(self, field_name, project_id, testRun_id):
+    def get_testsuite_name(self):
+        """Get all test suite in a release.
+
+        Description:
+            API: /api/v3/projects/{Project_ID}/test-suites
+        Returns:
+            all test suite in a release
+            0 if otherwise
+        """
+        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/test-suites"
+        params = {
+            "access_token": self.access_token,
+            "parentType": "release",
+            "parentId": self.release_id,
+            "pageSize": 100,
+        }
+        headers = {}
+        response = requests.request("GET", api_url, params=params, headers=headers)
+        responsejson = response.json()
+        test_suite_names = []
+        for i in responsejson:
+            test_suite_names.append(i["name"])
+        return test_suite_names
+
+    def get_field_ID(self, field_name, testRun_id):
         """Get test field ID by filed name of testcase.
 
         Description:
@@ -164,8 +158,8 @@ class QTestAPI:
             0 if otherwise
         """
         api_url = (
-            server_url
-            + f"/api/v3/projects/{project_id}/test-runs/{testRun_id}/properties"
+            SERVER_URL
+            + f"/api/v3/projects/{self.project_id}/test-runs/{testRun_id}/properties"
         )
         params = {"access_token": self.access_token}
         headers = {}
@@ -176,7 +170,7 @@ class QTestAPI:
                 return field_count["id"]
         return 0
 
-    def get_properties_info(self, project_id, testSuite_id, test_name):
+    def get_properties_info(self, testRun_id):
         """Get all properties of test run on test suite.
 
         Description:
@@ -185,52 +179,37 @@ class QTestAPI:
             all properties info (json) properties of test run if successfully
             1 if this failed
         """
-        # Get test run ID
-        test_run_id = self.get_testRun_ID(
-            test_name, read_test_config("PID"), project_id, testSuite_id
-        )
+        # Get properties info
         api_url = (
-            server_url
-            + f"/api/v3/projects/{project_id}/test-runs/{test_run_id}/properties-info"
+            SERVER_URL
+            + f"/api/v3/projects/{self.project_id}"
+            + f"/test-runs/{testRun_id}/properties-info"
         )
         params = {"access_token": self.access_token}
         headers = {}
         response = requests.request("GET", api_url, params=params, headers=headers)
         responsejson = response.json()
         if "200" in str(response):
-            return responsejson["metadata"], test_run_id
+            return responsejson["metadata"]
         else:
-            return 1, 0
+            return 1
 
-    def post_result_qtest(self, project_id, properties, test_run_id):
-        """Post a result of test case to qTest.
-
-        Returns:
-        0 if uploading successfully
-        1 if this failed.
-        """
+    def fill_field_ID(self, properties, test_run_id):
+        """Get all field of a test case."""
         # Get test field ID
         for field in (
-            ET.parse(os.path.expandvars(config_path))
+            ET.parse(os.path.expandvars(CONFIG_PATH))
             .getroot()
             .findall(".//*[@Type='field']")
         ):
             if field.find("id").text is None:
                 write_config(
                     f"{field.tag}/id",
-                    str(
-                        self.get_field_ID(
-                            field.find("name").text, project_id, test_run_id
-                        )
-                    ),
+                    str(self.get_field_ID(field.find("name").text, test_run_id)),
                 )
                 assert (
                     read_test_config(f"{field.tag}/id") is not None
                 ), f'Cannot get ID of Field: {read_test_config(f"{field.tag}/id")}'
-            print(
-                f'Field ID of {field.find("name").text}: \
-                    {read_test_config(f"{field.tag}/id")}'
-            )
             for field_count in properties:
                 if (
                     field_count["id"] == int(read_test_config(f"{field.tag}/id"))
@@ -246,13 +225,17 @@ class QTestAPI:
                     assert (
                         read_test_config(f"{field.tag}/value_id") is not None
                     ), f'Cannot get ID of Field: {field.find("name").text}'
-            print(
-                f'Field Value ID of {read_test_config(f"{field.tag}/value")}:\
-                    {read_test_config(f"{field.tag}/value_id")}'
-            )
+
+    def post_result_qtest(self, test_run_id):
+        """Post a result of test case to qTest.
+
+        Returns:
+        0 if uploading successfully
+        1 if this failed.
+        """
         api_url = (
-            server_url
-            + f"/api/v3/projects/{project_id}/test-runs/{test_run_id}/test-logs"
+            SERVER_URL
+            + f"/api/v3/projects/{self.project_id}/test-runs/{test_run_id}/test-logs"
         )
         params = {"access_token": self.access_token}
         headers = {"Content-Type": "application/json"}
@@ -267,6 +250,36 @@ class QTestAPI:
                 "field_name": read_test_config("Legato_Version/name"),
                 "field_value": read_test_config("Legato_Version/value_id"),
                 "field_value_name": read_test_config("Legato_Version/value"),
+            },
+            {
+                "field_id": read_test_config("LXSWI_Version/id"),
+                "field_name": read_test_config("LXSWI_Version/name"),
+                "field_value": read_test_config("LXSWI_Version/value_id"),
+                "field_value_name": read_test_config("LXSWI_Version/value"),
+            },
+            {
+                "field_id": read_test_config("FW_Version_WP76/id"),
+                "field_name": read_test_config("FW_Version_WP76/name"),
+                "field_value": read_test_config("FW_Version_WP76/value_id"),
+                "field_value_name": read_test_config("FW_Version_WP76/value"),
+            },
+            {
+                "field_id": read_test_config("FW_Version_WP77/id"),
+                "field_name": read_test_config("FW_Version_WP77/name"),
+                "field_value": read_test_config("FW_Version_WP77/value_id"),
+                "field_value_name": read_test_config("FW_Version_WP77/value"),
+            },
+            {
+                "field_id": read_test_config("FW_Version_HL78/id"),
+                "field_name": read_test_config("FW_Version_HL78/name"),
+                "field_value": read_test_config("FW_Version_HL78/value_id"),
+                "field_value_name": read_test_config("FW_Version_HL78/value"),
+            },
+            {
+                "field_id": read_test_config("FW_Version_RC76/id"),
+                "field_name": read_test_config("FW_Version_RC76/name"),
+                "field_value": read_test_config("FW_Version_RC76/value_id"),
+                "field_value_name": read_test_config("FW_Version_RC76/value"),
             },
             {
                 "field_id": read_test_config("Module_Ref/id"),
@@ -288,5 +301,6 @@ class QTestAPI:
             headers=headers,
             data=json.dumps(payload),
         )
-        responsejson = response.json()
-        pprint.pprint(responsejson)
+        if "201" in str(response):
+            return True
+        return False
