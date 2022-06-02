@@ -226,7 +226,7 @@ class QTestAPI:
                         read_test_config(f"{field.tag}/value_id") is not None
                     ), f'Cannot get ID of Field: {field.find("name").text}'
 
-    def post_result_qtest(self, test_run_id):
+    def post_result_qtest(self, test_run_id, status):
         """Post a result of test case to qTest.
 
         Returns:
@@ -242,8 +242,13 @@ class QTestAPI:
         payload = {
             "exe_start_date": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "exe_end_date": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "status": {"id": 601, "name": "Passed"},
         }
+        if status == "passed":
+            payload["status"] = {"id": 601, "name": "Passed"}
+        elif status in ("failed", "xfailed"):
+            payload["status"] = {"id": 602, "name": "Failed"}
+        else:
+            payload["status"] = {"id": 2435513, "name": "Incomplete"}
         payload["properties"] = [
             {
                 "field_id": read_test_config("Legato_Version/id"),

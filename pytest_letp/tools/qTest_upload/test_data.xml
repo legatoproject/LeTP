@@ -34,7 +34,7 @@
         <name>LXSWI Version</name>
         <id />
         <value_id />
-        <value />
+        <value>N/A</value>
     </LXSWI_Version>
     <FW_Version_HL78 Type="field">
         <name>FW Version (HL78)</name>

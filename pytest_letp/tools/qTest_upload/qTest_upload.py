@@ -16,10 +16,8 @@ ACCESS_TOKEN = ""
 JSON_PATH = ""
 HTML_PATH = ""
 QTEST_INFO = ""
-PROJECT_ID = 0
 RELEASE_NAME = ""
 TEST_SUITE_NAME = ""
-RELEASE_ID = 0
 
 
 # ====================================================================================
@@ -121,7 +119,7 @@ def check_duplicate(release_data, test_case_name):
     return False
 
 
-def upload_qtest(release_data, test_case_name):
+def upload_qtest(release_data, test_case_name, status):
     """Upload test result to qTest.
 
     Returns:
@@ -130,7 +128,9 @@ def upload_qtest(release_data, test_case_name):
     """
     for test_cases in release_data.values():
         if test_case_name in test_cases:
-            is_upload_success = REST_api.post_result_qtest(test_cases[test_case_name])
+            is_upload_success = REST_api.post_result_qtest(
+                test_cases[test_case_name], status
+            )
     return is_upload_success
 
 
@@ -170,7 +170,6 @@ dict_test_cases = {}
 number_testcases = len(list_test_cases_run)
 for i in range(number_testcases):
     dict_test_cases[list_test_cases_run[i]] = list_status[i]
-
 # Get information of jenkins job
 (
     TestbedID,
@@ -218,39 +217,40 @@ else:
         SAMPLE_TEST_CASE_ID = list(list_test_cases.values())[0]
 pre_upload(SAMPLE_TEST_CASE_ID, versions)
 Uploaded_test_cases = []
-Need_to_investigate_test_cases = []
+Need_to_reupload_test_cases = []
 Remaining_test_cases = []
 print(f"===> Uploading test result for {len(list_test_cases_run)} test cases .... ")
 for test_case_name in list_test_cases_run:
-    if dict_test_cases[test_case_name] == "passed":
-        # Check if test case is duplicated
-        up_qtest = check_duplicate(release_data, test_case_name)
-        upload_result = False
-        if up_qtest:
-            # Upload test result to qTest
-            upload_result = upload_qtest(release_data, test_case_name)
-        # Add test case to list of uploaded test cases
+    # Check if test case is duplicated
+    up_qtest = check_duplicate(release_data, test_case_name)
+    upload_result = False
+    if up_qtest:
+        # Upload test result to qTest
+        upload_result = upload_qtest(
+            release_data, test_case_name, dict_test_cases[test_case_name]
+        )
         if upload_result:
+            # Add test case to list of uploaded test cases successfully
             Uploaded_test_cases.append(test_case_name)
         else:
-            # Add test case to list duplicated
-            Remaining_test_cases.append(test_case_name)
+            # Add test case to list of uploaded test cases unsuccessfully
+            Need_to_reupload_test_cases.append(test_case_name)
     else:
-        # Add test case to list of test cases failed or error or skipped
-        Need_to_investigate_test_cases.append(test_case_name)
+        # Add test case to list duplicated
+        Remaining_test_cases.append(test_case_name)
 print(f"===> List of {len(Uploaded_test_cases)} test cases are uploaded successfully")
 for i in Uploaded_test_cases:
+    print(i)
+print(
+    f"===> List of {len(Need_to_reupload_test_cases)} test cases "
+    + "are uploaded unsuccessfully"
+)
+for i in Need_to_reupload_test_cases:
     print(i)
 print(
     f"===> List of {len(Remaining_test_cases)} test cases "
     + "are duplicated or not exist on this release"
 )
 for i in Remaining_test_cases:
-    print(i)
-print(
-    f"===> List of {len(Need_to_investigate_test_cases)} test cases "
-    + "failed or error or skipped"
-)
-for i in Need_to_investigate_test_cases:
     print(i)
 print("======================================END====================================")
