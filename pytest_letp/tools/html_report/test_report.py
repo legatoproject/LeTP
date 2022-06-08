@@ -816,6 +816,33 @@ class TestReportBuilder:
                 j = json.load(f)
                 self.env_global_list.update(j)
 
+    def check_status_platform(self, sub_systems_names):
+        """Check the status of platform."""
+        sys_type_dict = {}
+        # platforms with multi campaigns
+        # {platform: [number of campaigns run, expected quantity], ...}
+        count_campaigns = {"wp76xx": [0, 2], "wp77xx": [0, 2], "hl7812": [0, 2]}
+        for sys_name in sub_systems_names:
+            sys_type = self._parse_sys_type_name(sys_name)
+            if sys_type in count_campaigns:
+                count_campaigns[sys_type][0] += 1
+            if sys_type not in sys_type_dict:
+                sys_type_dict[sys_type] = sys_name
+                sub_summary = self.test_summary.sub_summary[sys_name]
+                sub_summary.cfg = sys_type
+                cache_summary = {"Config": sub_summary.cfg}
+                cache_summary["Status"] = sub_summary.status()
+                cache_summary.update(sub_summary.stats())
+                self.summary[sub_summary.cfg] = cache_summary
+            else:
+                merged_summary = self.test_summary.merge_summary(
+                    sys_type_dict[sys_type], sys_name
+                )
+                self.summary[sys_type_dict[sys_type]] = merged_summary
+        for sys_type, count in count_campaigns.items():
+            if count[0] not in [0, count[1]]:
+                self.summary[sys_type]["Status"] = "FAILED"
+
     def _add_summary_section(self, merge_report=False):
         summary_global = {"Config": self.test_summary.cfg}
         summary_global["Status"] = self.test_summary.status()
@@ -825,22 +852,7 @@ class TestReportBuilder:
         sub_systems_names = sorted(self.test_summary.sub_summary.keys())
 
         if merge_report:
-            sys_type_dict = {}
-            for sys_name in sub_systems_names:
-                sys_type = self._parse_sys_type_name(sys_name)
-                if sys_type not in sys_type_dict:
-                    sys_type_dict[sys_type] = sys_name
-                    sub_summary = self.test_summary.sub_summary[sys_name]
-                    sub_summary.cfg = sys_type
-                    cache_summary = {"Config": sub_summary.cfg}
-                    cache_summary["Status"] = sub_summary.status()
-                    cache_summary.update(sub_summary.stats())
-                    self.summary[sub_summary.cfg] = cache_summary
-                else:
-                    merged_summary = self.test_summary.merge_summary(
-                        sys_type_dict[sys_type], sys_name
-                    )
-                    self.summary[sys_type_dict[sys_type]] = merged_summary
+            self.check_status_platform(sub_systems_names)
         else:
             for sys_name in sub_systems_names:
                 sub_summary = self.test_summary.sub_summary[sys_name]
