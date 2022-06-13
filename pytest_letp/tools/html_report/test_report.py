@@ -1197,7 +1197,7 @@ class TestReportJSONBuilder(TestReportBuilder):
         tests = []
         for row in results_all:
             tc1 = row[0]
-            t = {"name": tc1.target_name}
+            t = {"name": tc1.test_name}
             for cell in row:
                 if isinstance(cell, TestCaseView):
                     if cell.test_case:
