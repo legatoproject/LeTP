@@ -1298,7 +1298,7 @@ def parse_args():
     )
     parser.add_argument(
         "--title",
-        default="Legato-QA-NightlyTest Results",
+        default="Test Report",
         help="Path to build_configuration.json files",
     )
     parser.add_argument("--output", default="test_report.html", help="Output file path")
