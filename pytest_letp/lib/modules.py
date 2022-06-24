@@ -14,6 +14,7 @@ import time
 import importlib
 import imp
 import pkgutil
+import pytest
 
 import pexpect
 import pexpect.fdpexpect
@@ -522,16 +523,14 @@ class SwiModule:
 
     def sim_status(self, timeout=5):
         """Get SIM status."""
-        # if not self.links[1].info.is_used():
-        #     # bypass checking sim status
-        #     return "0"
-        # else:
-        #     rsp = self.run_at_cmd(self.target_at_cmd["KSREP?"], timeout)
-        #     return re.search(r"\+KSREP:\s*[0|1]{1},(?P<status_id>\d{1})", rsp).group(
-        #         "status_id"
-        #     )
-        # bypass checking sim status because LE-16630
-        return "0"
+        if not self.links[1].info.is_used():
+            # bypass checking sim status
+            return "0"
+        else:
+            rsp = self.run_at_cmd(self.target_at_cmd["KSREP?"], timeout)
+            return re.search(r"\+KSREP:\s*[0|1]{1},(?P<status_id>\d{1})", rsp).group(
+                "status_id"
+            )
 
     def sim_absent(self):
         """Check if SIM is absent."""
@@ -547,8 +546,11 @@ class SwiModule:
         self.run_at_cmd("ATI8", 60)
         self.run_at_cmd("ATI9", 60)
         if self.sim_ready():
-            self.run_at_cmd(self.target_at_cmd["CIMI"], 60)
-            self.run_at_cmd(self.target_at_cmd["CCID?"], 60)
+            try:
+                self.run_at_cmd(self.target_at_cmd["CIMI"], 60)
+                self.run_at_cmd(self.target_at_cmd["CCID?"], 60)
+            except:
+                pytest.xfail(reason="LE-16671")
 
     def wait_for_device_up(self, timeout=180):
         """Check if device is up by testing all ports are responsive."""
