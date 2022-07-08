@@ -521,7 +521,7 @@ class SwiModule:
     def get_ip_addr(self, itf):
         assert 0, "Not implemented yet"
 
-    def sim_status(self, timeout=5):
+    def sim_status(self, timeout=10):
         """Get SIM status."""
         if not self.links[1].info.is_used():
             # bypass checking sim status
