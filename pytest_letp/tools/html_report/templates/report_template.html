@@ -60,7 +60,9 @@
     }
 
     .summary {
-        margin-top: 0px;
+        position: sticky;
+        top: 0px;
+        background: white;
     }
 
     .passed { background-color: #c3e6cb; }
@@ -79,6 +81,11 @@
         background: #002b36;
         color: #93a1a1;
         padding: 10px;
+    }
+
+    .title {
+        position: sticky;
+        top: 30px;
     }
 
     pre.message    { border-left-color: #828992; }
@@ -105,11 +112,11 @@
         {% endif %}
 
         <!-- Summary -->
-        <div style="margin-top: 50px">
-            <h4 style="text-align: center">Summary</h4>
-            <table align="center" class="summary">
+        <div style="margin-top: 20px">
+            <h4 style="text-align: center" class="summary">Summary</h4>
+            <table align="center">
                 <thead>
-                    <tr>
+                    <tr class="title">
                     {% for entry in summary_headers %}
                         <th>{{entry}}</th>
                     {% endfor %}
@@ -155,12 +162,12 @@
 
         <!-- Groups -->
         <div style="margin-top: 50px">
-            <h4 style="text-align: center">Groups</h4>
+            <h4 style="text-align: center" id=Groups class="summary">Groups</h4>
             <table align="center">
                 <thead>
-                    <tr>
+                    <tr class="title">
                         <th>Platforms</th>
-                        <th scope="col" id=Groups>Groups</th>
+                        <th scope="col">Groups</th>
                         {% for row in results_headers %}
                         {% if row != "Testcases" and row != "Jira ID" %}
                             <th>{{ row }}</th>
@@ -212,11 +219,11 @@
         </div>
 
         {% macro render_env_table(title, headers, data_dict) -%}
-        <h6 style="text-align: center; font-variant: small-caps; margin-top: 10px;">
-            {{ title }}</h6>
+        <h4 style="text-align: center; font-variant: small-caps; margin-top: 10px;" class="summary">
+            <small>{{ title }}</small></h4>
             <table align="center">
                 <thead>
-                    <tr>
+                    <tr class="title">
                         {% for entry in headers %}
                             {% if entry != 'job.url' %}
                                 <th>{{ entry }}</th>
@@ -296,10 +303,10 @@
 
         {% macro render_results(title, headers, results) -%}
             <div style="margin-top: 50px">
-                <h4 style="text-align: center">{{ title }}</h4>
+                <h4 style="text-align: center" class="summary">{{ title }}</h4>
                 <table align="center">
                     <thead>
-                        <tr>
+                        <tr class="title">
                             {% for entry in headers %}
                                 <th scope="col">{{ entry }}</th>
                             {% endfor %}
@@ -342,10 +349,10 @@
 
         {% macro render_results_group(title, headers, results) -%}
             <div style="margin-top: 50px">
-                <h4 style="text-align: center">{{ title }}</h4>
+                <h4 style="text-align: center" class="summary">{{ title }}</h4>
                 <table align="center">
                     <thead>
-                        <tr>
+                        <tr class="title">
                             {% for entry in headers %}
                                 <th scope="col">{{ entry }}</th>
                             {% endfor %}
