@@ -113,7 +113,9 @@ class TestSummary:
             divider = 1
 
         return {
-            "CollectedTests": {"count": self.total_collected(), "percentage": 100},
+            "CollectedTests": {
+                "count": self.total_collected(),
+                "percentage": self.total_collected() / divider},
             "TestcasesRun": {
                 "count": self.total_tcs_run(),
                 "percentage": self.total_tcs_run() / divider,
@@ -180,32 +182,26 @@ class TestSummary:
 
     def merge_summary(self, update_system, duplicated_system):
         """Merge the status with the same system type."""
-        update_sys_summary = self.sub_summary[update_system]
         duplicated_sys_summary = self.sub_summary[duplicated_system]
 
-        final_summary = {"Config": update_sys_summary.cfg}
-        list_status = [update_sys_summary.status(), duplicated_sys_summary.status()]
-        final_summary["Status"] = self.merge_status(list_status)
+        update_sumary = {"Config": update_system["Config"]}
+        list_status = [update_system["Status"], duplicated_sys_summary.status()]
+        update_sumary["Status"] = self.merge_status(list_status)
 
-        for key in update_sys_summary.stats().keys():
+        for key in duplicated_sys_summary.stats().keys():
             duplicated_count = Counter(duplicated_sys_summary.stats()[key])
-            update_count = Counter(update_sys_summary.stats()[key])
+            update_count = Counter(update_system[key])
             update_count.update(duplicated_count)
-            final_summary[key] = dict(update_count)
+            update_sumary[key] = dict(update_count)
 
-            if "percentage" in final_summary[key].keys():
-                if key == "CollectedTests":
-                    final_summary[key]["percentage"] = float(
-                        final_summary[key]["percentage"] / 2
-                    )
-                else:
-                    divider = float(final_summary["CollectedTests"]["count"]) / 100
-                    if divider == 0:
-                        divider = 1
-                    final_summary[key]["percentage"] = float(
-                        final_summary[key]["count"] / divider
-                    )
-        return final_summary
+            if "percentage" in update_sumary[key].keys():
+                divider = float(update_sumary["CollectedTests"]["count"]) / 100
+                if divider == 0:
+                    divider = 1
+                update_sumary[key]["percentage"] = float(
+                    update_sumary[key]["count"] / divider
+                )
+        return update_sumary
 
 
 class TestCaseResult:
@@ -821,7 +817,7 @@ class TestReportBuilder:
         sys_type_dict = {}
         # platforms with multi campaigns
         # {platform: [number of campaigns run, expected quantity], ...}
-        count_campaigns = {"wp76xx": [0, 2], "wp77xx": [0, 2], "hl7812": [0, 2]}
+        count_campaigns = {"wp76xx": [0, 2], "wp77xx": [0, 2], "hl7812": [0, 3]}
         for sys_name in sub_systems_names:
             sys_type = self._parse_sys_type_name(sys_name)
             if sys_type in count_campaigns:
@@ -835,10 +831,10 @@ class TestReportBuilder:
                 cache_summary.update(sub_summary.stats())
                 self.summary[sub_summary.cfg] = cache_summary
             else:
-                merged_summary = self.test_summary.merge_summary(
-                    sys_type_dict[sys_type], sys_name
+                update_summary = self.test_summary.merge_summary(
+                    self.summary[sys_type_dict[sys_type]], sys_name
                 )
-                self.summary[sys_type_dict[sys_type]] = merged_summary
+                self.summary[sys_type_dict[sys_type]] = update_summary
         for sys_type, count in count_campaigns.items():
             if count[0] not in [0, count[1]]:
                 self.summary[sys_type]["Status"] = "FAILED"
