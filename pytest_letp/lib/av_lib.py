@@ -39,7 +39,7 @@ class AVResultVerifier:
         @param expected_result: expected result of response.
         @param inverse (bool): inverse the result.
         """
-        self.verify_func = verify_func
+        self.verify_func = getattr(self, verify_func.__name__)
         self.expected_result = expected_result
         self.inverse = inverse
 
@@ -209,7 +209,7 @@ class AVManager:
         """
         for i in range(attempts):
             swilog.info(f"Trying {function} attempt: {i + 1} of {attempts}")
-            rsp = function(*kwargs)
+            rsp = function(**kwargs)
             # Handle comparison operators.
             result = result_verifier.validate_rsp(rsp)
             if result:
@@ -270,7 +270,7 @@ class AVManager:
         app_uid = (
             kwargs["app_uid"]
             if "app_uid" in kwargs
-            else self.server.find_application(*kwargs)
+            else self.server.find_application(**kwargs)
         )
         return self.server.application_details(app_uid=app_uid)
 
@@ -286,7 +286,7 @@ class AVManager:
 
         @return str: detail requested if successful, otherwise None.
         """
-        return self.get_app_info(*kwargs)[detail]
+        return self.get_app_info(**kwargs)[detail]
 
     def remove_app(self, attempts=10, **kwargs):
         """!Remove apps from AirVantage.
@@ -305,7 +305,7 @@ class AVManager:
         previous_uid = ""
         for _ in range(attempts):
             swilog.info("Checking if there is an app that matches the desciption.")
-            app_info = self.get_app_info(*kwargs)
+            app_info = self.get_app_info(**kwargs)
             if not app_info:
                 swilog.info(f"No apps found with:\n{kwargs}")
                 return True
@@ -493,6 +493,14 @@ class AVManager:
         @return list: list of pending operation uids if successful, otherwise None.
         """
         return self.server.get_pending_operations(self.uid)
+
+    def cancel_pending_operations(self):
+        """!Cancel all pending operations."""
+        for uid in self.get_pending_operations():
+            self.server.cancel_operation(uid)
+            assert self.wait_for_operation_state(
+                uid, expected_state="FINISHED", expected_reason="CANCELLED"
+            ), "Failed to cancel operation"
 
     def sync(self):
         """!Create a sync Job on av server.

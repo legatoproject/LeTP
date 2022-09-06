@@ -471,12 +471,12 @@ class AVServer:
         )
         try:
             if response.json()["count"] == 0:
-                return None
+                return []
             for operation in response.json()["items"]:
                 op_list.append(operation["uid"])
             return op_list
         except KeyError:
-            return None
+            return []
 
     def operation_state(self, uid):
         """!Check the operation state and verify.
@@ -502,7 +502,7 @@ class AVServer:
                     result["reason"] = response.json()["counters"][i]["state"]
             return result
         except KeyError:
-            return None
+            return result
 
     def cancel_operation(self, uid):
         """!Cancel an operation.
