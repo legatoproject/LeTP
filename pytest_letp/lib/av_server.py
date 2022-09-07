@@ -1,4 +1,7 @@
-"""!Airvantage Rest API."""
+r"""Airvantage Rest API module.
+
+Use the av_server module to interact with the airvantage server.
+"""
 # pylint: disable=too-many-public-methods,too-many-instance-attributes
 import os
 import json
@@ -9,17 +12,17 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 class AVServer:
-    """!Connection between letp and AirVantage rest api."""
+    """Connection between letp and AirVantage rest api."""
 
     def __init__(self, url, username, password, client_id, client_secret, company):
-        """!Initialize AVServer.
+        """Initialize AVServer.
 
-        @param url: url of airvantage server.
-        @param username: client username.
-        @param password: client password.
-        @param client_id: client id.
-        @param client_secret: client secret.
-        @param company: client company.
+        :param str url: url of airvantage server.
+        :param str username: client username.
+        :param str password: client password.
+        :param str client_id: client id.
+        :param str client_secret: client secret.
+        :param str company: client company.
         """
         self._url = url
         self._username = username
@@ -40,9 +43,9 @@ class AVServer:
     # Helper functions
     # =================================================================================
     def _query(self, **kwargs):
-        """!Generate a query from kwargs.
+        """Generate a query from kwargs.
 
-        @return dict: organized query dictionary.
+        :return dict: organized query dictionary.
         """
         query = {"company": self._company, "access_token": self._access_token}
         for key, val in kwargs.items():
@@ -51,11 +54,11 @@ class AVServer:
 
     @staticmethod
     def _request(**kwargs):
-        """!Request function for running Python http requests.
+        """Request function for running Python http requests.
 
-        @param **kwargs: arguments passed to requests.request.
+        :param **kwargs: arguments passed to requests.request.
 
-        @return requests response object.
+        :return: requests response object.
         """
         try:
             return requests.request(**kwargs)
@@ -66,10 +69,10 @@ class AVServer:
     def _request_json_entry(self, entry, **kwargs):
         """!Request function for running Python http requests json.
 
-        @param entry(str): json entry to return.
-        @param **kwargs: arguments passed to requests.request.
+        :param str entry: json entry to return.
+        :param **kwargs: arguments passed to requests.request.
 
-        @return dict: json entry from response.
+        :return dict: json entry from response.
         """
         response = self._request(**kwargs)
         if not response:
@@ -81,12 +84,12 @@ class AVServer:
             return None
 
     def _request_item_uid(self, **kwargs):
-        """!Request function for getting uid of request.
+        """Request function for getting uid of request.
 
-        @param entry(str): json entry to return.
-        @param **kwargs: arguments passed to requests.request.
+        :param str entry: json entry to return.
+        :param **kwargs: arguments passed to requests.request.
 
-        @return str: uid entry from response.
+        :return str: uid entry from response.
         """
         response = self._request(**kwargs)
         if not response:
@@ -98,7 +101,7 @@ class AVServer:
             return None
 
     def _post_data(self, specific_dict):
-        """!Combine default data for post as well as specific."""
+        """Combine default data for post as well as specific."""
         data = self._default_data
         data.update(specific_dict)
         return json.dumps(data)
@@ -107,9 +110,9 @@ class AVServer:
     # Setup functions
     # =================================================================================
     def authenticate(self):
-        """!Request an access token from AirVantage.
+        """Request an access token from AirVantage.
 
-        @return bool: True if successful, otherwise False.
+        :return bool: True if successful, otherwise False.
         """
         url = self._url + "/api/oauth/token"
         query = {
@@ -134,15 +137,15 @@ class AVServer:
     def create_system(
         self, name=None, module_type=None, imei=None, gateway_uid="", app_uid=""
     ):
-        """!Create a new system.
+        """Create a new system.
 
-        @param name (str): system name.
-        @param module_type (str): generic module type.
-        @param imei (str): system imei.
-        @param gateway_uid (str): module gateway uid.
-        @param app_uid (str): module app uid.
+        :param str name: system name.
+        :param str module_type: generic module type.
+        :param str imei: system imei.
+        :param str gateway_uid: module gateway uid.
+        :param str app_uid: module app uid.
 
-        @return str: system uid if successful, otherwise None.
+        :return str: system uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/systems"
         query = self._query()
@@ -169,11 +172,11 @@ class AVServer:
         )
 
     def find_system(self, imei):
-        """!Find target on server.
+        """Find target on server.
 
-        @param imei (str): target imei.
+        :param str imei: target imei.
 
-        @return str: system uid if successful, otherwise None.
+        :return str: system uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/systems"
         query = self._query(gateway=f"imei:{imei}")
@@ -182,11 +185,11 @@ class AVServer:
         )
 
     def find_gateway_uid(self, imei):
-        """!Find gateway uid.
+        """Find gateway uid.
 
-        @param imei (str): target imei.
+        :param str imei: target imei.
 
-        @return str: gateway uid if successful, otherwise None.
+        :return str: gateway uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/gateways"
         query = self._query(imei=imei, fields="uid")
@@ -195,11 +198,11 @@ class AVServer:
         )
 
     def system_activate_uid(self, uid):
-        """!Activate a selection of systems.
+        """Activate a selection of systems.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/activate"
         query = self._query()
@@ -214,11 +217,11 @@ class AVServer:
         )
 
     def system_terminate_uid(self, uid):
-        """!Terminates a selection of systems.
+        """Terminates a selection of systems.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/terminate"
         query = self._query()
@@ -233,11 +236,11 @@ class AVServer:
         )
 
     def system_resume_uid(self, uid):
-        """!Resume a selection of systems.
+        """Resume a selection of systems.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/resume"
         query = self._query()
@@ -252,11 +255,11 @@ class AVServer:
         )
 
     def system_suspend_uid(self, uid):
-        """!Suspend a selection of systems.
+        """Suspend a selection of systems.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/suspend"
         query = self._query()
@@ -271,11 +274,11 @@ class AVServer:
         )
 
     def system_delete_uid(self, uid):
-        """!Delete a specific system from AirVantage.
+        """Delete a specific system from AirVantage.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return bool: True if successful, otherwise False.
+        :return bool: True if successful, otherwise False.
         """
         url = self._url + f"/api/v1/systems/{uid}"
         query = self._query()
@@ -285,12 +288,12 @@ class AVServer:
         return response.ok
 
     def system_data_retrieve(self, uid, obj):
-        """!Create a job to retrieve data.
+        """Create a job to retrieve data.
 
-        @param uid (str): system uid.
-        @param obj: data path. eg LE_AVDATA_CTRL.xxx.
+        :param str uid: system uid.
+        :param obj: data path. eg LE_AVDATA_CTRL.xxx.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/data/retrieve?"
         query = self._query()
@@ -306,18 +309,21 @@ class AVServer:
         )
 
     def system_apply_settings(self, uid, obj_data):
-        """!Apply settings to the system.
+        """Apply settings to the system.
 
-        @param uid (str): system uid.
-        @param data: data to be write. Data must be in list of dictionary type.
-                    eg: [{"key" : "Path.to.app", "value" : 120}]
-                        or
-                        [
-                            {"key" : "Path.key1", "value" : 120},
-                            {"key" : "Path.key2", "value" : 120}
-                        ]
+        :param str uid: system uid.
+        :param data: data to be write. Data must be in list of dictionary type.
 
-        @return str: operation uid if successful, otherwise None.
+        .. code-block:: python
+
+            [{"key" : "Path.to.app", "value" : 120}]
+            # or
+            [
+                {"key" : "Path.key1", "value" : 120},
+                {"key" : "Path.key2", "value" : 120}
+            ]
+
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/settings?"
         query = self._query()
@@ -335,13 +341,13 @@ class AVServer:
         )
 
     def system_apply_command(self, uid, command_id, parameters):
-        """!Apply command to the system.
+        """Apply command to the system.
 
-        @param uid (str): system uid.
-        @param command_id (str): data path.
-        @param parameters: parameters value.
+        :param str uid: system uid.
+        :param str command_id: data path.
+        :param parameters: parameters value.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/command?"
         query = self._query()
@@ -362,11 +368,11 @@ class AVServer:
         )
 
     def system_reboot(self, uid):
-        """!Reboot device.
+        """Reboot device.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/reboot?"
         query = self._query()
@@ -381,12 +387,12 @@ class AVServer:
         )
 
     def system_message_list(self, uid, size=10):
-        """!Get the list of messages of the system.
+        """Get the list of messages of the system.
 
-        @param uid (str): system uid.
-        @param size (int): size the messages list.
+        :param str uid: system uid.
+        :param int size: size the messages list.
 
-        @return list: list of message uids if successful, otherwise None.
+        :return list: list of message uids if successful, otherwise None.
         """
         url = self._url + f"/api/v1/systems/{uid}/messages?"
         query = self._query(size=size)
@@ -402,12 +408,12 @@ class AVServer:
             return None
 
     def system_message_details(self, uid, message_uid):
-        """!Detailed message of system associated with message ID.
+        """Detailed message of system associated with message ID.
 
-        @param uid (str): system uid.
-        @param message_uid (str): message uid.
+        :param str uid: system uid.
+        :param str message_uid: message uid.
 
-        @return dict: json formed message details if successful, otherwise None.
+        :return dict: json formed message details if successful, otherwise None.
         """
         url = self._url + f"/api/v1/systems/{uid}/messages/{message_uid}"
         query = self._query()
@@ -417,13 +423,13 @@ class AVServer:
         return response.json()
 
     def system_last_datapoints(self, uid, points=None, prefix=None):
-        """!Get the last data point of the system.
+        """Get the last data point of the system.
 
-        @param uid (str): system uid.
-        @param points (str): list of data ids separated by a ','.
-        @param prefix (str): prefix of requested data ids.
+        :param str uid: system uid.
+        :param str points: list of data ids separated by a ','.
+        :param str prefix: prefix of requested data ids.
 
-        @return dict: json formed data details if successful, otherwise None.
+        :return dict: json formed data details if successful, otherwise None.
         """
         url = self._url + f"/api/v1/systems/{uid}/data?"
         query = self._query()
@@ -437,12 +443,12 @@ class AVServer:
         return response.json()
 
     def get_data_value_path(self, uid, path="lwm2m.3.0.0"):
-        """!Get the data value associated with lwm2m path.
+        """Get the data value associated with lwm2m path.
 
-        @param uid (str): system uid.
-        @param path (str): lwm2m path.
+        :param str uid: system uid.
+        :param str path: lwm2m path.
 
-        @return str: lwm2m data value if successful, otherwise None.
+        :return str: lwm2m data value if successful, otherwise None.
         """
         url = self._url + f"/api/v1/systems/{uid}/data?"
         query = self._query()
@@ -455,11 +461,11 @@ class AVServer:
     # Operation Functions
     # =================================================================================
     def get_pending_operations(self, uid):
-        """!Get list of pending operations.
+        """Get list of pending operations.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return list: list of pending operation uids if successful, otherwise None.
+        :return list: list of pending operation uids if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations?"
         query = self._query(
@@ -479,15 +485,18 @@ class AVServer:
             return []
 
     def operation_state(self, uid):
-        """!Check the operation state and verify.
+        """Check the operation state and verify.
 
-        @param uid (str): operation uid.
+        :param str uid: operation uid.
 
-        @return dict: operation state if successful, otherwise None.
-                {
-                    "state": {SCHEDULED, IN_PROGRESS, FINISHED},
-                    "reason": {PENDING, IN_PROGRESS, CANCELLED, FAILURE, SUCCESS},
-                }
+        :return dict: operation state if successful, otherwise None.
+
+        .. code-block:: python
+
+            {
+                "state": {SCHEDULED, IN_PROGRESS, FINISHED},
+                "reason": {PENDING, IN_PROGRESS, CANCELLED, FAILURE, SUCCESS},
+            }
         """
         url = self._url + f"/api/v1/operations/{uid}?"
         query = self._query()
@@ -505,11 +514,11 @@ class AVServer:
             return result
 
     def cancel_operation(self, uid):
-        """!Cancel an operation.
+        """Cancel an operation.
 
-        @param uid (str): operation uid.
+        :param str uid: operation uid.
 
-        @return bool: True if successful, otherwise False.
+        :return bool: True if successful, otherwise False.
         """
         url = self._url + f"/api/v1/operations/{uid}/cancel?"
         query = self._query()
@@ -520,11 +529,11 @@ class AVServer:
         return response.ok
 
     def sync(self, uid):
-        """!Create a sync Job on av server.
+        """Create a sync Job on av server.
 
-        @param uid (str): system uid.
+        :param str uid: system uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/synchronize?"
         query = self._query()
@@ -540,12 +549,12 @@ class AVServer:
         )
 
     def install_application(self, uid, app_uid):
-        """!Install an application.
+        """Install an application.
 
-        @param uid (str): system uid.
-        @param app_uid (str): application uid.
+        :param str uid: system uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/applications/install?"
         query = self._query()
@@ -565,12 +574,12 @@ class AVServer:
         )
 
     def uninstall_application(self, uid, app_uid):
-        """!Uninstall an application.
+        """Uninstall an application.
 
-        @param uid (str): system uid.
-        @param app_uid (str): application uid.
+        :param str uid: system uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/applications/uninstall?"
         query = self._query()
@@ -590,12 +599,12 @@ class AVServer:
         )
 
     def start_application(self, uid, app_uid):
-        """!Start an application.
+        """Start an application.
 
-        @param uid (str): system uid.
-        @param app_uid (str): application uid.
+        :param str uid: system uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/applications/start?"
         query = self._query()
@@ -615,12 +624,12 @@ class AVServer:
         )
 
     def stop_application(self, uid, app_uid):
-        """!Stop an application.
+        """Stop an application.
 
-        @param uid (str): system uid.
-        @param app_uid (str): application uid.
+        :param str uid: system uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/applications/stop?"
         query = self._query()
@@ -640,12 +649,12 @@ class AVServer:
         )
 
     def send_sms(self, uid, text="hello"):
-        """!Send SMS to the system.
+        """Send SMS to the system.
 
-        @param uid (str): system uid.
-        @param text (str): text content.
+        :param str uid: system uid.
+        :param str text: text content.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/systems/sms?"
         query = self._query()
@@ -663,13 +672,13 @@ class AVServer:
     # Application Functions
     # =================================================================================
     def find_application(self, name=None, app_type=None, revision="1.0.0"):
-        """!Find a application on the airvatage server.
+        """Find a application on the airvatage server.
 
-        @param name (str): application name.
-        @param app_type (str): application type.
-        @param revision (str): application revision.
+        :param str name: application name.
+        :param str app_type: application type.
+        :param str revision: application revision.
 
-        @return str: application uid if successful, otherwise None.
+        :return str: application uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/applications?"
         query = self._query(fields="uid", name=name, type=app_type, revision=revision)
@@ -678,11 +687,11 @@ class AVServer:
         )
 
     def release_application(self, file):
-        """!Release  an Application.
+        """Release an Application.
 
-        @param file (str): path to application zip file.
+        :param str file: path to application zip file.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/applications/release?"
         query = self._query()
@@ -699,11 +708,11 @@ class AVServer:
         )
 
     def publish_application(self, app_uid):
-        """!Publish an application.
+        """Publish an application.
 
-        @param app_uid (str): application uid.
+        :param str app_uid: application uid.
 
-        @return str: opertaion uid if successful, otherwise None.
+        :return str: opertaion uid if successful, otherwise None.
         """
         url = self._url + "/api/v1/operations/applications/publish?"
         query = self._query()
@@ -718,11 +727,11 @@ class AVServer:
         )
 
     def delete_application(self, app_uid):
-        """!Delete an application.
+        """Delete an application.
 
-        @param app_uid (str): application uid.
+        :param str app_uid: application uid.
 
-        @return str: opertaion uid if successful, otherwise None.
+        :return str: opertaion uid if successful, otherwise None.
         """
         url = self._url + f"/api/v1/applications/{app_uid}?"
         query = self._query()
@@ -732,31 +741,34 @@ class AVServer:
         return response.status_code == 200
 
     def application_details(self, app_uid):
-        """!Request Application content.
+        """Request Application content.
 
-        @param app_uid: application uid
+        :param str app_uid: application uid
 
-        @return dict: application details if successful, otherwise None.
-                {
-                    "deprecated": (timestamp),
-                    "released": (timestamp),
-                    "published": (timestamp),
-                    "category": (str),
-                    "applicationManager": (str),
-                    "isPublic": (bool),
-                    "isReference": (bool),
-                    "revision": (str),
-                    "labels": (list),
-                    "ownerCompany": (str),
+        :return dict: application details if successful, otherwise None.
+
+        .. code-block:: python
+
+            {
+                "deprecated": (timestamp),
+                "released": (timestamp),
+                "published": (timestamp),
+                "category": (str),
+                "applicationManager": (str),
+                "isPublic": (bool),
+                "isReference": (bool),
+                "revision": (str),
+                "labels": (list),
+                "ownerCompany": (str),
+                "uid": (str),
+                "owner": {
                     "uid": (str),
-                    "owner": {
-                        "uid": (str),
-                        "name": (str),
-                    },
-                    "type": (str),
-                    "state": (str),
                     "name": (str),
-                }
+                },
+                "type": (str),
+                "state": (str),
+                "name": (str),
+            }
         """
         url = self._url + f"/api/v1/applications/{app_uid}?"
         query = self._query()

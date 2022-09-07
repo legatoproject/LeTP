@@ -1,4 +1,27 @@
-"""!Airvantage API."""
+r"""Airvantage API module.
+
+Use the av_lib module to interact with the av_server module.
+
+Examples
+^^^^^^^^
+
+.. code-block:: python
+
+    from pytest_letp.lib import av_lib
+
+    @pytest.mark.config("$LETP_TESTS/config/av_server.xml")
+    def test_av_sync(target, read_config):
+        # Create av handler
+        av_handler = av_lib.AVManager(target, read_config)
+        # Start sync job
+        sync_job = av_handler.sync()
+        # Start AVC session
+        target.run_at_cmd("at+wdss=1,1", 90, [r"\+WDSI: 6", r"\+WDSI: 23,1"])
+        # Wait for job to be successful
+        assert av_handler.wait_for_operation_state(sync_job), "Sync job failed"
+        # Stop AVC session
+        target.run_at_cmd("at+wdss=1,0", 20, [r"\+WDSI: 8"])
+"""
 # pylint: disable=too-many-public-methods
 from time import sleep
 from pprint import pformat
@@ -9,7 +32,7 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 
 class AvLibException(Exception):
-    """!Airvantage library exception."""
+    """Airvantage library exception."""
 
     def __init__(self, msg=None):
         error_msg = "AvLibException"
@@ -20,7 +43,7 @@ class AvLibException(Exception):
 
 
 class AVTargetAdapter:
-    """!Target adapter for AVManager."""
+    """Target adapter for AVManager."""
 
     def __init__(self, target):
         self.generic_name = target.generic_name
@@ -30,64 +53,64 @@ class AVTargetAdapter:
 
 
 class AVResultVerifier:
-    """!Airvantage result helper class."""
+    """Airvantage result helper class."""
 
     def __init__(self, verify_func, expected_result=None, inverse=False):
-        """!Airvantage result verifier.
+        """Airvantage result verifier.
 
-        @param verify_func: Function to verify result against.
-        @param expected_result: expected result of response.
-        @param inverse (bool): inverse the result.
+        :param verify_func: Function to verify result against.
+        :param expected_result: expected result of response.
+        :param bool inverse: inverse the result.
         """
         self.verify_func = getattr(self, verify_func.__name__)
         self.expected_result = expected_result
         self.inverse = inverse
 
     def validate_rsp(self, rsp):
-        """!Validate response.
+        """Validate response.
 
-        @param rsp: response from AV function to validate in verify_func.
+        :param rsp: response from AV function to validate in verify_func.
 
-        @return bool: result of verify_func.
+        :return bool: result of verify_func.
         """
         return self.verify_func(rsp)
 
     @staticmethod
     def return_rsp(rsp, boolean, return_rsp):
-        """!Return response or result depending on configuration.
+        """Return response or result depending on configuration.
 
-        @param rsp: response to return.
-        @param boolean (bool): boolean to return.
-        @param return_rsp (bool): if True return reponse if False return boolean.
+        :param rsp: response to return.
+        :param bool boolean: boolean to return.
+        :param bool return_rsp: if True return reponse if False return boolean.
 
-        @return rsp or bool: depending on value of return_rsp.
+        :return rsp or bool: depending on value of return_rsp.
         """
         return rsp if return_rsp else boolean
 
     def is_not_none(self, cmp):
-        """!Return boolean result of cmp is not None.
+        """Return boolean result of cmp is not None.
 
-        @param cmp: variable for comparison.
+        :param cmp: variable for comparison.
 
-        @return bool: result of comparison.
+        :return bool: result of comparison.
         """
         return cmp is not None if not self.inverse else cmp is None
 
     def is_true(self, cmp):
-        """!Return boolean result of cmp is True.
+        """Return boolean result of cmp is True.
 
-        @param cmp: variable for comparison.
+        :param cmp: variable for comparison.
 
-        @return bool: result of comparison.
+        :return bool: result of comparison.
         """
         return cmp if not self.inverse else not cmp
 
     def is_equal_to(self, cmp):
-        """!Return boolean result of cmp == alt.
+        """Return boolean result of cmp == alt.
 
-        @param cmp: variable for comparison.
+        :param cmp: variable for comparison.
 
-        @return bool: result of comparison.
+        :return bool: result of comparison.
         """
         return (
             cmp == self.expected_result
@@ -96,11 +119,11 @@ class AVResultVerifier:
         )
 
     def is_greater_than(self, cmp):
-        """!Return boolean result of cmp > alt.
+        """Return boolean result of cmp > alt.
 
-        @param cmp: variable for comparison.
+        :param cmp: variable for comparison.
 
-        @return bool: result of comparison.
+        :return bool: result of comparison.
         """
         return (
             cmp > self.expected_result
@@ -109,11 +132,11 @@ class AVResultVerifier:
         )
 
     def is_greater_than_or_equal_to(self, cmp):
-        """!Return boolean result of cmp >= alt.
+        """Return boolean result of cmp >= alt.
 
-        @param cmp: variable for comparison.
+        :param cmp: variable for comparison.
 
-        @return bool: result of comparison.
+        :return bool: result of comparison.
         """
         return (
             cmp >= self.expected_result
@@ -123,21 +146,21 @@ class AVResultVerifier:
 
     @staticmethod
     def compare_dict(cmp_dict, cmp_func):
-        """!Return dictionary of all non-None keys.
+        """Return dictionary of all non-None keys.
 
-        @param cmp_dict (dict): dictionary for comparison.
-        @param cmp_func (function): function to compare with.
+        :param dict cmp_dict: dictionary for comparison.
+        :param function cmp_func: function to compare with.
 
-        @return dict: result of comparison.
+        :return dict: result of comparison.
         """
         return {key: val for key, val in cmp_dict.items() if cmp_func(cmp=val)}
 
 
 class AVManager:
-    """!Airvantage management tool."""
+    """Airvantage management tool."""
 
     def __init__(self, target, config):
-        """!Initialize AVLib.
+        """Initialize AVLib.
 
         Steps:
             -# Get module information.
@@ -145,7 +168,7 @@ class AVManager:
             -# Find module on server.
                If not found, create new system.
 
-        @exception AvLibException: If failed to authenticate to server.
+        :exception AvLibException: If failed to authenticate to server.
         """
         kwargs = {}
         for value in config.find("av_server"):
@@ -161,7 +184,7 @@ class AVManager:
         self.uid = self._module_info.uid
 
     def create_system(self):
-        """!Create system on AirVantage."""
+        """Create system on AirVantage."""
         swilog.warning(
             f"Module with imei: {self._module_info.imei} not found on server."
         )
@@ -193,19 +216,19 @@ class AVManager:
         return_rsp=False,
         **kwargs,
     ):
-        """!Attempt to run function in iterations and compare result.
+        """Attempt to run function in iterations and compare result.
 
-        @param function: function to run.
-        @param kwargs: function arguments to pass in.
-        @param result_verifier: class to verify result.
-        @param attempts (int): attempts to try for result.
-        @param return_rsp (bool):
+        :param function: function to run.
+        :param kwargs: function arguments to pass in.
+        :param result_verifier: class to verify result.
+        :param int attempts: attempts to try for result.
+        :param bool return_rsp:
                 if True:
                     return function response.
                 else:
                     return bool if result is True.
 
-        @return rsp or bool: depending on value of return_rsp.
+        :return rsp or bool: depending on value of return_rsp.
         """
         for i in range(attempts):
             swilog.info(f"Trying {function} attempt: {i + 1} of {attempts}")
@@ -227,15 +250,15 @@ class AVManager:
         attempts=30,
         wait_time=2,
     ):
-        """!Wait for specified state of operation from AirVantage.
+        """Wait for specified state of operation from AirVantage.
 
-        @param uid (str): operation uid.
-        @param expected_state (str): expected state of operation.
-        @param expected_reason (str): expected reason for state of operation.
-        @param attempts (int): number of attempts to check for operation.
-        @param wait_time (int): time to wait between checks.
+        :param str uid: operation uid.
+        :param str expected_state: expected state of operation.
+        :param str expected_reason: expected reason for state of operation.
+        :param int attempts: number of attempts to check for operation.
+        :param int wait_time: time to wait between checks.
 
-        @return bool: True if state and reason are reached, otherwise False.
+        :return bool: True if state and reason are reached, otherwise False.
         """
         swilog.info("Checking operation state.")
         expected_result = {"state": expected_state, "reason": expected_reason}
@@ -250,22 +273,25 @@ class AVManager:
         )
 
     def get_app_info(self, **kwargs):
-        """!Get application info from AirVantage server.
+        """Get application info from AirVantage server.
 
-        @param app_uid (str): application uid.
-        @param app_name (str): application name.
-        @param app_revision (str): application revision.
-        @param app_type (str): application type.
+        :param int app_uid: application uid.
+        :param str app_name: application name.
+        :param str app_revision: application revision.
+        :param str app_type: application type.
 
-        @return dict: app info in dictionary if successful, otherwise None.
-                {
-                    "uid": (str),
-                    "name": (str),
-                    "revision": (str),
-                    "type": (str),
-                    "category": (str),
-                    "state": (str),
-                }
+        :return dict: app info in dictionary if successful, otherwise None.
+
+        .. code-block:: python
+
+            {
+                "uid": (str),
+                "name": (str),
+                "revision": (str),
+                "type": (str),
+                "category": (str),
+                "state": (str),
+            }
         """
         app_uid = (
             kwargs["app_uid"]
@@ -275,32 +301,32 @@ class AVManager:
         return self.server.application_details(app_uid=app_uid)
 
     def get_app_detail(self, detail, **kwargs):
-        """!Get application detail from AirVantage server.
+        """Get application detail from AirVantage server.
 
-        @param detail (str): application detail
+        :param str detail: application detail
                 ("uid", "name", "revision", "type", "category", "state")
-        @param app_uid (str): application uid.
-        @param app_name (str): application name.
-        @param app_revision (str): application revision.
-        @param app_type (str): application type.
+        :param str app_uid: application uid.
+        :param str app_name: application name.
+        :param str app_revision: application revision.
+        :param str app_type: application type.
 
-        @return str: detail requested if successful, otherwise None.
+        :return str: detail requested if successful, otherwise None.
         """
         return self.get_app_info(**kwargs)[detail]
 
     def remove_app(self, attempts=10, **kwargs):
-        """!Remove apps from AirVantage.
+        """Remove apps from AirVantage.
 
         Delete all apps matching description from AirVantage.
         Check if the apps are removed.
 
-        @param app_uid (str): application uid.
-        @param app_name (str): application name.
-        @param app_revision (str): application revision.
-        @param app_type (str): application type.
-        @param attempts (int): attempts to remove application.
+        :param str app_uid: application uid.
+        :param str app_name: application name.
+        :param str app_revision: application revision.
+        :param str app_type: application type.
+        :param int attempts: attempts to remove application.
 
-        @return bool: True if successful, otherwise False.
+        :return bool: True if successful, otherwise False.
         """
         previous_uid = ""
         for _ in range(attempts):
@@ -322,16 +348,16 @@ class AVManager:
         return False
 
     def check_app_status(self, expected_status, attempts=10, **kwargs):
-        """!Check app status on airVantage.
+        """Check app status on airVantage.
 
-        @param app_uid (str): application uid.
-        @param app_name (str): application name.
-        @param app_revision (str): application revision.
-        @param app_type (str): application type.
-        @param expected_status (str): expected application status.
-        @param attempts (int): attempts to remove application.
+        :param str app_uid: application uid.
+        :param str app_name: application name.
+        :param str app_revision: application revision.
+        :param str app_type: application type.
+        :param str expected_status: expected application status.
+        :param int attempts: attempts to remove application.
 
-        @return bool: True if expected_status matches status, otherwise False.
+        :return bool: True if expected_status matches status, otherwise False.
         """
         swilog.info(f"Checking app for status: {expected_status} on airVantage.")
         return self._try_for_result(
@@ -344,14 +370,14 @@ class AVManager:
         )
 
     def upload_app(self, file, app_name, app_revision, app_type):
-        """!Release and Publish app to airVantage.
+        """Release and Publish app to airVantage.
 
-        @param file (str): path of file to upload.
-        @param app_name (str): application name.
-        @param app_revision (str): application revision.
-        @param app_type (str): application type.
+        :param str file: path of file to upload.
+        :param str app_name: application name.
+        :param str app_revision: application revision.
+        :param str app_type: application type.
 
-        @return str: application uid if successful, otherwise None.
+        :return str: application uid if successful, otherwise None.
         """
         if not self.remove_app(app_revision=app_revision, app_type=app_type):
             swilog.warning(
@@ -375,127 +401,130 @@ class AVManager:
     # Wrapping Target System Functions
     # =================================================================================
     def system_activate_uid(self):
-        """!Activate a selection of systems.
+        """Activate a selection of systems.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_activate_uid(self.uid)
 
     def system_terminate_uid(self):
-        """!Terminates a selection of systems.
+        """Terminates a selection of systems.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_terminate_uid(self.uid)
 
     def system_resume_uid(self):
-        """!Resume a selection of systems.
+        """Resume a selection of systems.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_resume_uid(self.uid)
 
     def system_suspend_uid(self):
-        """!Suspend a selection of systems.
+        """Suspend a selection of systems.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_suspend_uid(self.uid)
 
     def system_delete_uid(self):
-        """!Delete a specific system from AirVantage.
+        """Delete a specific system from AirVantage.
 
-        @return bool: True if successful, otherwise False.
+        :return bool: True if successful, otherwise False.
         """
         return self.server.system_delete_uid(self.uid)
 
     def system_data_retrieve(self, obj):
-        """!Create a job to retrieve data.
+        """Create a job to retrieve data.
 
-        @param obj: data path. eg LE_AVDATA_CTRL.xxx.
+        :param obj: data path. eg LE_AVDATA_CTRL.xxx.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_data_retrieve(self.uid, obj)
 
     def system_apply_settings(self, obj_data):
-        """!Apply settings to the system.
+        """Apply settings to the system.
 
-        @param data: data to be write. Data must be in list of dictionary type.
-                    eg: [{"key" : "Path.to.app", "value" : 120}]
-                        or
-                        [
-                            {"key" : "Path.key1", "value" : 120},
-                            {"key" : "Path.key2", "value" : 120}
-                        ]
+        :param data: data to be write. Data must be in list of dictionary type.
 
-        @return str: operation uid if successful, otherwise None.
+        .. code-block:: python
+
+            [{"key" : "Path.to.app", "value" : 120}]
+            # or
+            [
+                {"key" : "Path.key1", "value" : 120},
+                {"key" : "Path.key2", "value" : 120}
+            ]
+
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_apply_settings(self.uid, obj_data)
 
     def system_apply_command(self, command_id, parameters):
-        """!Apply command to the system.
+        """Apply command to the system.
 
-        @param command_id (str): data path.
-        @param parameters: parameters value.
+        :param str command_id: data path.
+        :param parameters: parameters value.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_apply_command(self.uid, command_id, parameters)
 
     def system_reboot(self):
-        """!Reboot device.
+        """Reboot device.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.system_reboot(self.uid)
 
     def system_message_list(self, size=10):
-        """!Get the list of messages of the system.
+        """Get the list of messages of the system.
 
-        @param size (int): size the messages list.
+        :param int size: size the messages list.
 
-        @return list: list of message uids if successful, otherwise None.
+        :return list: list of message uids if successful, otherwise None.
         """
         return self.server.system_message_list(self.uid, size)
 
     def system_message_details(self, message_uid):
-        """!Detailed message of system associated with message ID.
+        """Detailed message of system associated with message ID.
 
-        @param message_uid (str): message uid.
+        :param str message_uid: message uid.
 
-        @return dict: json formed message details if successful, otherwise None.
+        :return dict: json formed message details if successful, otherwise None.
         """
         return self.server.system_message_details(self.uid, message_uid)
 
     def system_last_datapoints(self, points=None, prefix=None):
-        """!Get the last data point of the system.
+        """Get the last data point of the system.
 
-        @param points (str): list of data ids separated by a ','.
-        @param prefix (str): prefix of requested data ids.
+        :param str points: list of data ids separated by a ','.
+        :param str prefix: prefix of requested data ids.
 
-        @return dict: json formed data details if successful, otherwise None.
+        :return dict: json formed data details if successful, otherwise None.
         """
         return self.server.system_last_datapoints(self.uid, points, prefix)
 
     def get_data_value_path(self, path="lwm2m.3.0.0"):
-        """!Get the data value associated with lwm2m path.
+        """Get the data value associated with lwm2m path.
 
-        @param path (str): lwm2m path.
+        :param str path: lwm2m path.
 
-        @return str: lwm2m data value if successful, otherwise None.
+        :return str: lwm2m data value if successful, otherwise None.
         """
         return self.server.get_data_value_path(self.uid, path)
 
     def get_pending_operations(self):
-        """!Get list of pending operations.
+        """Get list of pending operations.
 
-        @return list: list of pending operation uids if successful, otherwise None.
+        :return list: list of pending operation uids if successful, otherwise None.
         """
         return self.server.get_pending_operations(self.uid)
 
     def cancel_pending_operations(self):
-        """!Cancel all pending operations."""
+        """Cancel all pending operations."""
         for uid in self.get_pending_operations():
             self.server.cancel_operation(uid)
             assert self.wait_for_operation_state(
@@ -503,53 +532,53 @@ class AVManager:
             ), "Failed to cancel operation"
 
     def sync(self):
-        """!Create a sync Job on av server.
+        """Create a sync Job on av server.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.sync(self.uid)
 
     def install_application(self, app_uid):
-        """!Install an application.
+        """Install an application.
 
-        @param app_uid (str): application uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.install_application(self.uid, app_uid)
 
     def uninstall_application(self, app_uid):
-        """!Uninstall an application.
+        """Uninstall an application.
 
-        @param app_uid (str): application uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.uninstall_application(self.uid, app_uid)
 
     def start_application(self, app_uid):
-        """!Start an application.
+        """Start an application.
 
-        @param app_uid (str): application uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.start_application(self.uid, app_uid)
 
     def stop_application(self, app_uid):
-        """!Stop an application.
+        """Stop an application.
 
-        @param app_uid (str): application uid.
+        :param str app_uid: application uid.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.stop_application(self.uid, app_uid)
 
     def send_sms(self, text="hello"):
-        """!Send SMS to the system.
+        """Send SMS to the system.
 
-        @param text (str): text content.
+        :param str text: text content.
 
-        @return str: operation uid if successful, otherwise None.
+        :return str: operation uid if successful, otherwise None.
         """
         return self.server.send_sms(self.uid, text)

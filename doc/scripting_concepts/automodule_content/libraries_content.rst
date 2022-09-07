@@ -1,4 +1,4 @@
-app 
+app
 ---------------
 
 .. automodule:: lib.app
@@ -6,7 +6,7 @@ app
     :undoc-members:
     :show-inheritance:
 
-com 
+com
 ---------------
 
 .. automodule:: lib.com
@@ -14,7 +14,7 @@ com
     :undoc-members:
     :show-inheritance:
 
-com\_exceptions 
+com\_exceptions
 ---------------------------
 
 .. automodule:: lib.com_exceptions
@@ -22,7 +22,7 @@ com\_exceptions
     :undoc-members:
     :show-inheritance:
 
-com\_port\_detector 
+com\_port\_detector
 -------------------------------
 
 .. automodule:: lib.com_port_detector
@@ -30,7 +30,7 @@ com\_port\_detector
     :undoc-members:
     :show-inheritance:
 
-controller 
+controller
 ----------------------
 
 .. automodule:: lib.controller
@@ -38,7 +38,7 @@ controller
     :undoc-members:
     :show-inheritance:
 
-files 
+files
 -----------------
 
 .. automodule:: lib.files
@@ -46,7 +46,7 @@ files
     :undoc-members:
     :show-inheritance:
 
-misc 
+misc
 ----------------
 
 .. automodule:: lib.misc
@@ -62,7 +62,7 @@ module\_exceptions
     :undoc-members:
     :show-inheritance:
 
-modules 
+modules
 -------------------
 
 .. automodule:: lib.modules
@@ -70,7 +70,7 @@ modules
     :undoc-members:
     :show-inheritance:
 
-modules\_linux 
+modules\_linux
 --------------------------
 
 .. automodule:: lib.modules_linux
@@ -78,7 +78,7 @@ modules\_linux
     :undoc-members:
     :show-inheritance:
 
-partitions 
+partitions
 ----------------------
 
 .. automodule:: lib.partitions
@@ -86,7 +86,7 @@ partitions
     :undoc-members:
     :show-inheritance:
 
-runpy\_adapter 
+runpy\_adapter
 --------------------------
 
 .. automodule:: lib.runpy_adapter
@@ -94,7 +94,7 @@ runpy\_adapter
     :undoc-members:
     :show-inheritance:
 
-sim\_lib 
+sim\_lib
 --------------------
 
 .. automodule:: lib.sim_lib
@@ -102,7 +102,7 @@ sim\_lib
     :undoc-members:
     :show-inheritance:
 
-socket\_server 
+socket\_server
 --------------------------
 
 .. automodule:: lib.socket_server
@@ -110,7 +110,7 @@ socket\_server
     :undoc-members:
     :show-inheritance:
 
-swilog 
+swilog
 ------------------
 
 .. automodule:: lib.swilog
@@ -118,7 +118,7 @@ swilog
     :undoc-members:
     :show-inheritance:
 
-versions 
+versions
 --------------------
 
 .. automodule:: lib.versions
@@ -126,7 +126,7 @@ versions
     :undoc-members:
     :show-inheritance:
 
-versions\_linux 
+versions\_linux
 ---------------------------
 
 .. automodule:: lib.versions_linux
@@ -134,3 +134,18 @@ versions\_linux
     :undoc-members:
     :show-inheritance:
 
+av_lib
+------------------
+
+.. automodule:: lib.av_lib
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+av_server
+------------------
+
+.. automodule:: lib.av_server
+    :members:
+    :undoc-members:
+    :show-inheritance:
