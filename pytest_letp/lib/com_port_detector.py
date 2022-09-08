@@ -87,10 +87,15 @@ class ComPortDetector:
     def _is_resp_expected(self, cmd, expect_pattern):
         """Check if the resp returned by the cmd is expected."""
         self.tty_session.send(cmd + "\r")
-        expect_idx = self.tty_session.expect([expect_pattern, pexpect.TIMEOUT], 1)
+        expect_idx = self.tty_session.expect([expect_pattern, pexpect.TIMEOUT], 2)
 
         if expect_idx == 0:
             return True
+        else:
+            self.tty_session.send(cmd + "\r")
+            expect_idx = self.tty_session.expect([expect_pattern, pexpect.TIMEOUT], 2)
+            if expect_idx == 0:
+                return True
 
         return False
 
