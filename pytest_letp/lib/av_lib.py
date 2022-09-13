@@ -24,7 +24,6 @@ Examples
 """
 # pylint: disable=too-many-public-methods
 from time import sleep
-from pprint import pformat
 from pytest_letp.lib import swilog
 from pytest_letp.lib.av_server import AVServer
 
@@ -173,7 +172,6 @@ class AVManager:
         kwargs = {}
         for value in config.find("av_server"):
             kwargs[value.tag] = value.text if value.text else ""
-        swilog.info(f"av server:\n{pformat(kwargs, indent=4)}")
         self.server = AVServer(**kwargs)
         self._module_info = AVTargetAdapter(target)
         if not self.server.authenticate():
