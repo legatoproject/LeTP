@@ -15,7 +15,7 @@
 
     .container {
         min-width: 1000px;
-        margin: 0 auto;
+        margin-left: 200px;
     }
 
     .container > h1 {
@@ -59,10 +59,44 @@
        }
     }
 
+    .list {
+        position: sticky;
+        top: 80px;
+        max-width: 200px;
+        height: 0px;
+    }
+
+    li {
+        font-size: 20px;
+        padding: 1px;
+        background-color: rgb(230, 224, 224);
+    }
+
+    li:hover {
+        background-color: #828992;
+    }
+
     .summary {
+        text-align: center;
         position: sticky;
         top: 0px;
+        margin-bottom: 0px;
         background: white;
+    }
+
+    .panel {
+        position: sticky;
+        top: 0px;
+        margin-bottom: 0px;
+        margin-left: 200px;
+        color: white;
+        background: white;
+        width: 2000px;
+    }
+
+    ul a:hover {
+        color: black;
+        text-decoration: none;
     }
 
     .passed { background-color: #c3e6cb; }
@@ -104,6 +138,14 @@
     </style>
 </head>
 <body>
+    <ul class="list">
+        <a href="#Summary"><li>Summary</li></a>
+        <a href="#Groups"><li>Groups</li></a>
+        <a href="#Environment"><li>Environment</li></a>
+        <a href="#Test Results (failed)"><li>Test Results (failed)</li></a>
+        <a href="#Test Results (all)"><li>Test Results (all)</li></a>
+    </ul>
+    <h3 class="panel">background panel</h3>
     <div class="container">
         <h1>{{ title }}</h1>
 
@@ -112,8 +154,8 @@
         {% endif %}
 
         <!-- Summary -->
-        <div style="margin-top: 20px">
-            <h4 style="text-align: center" class="summary">Summary</h4>
+        <div style="margin-top: 20px" id=Summary>
+            <h4 class="summary">Summary</h4>
             <table align="center">
                 <thead>
                     <tr class="title">
@@ -161,8 +203,8 @@
         </div>
 
         <!-- Groups -->
-        <div style="margin-top: 50px">
-            <h4 style="text-align: center" id=Groups class="summary">Groups</h4>
+        <div style="margin-top: 50px" id=Groups>
+            <h4 class="summary">Groups</h4>
             <table align="center">
                 <thead>
                     <tr class="title">
@@ -219,7 +261,7 @@
         </div>
 
         {% macro render_env_table(title, headers, data_dict) -%}
-        <h4 style="text-align: center; font-variant: small-caps; margin-top: 10px;" class="summary">
+        <h4 style="margin-top: 10px;" class="summary">
             <small>{{ title }}</small></h4>
             <table align="center">
                 <thead>
@@ -262,11 +304,11 @@
         <!-- Environment -->
         {% if section == 'all' %}
         <div style="margin-top: 50px">
-            <h4 style="text-align: center">Environment</h4>
+            <h4 style="text-align: center; position: relative; z-index: 1;" id="Environment">Environment</h4>
 
             <!-- Common -->
             {% if env_global_list | length > 0 %}
-                <h6 style="text-align: center; font-variant: small-caps;">
+                <h6 style="text-align: center;">
                     Common</h6>
                 <table align="center">
                     <thead>
@@ -302,8 +344,8 @@
         </div>
 
         {% macro render_results(title, headers, results) -%}
-            <div style="margin-top: 50px">
-                <h4 style="text-align: center" class="summary">{{ title }}</h4>
+            <div style="margin-top: 50px" id="{{ title }}">
+                <h4 class="summary">{{ title }}</h4>
                 <table align="center">
                     <thead>
                         <tr class="title">
@@ -348,8 +390,8 @@
         {%- endmacro %}
 
         {% macro render_results_group(title, headers, results) -%}
-            <div style="margin-top: 50px">
-                <h4 style="text-align: center" class="summary">{{ title }}</h4>
+            <div style="margin-top: 50px" id="{{ title }}">
+                <h4 class="summary">{{ title }}</h4>
                 <table align="center">
                     <thead>
                         <tr class="title">
