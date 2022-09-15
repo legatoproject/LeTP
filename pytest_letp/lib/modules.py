@@ -202,7 +202,9 @@ class SwiModule:
     """Generic Sierra Wireless module class."""
 
     legato_pattern = {
-        "full": (r".*?(?P<version>[A-Z]*\d{1,2}\.\d{1,2}\.\d+?(\.rc\d+)?.*?)(\\r\\n|$)"),
+        "full": (
+            r".*?(?P<version>[A-Z]*\d{1,2}\.\d{1,2}\.\d+?(\.rc\d+)?.*?)(\\r\\n|$)"
+        ),
         "parsed": (
             r".*?(?P<version>[A-Z]*\d{1,2}\.\d{1,2}\.\d+?(\.rc\d+)?([^-_\n]+|$)?)"
         ),
@@ -385,7 +387,9 @@ class SwiModule:
             return False
 
         # if CLI was pre-defined with a valid fd but device name has been changed
-        re_opened_port = com.SerialPort.open(link_obj.dev_tty, link_obj.baudrate, link_obj.rtscts)
+        re_opened_port = com.SerialPort.open(
+            link_obj.dev_tty, link_obj.baudrate, link_obj.rtscts
+        )
 
         if not re_opened_port:
             return False
@@ -521,7 +525,7 @@ class SwiModule:
     def get_ip_addr(self, itf):
         assert 0, "Not implemented yet"
 
-    def sim_status(self, timeout=10):
+    def sim_status(self, timeout=20):
         """Get SIM status."""
         if not self.links[1].info.is_used():
             # bypass checking sim status
@@ -693,9 +697,7 @@ class SlinkInfo:
         device_name = self.name()
 
         if device_name is None or not isinstance(device_name, str) or device_name == "":
-            swilog.error(
-                "Empty module name!"
-            )
+            swilog.error("Empty module name!")
             return None
 
         if device_name.startswith("usb:"):
