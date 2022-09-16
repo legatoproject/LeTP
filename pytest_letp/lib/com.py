@@ -1073,6 +1073,7 @@ class target_at:
 
     def run(self, cmd, timeout=-1):
         """Run command on target_at."""
+        clear_buffer(self)
         self.send(cmd + "\r")
         self.expect(self.PROMPT, timeout)
         return self.before + self.after
