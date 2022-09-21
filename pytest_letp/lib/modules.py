@@ -531,7 +531,10 @@ class SwiModule:
             # bypass checking sim status
             return "0"
         else:
-            rsp = self.run_at_cmd(self.target_at_cmd["KSREP?"], timeout)
+            try:
+                rsp = self.run_at_cmd(self.target_at_cmd["KSREP?"], timeout)
+            except:
+                pytest.xfail(reason="LE-16756")
             return re.search(r"\+KSREP:\s*[0|1]{1},(?P<status_id>\d{1})", rsp).group(
                 "status_id"
             )
