@@ -115,7 +115,8 @@ class TestSummary:
         return {
             "CollectedTests": {
                 "count": self.total_collected(),
-                "percentage": self.total_collected() / divider},
+                "percentage": self.total_collected() / divider,
+            },
             "TestcasesRun": {
                 "count": self.total_tcs_run(),
                 "percentage": self.total_tcs_run() / divider,
@@ -817,7 +818,12 @@ class TestReportBuilder:
         sys_type_dict = {}
         # platforms with multi campaigns
         # {platform: [number of campaigns run, expected quantity], ...}
-        count_campaigns = {"wp76xx": [0, 2], "wp77xx": [0, 2], "hl7812": [0, 3]}
+        count_campaigns = {
+            "wp76xx": [0, 2],
+            "wp77xx": [0, 2],
+            "hl7812": [0, 3],
+            "rc76": [0, 2],
+        }
         for sys_name in sub_systems_names:
             sys_type = self._parse_sys_type_name(sys_name)
             if sys_type in count_campaigns:
@@ -1293,9 +1299,7 @@ def parse_args():
         "--global-env-path", help="Path to a global environment JSON file"
     )
     parser.add_argument(
-        "--title",
-        default="Test Report",
-        help="Path to build_configuration.json files",
+        "--title", default="Test Report", help="Path to build_configuration.json files"
     )
     parser.add_argument("--output", default="test_report.html", help="Output file path")
     parser.add_argument(
