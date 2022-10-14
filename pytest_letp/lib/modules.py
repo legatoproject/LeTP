@@ -559,20 +559,6 @@ class SwiModule:
             except:
                 pytest.xfail(reason="LE-16671")
 
-    def is_uboot_prompt(self, prompt):
-        """Check if the device is uboot prompt."""
-        max_try = 10
-        prompt_occurrence = 0
-        for _ in range(max_try):
-            self.slink1.send("\r")
-            idx = self.slink1.expect([prompt, pexpect.TIMEOUT], 2)
-            if idx == 0:
-                prompt_occurrence += 1
-        if prompt_occurrence >= 5:
-            return True
-
-        return False
-
     def wait_for_device_up(self, timeout=180):
         """Check if device is up by testing all ports are responsive."""
         time_elapsed = time.time()
@@ -580,15 +566,6 @@ class SwiModule:
 
         while time_elapsed <= end_time:
             swilog.info("Wait for device is up...")
-            time.sleep(10)
-            # Check and exit boot mode after flashing the images
-            if self.is_uboot_prompt(prompt="\n#"):
-                self.slink1.send("boot\r")
-                assert (
-                    self.slink1.expect([r"Version: [0-9]+\.[0-9]+", pexpect.TIMEOUT], 5)
-                    == 0
-                )
-                time.sleep(5)
             if not self.is_port_accessible(com.ComPortType.AT.name):
                 swilog.warning("checking at port")
                 self.get_link(com.ComPortType.AT.name).reinit()
