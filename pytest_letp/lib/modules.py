@@ -272,9 +272,14 @@ class SwiModule:
     def com_port_checklist(self):
         """Return the information to check different type of com port."""
         if not self._com_port_checklist:
-            self._com_port_checklist[com.ComPortType.AT.name] = [
-                ("ATI", self.__class__.__name__.upper().strip("X"))
-            ]
+            if self.__class__.__name__ == "HL78XX":
+                self._com_port_checklist[com.ComPortType.AT.name] = [
+                    ("ATI", "\n" + self.__class__.__name__.upper().strip("X"))
+                ]
+            else:
+                self._com_port_checklist[com.ComPortType.AT.name] = [
+                    ("ATI", self.__class__.__name__.upper().strip("X"))
+                ]
 
         return self._com_port_checklist
 
