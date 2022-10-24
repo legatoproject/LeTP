@@ -24,7 +24,7 @@ PEXPECT_MAXREAD = 2000
 class target_ssh_qct(pexpect.pxssh.pxssh):
     """Class to connect with ssh based on pexpect."""
 
-    def __init__(self, target_ip, ssh_port, config_target, *args, **kwargs):
+    def __init__(self, target_ip, ssh_port, cli_port, config_target, *args, **kwargs):
         self.target_ip = target_ip
         self.ssh_port = int(ssh_port)
         self.config_target = config_target
@@ -51,6 +51,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         self.PROMPT = QctAttr().prompt
         self.target = self
         self.reinit_in_progress = False
+        self.cli_port = cli_port
 
     def prompt(self, timeout=-1):
         """Check for target_ssh_qct prompt."""
@@ -135,7 +136,10 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         except (EOFError, pexpect.EOF):
             swilog.warning("EOF received")
             timeout = 60
-            assert self.wait_for_device_up(timeout) == 0, "Device was not started"
+            if self.cli_port is not None:
+                assert self.cli_port.wait_for_device_up(60) == 0, "Device was not started"
+            else:
+                assert self.wait_for_device_up(60) == 0, "Device was not started"
             self.reinit()
             # Retry, not protected this time
             return super(target_ssh_qct, self).expect(*args, **kwargs)
@@ -217,6 +221,8 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
                     swilog.error(
                         "communication error!!!. Was there an unexpected reboot?"
                     )
+                    if self.cli_port is not None:
+                        assert self.check_target_status(60) == 0, "Device was not started"
                     time.sleep(30)
                     self.reinit()
                     assert 0, (
@@ -258,7 +264,10 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
             return self.run_main(cmd, timeout, local_echo, withexitstatus, check)
         except (EOFError, pexpect.EOF):
             swilog.warning("EOF received")
-            assert self.wait_for_device_up(timeout) == 0, "Device was not started"
+            if self.cli_port is not None:
+                assert self.cli_port.wait_for_device_up(60) == 0, "Device was not started"
+            else:
+                assert self.wait_for_device_up(60) == 0, "Device was not started"
             self.reinit()
             # Retry, not protected this time
             return self.run_main(cmd, timeout, local_echo, withexitstatus, check)
@@ -334,6 +343,7 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
         self.__init__(
             self.target_ip,
             self.ssh_port,
+            self.cli_port,
             self.config_target,
             *self.save_args,
             **self.save_kwargs
@@ -394,3 +404,4 @@ class target_ssh_qct(pexpect.pxssh.pxssh):
             data += self.before
             data += self.after
         return data
+

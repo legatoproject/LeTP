@@ -275,6 +275,7 @@ class ModuleLinux(SwiModule):
             ssh_client = ssh_linux.target_ssh_qct(
                 self.target_ip,
                 self._ssh_port,
+                self.slink1,
                 config_target=self.config_target,
                 options={
                     "StrictHostKeyChecking": "no",
