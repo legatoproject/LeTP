@@ -322,6 +322,7 @@ class TestCaseView:
         id_str = self.test_name + "_" + self.target_name
         id_str = id_str.replace(".", "_")
         id_str = id_str.replace(":", "_")
+        id_str = re.sub('[^a-zA-Z0-9-_.:]', '_', id_str)
         return id_str
 
     @property
