@@ -153,8 +153,9 @@ class LeTPConfigPath:
         if os.path.exists(xml_file):
             return xml_file
         xml_dir_name = os.path.dirname(xml_file)
-        if (os.path.exists(xml_dir_name) and
-                xml_dir_name.endswith(("/module", "\\module"))):
+        if os.path.exists(xml_dir_name) and xml_dir_name.endswith(
+            ("/module", "\\module")
+        ):
             file_name = os.path.basename(xml_file)
             return LeTPConfigPath._find_matched_module_config(xml_dir_name, file_name)
         return None
@@ -199,8 +200,9 @@ class TestConfig:
     convention of "<parent_tag_name>/<child_tag_name>"
     """
 
-    default_cfg_file = os.environ.get("LETP_CONFIG_XML",
-                                      os.path.join("config", "testbench.xml"))
+    default_cfg_file = os.environ.get(
+        "LETP_CONFIG_XML", os.path.join("config", "testbench.xml")
+    )
     test_base_report_cache = os.path.join(
         "log", "letp_test_results.json"
     )  # letp_tests_info
@@ -639,6 +641,24 @@ class TestConfig:
         """Get main configuration for the test."""
         return self.xml_file_lists + sorted(self._elem_dict.values())
 
+    @staticmethod
+    def count_test(file):
+        """Count the number of test cases of the json file."""
+        QA_ROOT = os.getenv("QA_ROOT")
+        TC_json_path = f"{QA_ROOT}/testCampaign/{file}.json"
+        try:
+            cmd = f"letp run {TC_json_path} --collect-only"
+            swilog.info(cmd)
+            rsp = os.popen(cmd).read()
+            pattern = re.search(r"test_collected': (?P<number>\d+)", rsp)
+            number_TC = int(pattern.group("number"))
+        except:
+            swilog.info(f"Cannot open JSON file with the {file}")
+        if number_TC:
+            return number_TC + 1  # Add 1 TC L_ReinitTest
+        else:
+            return number_TC
+
     def collect_test_configs(self):
         """Collect test json configs."""
         values = self.get_main_config()
@@ -648,18 +668,23 @@ class TestConfig:
         json_content = {"letp": {"tests": [{"main_config": values}] + tests_array}}
         json_content["test_collected"] = len(tests_array)
         if "L_ReinitTest" in str(tests_array):
-            QA_ROOT = os.getenv("QA_ROOT")
+            total_test = 0
             TEST_CHOICE = os.getenv("TEST_CHOICE", None)
-            TC_json_path = f"{QA_ROOT}/testCampaign/{TEST_CHOICE}.json"
+            list_campaign = os.getenv("LIST_CAMPAIGN", None)
+            swilog.info(f"List Campaign: {list_campaign}")
             if TEST_CHOICE:
-                try:
-                    cmd = f"letp run {TC_json_path} --collect-only"
-                    rsp = os.popen(cmd).read()
-                    pattern = re.search(r"test_collected': (?P<number>\d+)", rsp)
-                    number_TC = int(pattern.group("number"))
-                    json_content["test_collected_total"] = number_TC
-                except:
-                    swilog.info("Cannot open JSON file with the TEST_CHOICE")
+                number_TC = self.count_test(TEST_CHOICE)
+                json_content["test_collected_total"] = number_TC
+            if list_campaign:
+                list_campaign = list_campaign.strip("[]")
+                list_campaign = list_campaign.split(",")
+                for campaign in list_campaign:
+                    campaign = campaign.strip()
+                    number_TC = self.count_test(campaign)
+                    if number_TC:
+                        total_test += number_TC
+                # Total number of test cases of the system
+                json_content["system_test_num"] = total_test
         # Do not suppress this print
         print(pprint.pformat(json_content))
         self.test_base_reports = json_content

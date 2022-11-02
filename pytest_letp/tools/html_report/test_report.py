@@ -99,7 +99,7 @@ class TestSummary:
             )
         else:
             if self.collected_tests_num != 0:
-                return self.collected_tests_num + 1
+                return self.collected_tests_num
             return self.total_tcs()
 
     def total_skipped(self):
@@ -592,9 +592,12 @@ class BuildConfiguration:
                 ):
                     test_result_to_recover.update_pytest_logs(pytest_result)
 
-    def process_test_data(self, global_test_data):
+    def process_test_data(self, global_test_data, merge_report=False):
         """!Build test summary."""
         collected_tests_num = self._get_json("test_collected_total")
+        if merge_report:
+            system_test_num = self._get_json("system_test_num")
+            collected_tests_num = system_test_num
         if collected_tests_num is None:
             collected_tests_num = 0
 
@@ -783,7 +786,7 @@ class TestReportBuilder:
         for key in self.info_keys:
             self.testing_env_infos.append(key)
 
-    def _process_all_build_cfgs(self):
+    def _process_all_build_cfgs(self, merge_report=False):
         """Add test summary section."""
         for build_cfg in self.build_cfg_list:
             self.environment_dict[build_cfg.name] = build_cfg.get_env_dict()
@@ -793,7 +796,9 @@ class TestReportBuilder:
                 self.environment_dict[build_cfg.name]["Execution_time"] = exe_time
             else:
                 self.environment_dict[build_cfg.name]["Execution_time"] = "N/A"
-            new_summary = build_cfg.process_test_data(self.global_test_data)
+            new_summary = build_cfg.process_test_data(
+                self.global_test_data, merge_report=merge_report
+            )
             self.test_summary.add_summary(build_cfg.name, new_summary)
 
     def _add_env_global_list(self, global_env, global_env_path):
@@ -1128,7 +1133,7 @@ class TestReportBuilder:
                 break
         self._add_build_cfgs(args.json_path)
         self._add_env_list_header()
-        self._process_all_build_cfgs()
+        self._process_all_build_cfgs(merge_report=merge_report)
         self._add_env_global_list(args.global_env, args.global_env_path)
         self._add_results_headers(merge_report=merge_report)
         status = self._add_summary_section(merge_report=merge_report)
