@@ -23,6 +23,7 @@ from pytest_letp import TestConfig
 from pytest_letp.lib import com, com_port_detector, swilog
 from pytest_letp.lib.module_exceptions import SlinkException, TargetException
 from pytest_letp.lib.versions import TargetVersions
+from pytest_letp.lib.com import clear_buffer
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -319,6 +320,9 @@ class SwiModule:
 
     def get_version(self, cmd, pattern, console):
         if console == com.ComPortType.CLI:
+            # Sometimes, when using send, sendline or expect, there is stuff in the buffer
+            # Therefore, it is necessary to clear target buffer before send command.
+            clear_buffer(self)
             self.send(cmd + "\r")
             self.expect(pattern)
             match_obj = self.match
