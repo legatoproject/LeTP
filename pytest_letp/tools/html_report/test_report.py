@@ -18,6 +18,7 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 ALL_COMPONENTS = [x.name for x in Components]
 ALL_ENVIRONMENT_TYPES = list(Environment)
+MERGE_REPORT = False
 
 
 # pylint: disable=too-many-instance-attributes
@@ -91,12 +92,25 @@ class TestSummary:
             + self.total_errors()
         )
 
+    def merge_total_collected(self):
+        """Total cases collected for Nightly master."""
+        total = {}
+        for key, value in self.sub_summary.items():
+            sys_type = str(key).split("_")
+            sys_type = sys_type[0]
+            if sys_type not in total:
+                total[sys_type] = value.total_collected()
+        return self.collected_tests_num + sum(list(total.values()))
+
     def total_collected(self):
         """Total collected cases in JSON input."""
         if self.cfg == "global":
-            return self.collected_tests_num + sum(
-                [s.total_collected() for s in self.sub_summary.values()]
-            )
+            if MERGE_REPORT:
+                return self.merge_total_collected()
+            else:
+                return self.collected_tests_num + sum(
+                    [s.total_collected() for s in self.sub_summary.values()]
+                )
         else:
             if self.collected_tests_num != 0:
                 return self.collected_tests_num
@@ -152,11 +166,7 @@ class TestSummary:
         if self.__status:
             return self.__status
 
-        if (
-            self.total_errors() != 0
-            or self.total_failures() != 0
-            or self.total_skipped() != 0
-        ):
+        if self.total_passed() + self.total_xfailed() != self.total_tcs_run():
             return "FAILED"
 
         if self.total_collected() and not self.total_passed():
@@ -190,11 +200,18 @@ class TestSummary:
         update_sumary["Status"] = self.merge_status(list_status)
 
         for key in duplicated_sys_summary.stats().keys():
-            duplicated_count = Counter(duplicated_sys_summary.stats()[key])
-            update_count = Counter(update_system[key])
-            update_count.update(duplicated_count)
-            update_sumary[key] = dict(update_count)
-
+            if key == "CollectedTests":
+                update_sumary[key] = update_system[key]
+            else:
+                duplicated_count = Counter(duplicated_sys_summary.stats()[key])
+                update_count = Counter(update_system[key])
+                update_count.update(duplicated_count)
+                update_sumary[key] = dict(update_count)
+            if key == "Skipped":
+                update_sumary[key]["count"] = (
+                    update_sumary["CollectedTests"]["count"]
+                    - update_sumary["TestcasesRun"]["count"]
+                )
             if "percentage" in update_sumary[key].keys():
                 divider = float(update_sumary["CollectedTests"]["count"]) / 100
                 if divider == 0:
@@ -593,15 +610,14 @@ class BuildConfiguration:
                 ):
                     test_result_to_recover.update_pytest_logs(pytest_result)
 
-    def process_test_data(self, global_test_data, merge_report=False):
+    def process_test_data(self, global_test_data):
         """!Build test summary."""
         collected_tests_num = self._get_json("test_collected_total")
-        if merge_report:
+        if MERGE_REPORT:
             system_test_num = self._get_json("system_test_num")
             collected_tests_num = system_test_num
         if collected_tests_num is None:
             collected_tests_num = 0
-
         new_summary = TestSummary(self.name, collected=collected_tests_num)
         if "state" in self.json_data:
             new_summary.set_status(self.json_data["state"])
@@ -787,7 +803,7 @@ class TestReportBuilder:
         for key in self.info_keys:
             self.testing_env_infos.append(key)
 
-    def _process_all_build_cfgs(self, merge_report=False):
+    def _process_all_build_cfgs(self):
         """Add test summary section."""
         for build_cfg in self.build_cfg_list:
             self.environment_dict[build_cfg.name] = build_cfg.get_env_dict()
@@ -797,9 +813,7 @@ class TestReportBuilder:
                 self.environment_dict[build_cfg.name]["Execution_time"] = exe_time
             else:
                 self.environment_dict[build_cfg.name]["Execution_time"] = "N/A"
-            new_summary = build_cfg.process_test_data(
-                self.global_test_data, merge_report=merge_report
-            )
+            new_summary = build_cfg.process_test_data(self.global_test_data)
             self.test_summary.add_summary(build_cfg.name, new_summary)
 
     def _add_env_global_list(self, global_env, global_env_path):
@@ -851,7 +865,7 @@ class TestReportBuilder:
             if count[0] not in [0, count[1]]:
                 self.summary[sys_type]["Status"] = "FAILED"
 
-    def _add_summary_section(self, merge_report=False):
+    def _add_summary_section(self):
         summary_global = {"Config": self.test_summary.cfg}
         summary_global["Status"] = self.test_summary.status()
         summary_global.update(self.test_summary.stats())
@@ -859,7 +873,7 @@ class TestReportBuilder:
 
         sub_systems_names = sorted(self.test_summary.sub_summary.keys())
 
-        if merge_report:
+        if MERGE_REPORT:
             self.check_status_platform(sub_systems_names)
         else:
             for sys_name in sub_systems_names:
@@ -894,20 +908,18 @@ class TestReportBuilder:
         return execution_time
 
     @staticmethod
-    def get_test_case(target_name, original_name, global_test_case, merge_report):
+    def get_test_case(target_name, original_name, global_test_case):
         """Get test case if it is run for target."""
         test_case = None
-        if merge_report and original_name != "wp76xx-onlycap":
+        if MERGE_REPORT and original_name != "wp76xx-onlycap":
             if target_name in original_name:
                 test_case = global_test_case.results[original_name]
-        elif not merge_report or original_name == "wp76xx-onlycap":
+        elif not MERGE_REPORT or original_name == "wp76xx-onlycap":
             if target_name == original_name:
                 test_case = global_test_case.results[original_name]
         return test_case
 
-    def collect_test_result(
-        self, global_test_case, test_name, xfailed_element: dict, merge_report=False
-    ):
+    def collect_test_result(self, global_test_case, test_name, xfailed_element: dict):
         """Collect test result from the test data."""
         result = []
         all_targets = self.results_headers[1:]
@@ -915,7 +927,7 @@ class TestReportBuilder:
         for target_name in all_targets:
             for original_name in global_test_case.results.keys():
                 test_case = self.get_test_case(
-                    target_name, original_name, global_test_case, merge_report
+                    target_name, original_name, global_test_case
                 )
 
                 test_case_view, xfailed_element = self._add_xfailedJira_ID(
@@ -1063,7 +1075,7 @@ class TestReportBuilder:
                         group_status[group]["on_sys"].append(sys_name)
         self.group_summary = group_status
 
-    def gen_results_table(self, filter_fn=None, merge_report=False):
+    def gen_results_table(self, filter_fn=None):
         """!Get results table with filtering."""
         results = []
         group_status = {}
@@ -1079,7 +1091,7 @@ class TestReportBuilder:
 
                 xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
                 result = self.collect_test_result(
-                    global_test_case, test_name, xfailed_element, merge_report
+                    global_test_case, test_name, xfailed_element
                 )
                 results.append(result)
                 if not filter_fn:
@@ -1088,20 +1100,18 @@ class TestReportBuilder:
             self.gen_result_platforms()
         return results
 
-    def generate_report(
-        self, results_all, status, other_contents: dict, merge_report=False
-    ):
+    def generate_report(self, results_all, status, other_contents: dict):
         """!Generate the test report."""
         raise NotImplementedError
 
-    def _add_results_headers(self, merge_report=False):
+    def _add_results_headers(self):
         """Add the result header.
 
         e.g.Testcases | HL7800 | WP76.
         """
         fixed_order = ["wp76xx", "wp76xx-onlycap", "wp77xx", "hl7812", "rc76"]
         results_headers = ["Testcases"]
-        if merge_report:
+        if MERGE_REPORT:
             build_cfg_names = []
             sys_type_dict = {}
             for build_cfg in self.build_cfg_list:
@@ -1125,26 +1135,19 @@ class TestReportBuilder:
 
     def run(self, args):
         """!Run the builder to generate report."""
-        # Enable merge report for nightly master
-        merge_report = False
-        for path in args.json_path:
-            if re.search("nightly_.*_master", path):
-                print("Enable merge report.")
-                merge_report = True
-                break
         self._add_build_cfgs(args.json_path)
         self._add_env_list_header()
-        self._process_all_build_cfgs(merge_report=merge_report)
+        self._process_all_build_cfgs()
         self._add_env_global_list(args.global_env, args.global_env_path)
-        self._add_results_headers(merge_report=merge_report)
-        status = self._add_summary_section(merge_report=merge_report)
-        results_all = self.gen_results_table(merge_report=merge_report)
+        self._add_results_headers()
+        status = self._add_summary_section()
+        results_all = self.gen_results_table()
         other_contents = {
             "title": args.title,
             "basic": args.basic,
             "section": args.html_section,
         }
-        output = self.generate_report(results_all, status, other_contents, merge_report)
+        output = self.generate_report(results_all, status, other_contents)
         if args.output:
             with open(args.output, "w", encoding="utf8") as f:
                 f.write(output)
@@ -1154,14 +1157,10 @@ class TestReportBuilder:
 class TestReportHTMLBuilder(TestReportBuilder):
     """!Test report HTML format builder."""
 
-    def generate_report(
-        self, results_all, status, other_contents: dict, merge_report=False
-    ):
+    def generate_report(self, results_all, status, other_contents: dict):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
-        results_failed = self.gen_results_table(
-            lambda x: not x.is_passed(), merge_report
-        )
+        results_failed = self.gen_results_table(lambda x: not x.is_passed())
         summary_headers = ["Config", "Status"]
         summary_headers.extend(TestSummary.stat_keys())
 
@@ -1209,9 +1208,7 @@ class TestReportJSONBuilder(TestReportBuilder):
         super().__init__()
         self.content = None
 
-    def generate_report(
-        self, results_all, status, other_contents: dict, merge_report=False
-    ):
+    def generate_report(self, results_all, status, other_contents: dict):
         """!Generate report in JSON format."""
         print("Generating JSON")
         tests = []
@@ -1337,6 +1334,12 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    # Enable merge report for nightly master
+    for path in args.json_path:
+        if re.search("nightly_.*_master", path):
+            print("Enable merge report.")
+            MERGE_REPORT = True
+            break
     if args.status:
         test_list = []
         for status in args.status:
