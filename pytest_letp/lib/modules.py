@@ -352,7 +352,7 @@ class SwiModule:
         """Link for alternative connection."""
         return self.links[3].obj
 
-    def is_port_responsive(self, port_type=com.ComPortType.CLI.name):
+    def is_port_responsive(self, port_type=com.ComPortType.CLI.name, timeout=10):
         """Check if specified port can respond to the cmd."""
         checklist = self.com_port_checklist.get(port_type)
         if not checklist:
@@ -367,19 +367,19 @@ class SwiModule:
             link.send(cmd + "\r")
 
             if port_type is com.ComPortType.AT.name:
-                link.expect(["OK", pexpect.TIMEOUT], 10)
+                link.expect(["OK", pexpect.TIMEOUT], timeout)
 
                 if rsp not in link.before:
                     return False
             else:
-                idx = link.expect([rsp, pexpect.TIMEOUT], 10)
+                idx = link.expect([rsp, pexpect.TIMEOUT], timeout)
 
                 if idx == 1:
                     return False
 
         return True
 
-    def is_port_accessible(self, port_type=com.ComPortType.CLI.name):
+    def is_port_accessible(self, port_type=com.ComPortType.CLI.name, timeout=10):
         """Check if specified port is accessible."""
         link = self.get_link(port_type)
         if not link:
@@ -408,7 +408,7 @@ class SwiModule:
         except Exception as e:
             swilog.debug(e)
 
-        return self.is_port_responsive(port_type)
+        return self.is_port_responsive(port_type, timeout)
 
     def is_prompt_expected(self, expected_prompt):
         """Check if the CLI prompt is expected."""
