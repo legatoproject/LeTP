@@ -239,16 +239,19 @@ class TestCaseResult:
     @property
     def message(self):
         """Property mesage."""
+        exit_phase = None
         if "call" in self.pytest_json_result:
-            exit_phase = self.pytest_json_result.get("call")
+            exit_phase = self.pytest_json_result.get("call").get("crash")
         elif "setup" in self.pytest_json_result:
-            exit_phase = self.pytest_json_result.get("setup")
-        else:
-            return ""
-        crash_reason = exit_phase.get("crash")
-        if crash_reason:
-            # non-passing testcases
-            return crash_reason.get("message", "N/A")
+            exit_phase = self.pytest_json_result.get("setup").get("crash")
+        if exit_phase:
+            return exit_phase.get("message", "N/A")
+
+        # Cover the case non-passing on the teardown
+        if "teardown" in self.pytest_json_result:
+            exit_phase = self.pytest_json_result.get("teardown").get("crash")
+            if exit_phase:
+                return exit_phase.get("message", "N/A")
         return ""
 
     @property
@@ -342,6 +345,34 @@ class TestCaseView:
         id_str = re.sub('[^a-zA-Z0-9-_.:]', '_', id_str)
         return id_str
 
+    def crash_status(self, phase):
+        """Check crash for test case."""
+        exit_phase = self.test_case.pytest_json_result.get(phase)
+        if "crash" in exit_phase:
+            result = exit_phase.get("outcome")
+            if result == "skipped":
+                return "xfailed"
+            else:
+                if phase in ["setup", "teardown"]:
+                    return "error"
+                else:
+                    return result
+        return None
+
+    def first_crash(self):
+        """Get the first non-passing status received."""
+        result = None
+        if "call" in self.test_case.pytest_json_result:
+            result = self.crash_status("call")
+        elif "setup" in self.test_case.pytest_json_result:
+            result = self.crash_status("setup")
+        if result:
+            return result
+
+        if "teardown" in self.test_case.pytest_json_result:
+            result = self.crash_status("teardown")
+        return result
+
     @property
     def result(self):
         """Test result.
@@ -352,6 +383,10 @@ class TestCaseView:
             if self.xfailed_ID:
                 return self.xfailed_ID
             return "N/A"
+
+        result = self.first_crash()
+        if result:
+            return result
         return self.test_case.pytest_json_result.get("outcome", "N/A")
 
     @property

@@ -364,7 +364,7 @@
                         <tr>
                             <th scope="row">{{ test_case_views[0].test_name }}</th>
                             {% for test_case_view in test_case_views %}
-                                <td class="{{ test_case_view.html_class }}">
+                                <td class="{{ test_case_view.result }}">
                                     {% if not basic %}
                                         {% if test_case_view.target_name == "Jira ID" %}
                                             {% if test_case_view.result == "N/A"%}
@@ -419,7 +419,7 @@
                                     <tr>
                                         <th scope="row">{{ test_case_views[0].test_name }}</th>
                                         {% for test_case_view in test_case_views %}
-                                            <td class="{{ test_case_view.html_class }}">
+                                            <td class="{{ test_case_view.result }}">
                                                 {% if not basic %}
                                                     {% if test_case_view.target_name == "Jira ID" %}
                                                         {% if test_case_view.result == "N/A"%}
@@ -499,7 +499,7 @@
                                         <tbody>
                                             <tr>
                                                 <th>Result</th>
-                                                <td class="{{ test_case_view.html_class }}">
+                                                <td class="{{ test_case_view.result }}">
                                                     {{ test_case_view.result }}</td>
                                             </tr>
                                             <tr>
