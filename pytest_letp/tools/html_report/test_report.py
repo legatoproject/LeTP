@@ -11,6 +11,7 @@ import re
 import argparse
 from collections import OrderedDict, Counter
 import requests
+from requests.auth import HTTPBasicAuth
 from build_configuration import PytestResult, Components, Environment
 from report_template import HTMLRender
 
@@ -19,6 +20,8 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 ALL_COMPONENTS = [x.name for x in Components]
 ALL_ENVIRONMENT_TYPES = list(Environment)
 MERGE_REPORT = False
+JIRA_USERNAME = ""
+JIRA_PASSWORD = ""
 
 
 # pylint: disable=too-many-instance-attributes
@@ -166,7 +169,7 @@ class TestSummary:
         if self.__status:
             return self.__status
 
-        if self.total_passed() + self.total_xfailed() != self.total_tcs_run():
+        if self.total_passed() + self.total_xfailed() != self.total_collected():
             return "FAILED"
 
         if self.total_collected() and not self.total_passed():
@@ -342,7 +345,7 @@ class TestCaseView:
         id_str = self.test_name + "_" + self.target_name
         id_str = id_str.replace(".", "_")
         id_str = id_str.replace(":", "_")
-        id_str = re.sub('[^a-zA-Z0-9-_.:]', '_', id_str)
+        id_str = re.sub("[^a-zA-Z0-9-_.:]", "_", id_str)
         return id_str
 
     def crash_status(self, phase):
@@ -386,6 +389,10 @@ class TestCaseView:
 
         result = self.first_crash()
         if result:
+            if result == "xfailed":
+                xfailed_mes = self.test_case.message
+                if JIRA_USERNAME and not check_jira_ticket(xfailed_mes):
+                    result = "failed"
             return result
         return self.test_case.pytest_json_result.get("outcome", "N/A")
 
@@ -607,6 +614,23 @@ class BuildConfiguration:
                 test_result.pytest_json_result.update(pytest_result)
         return res
 
+    @staticmethod
+    def get_xfailed_mes(pytest_result):
+        """Get a text message explaining why xfailed."""
+        exit_phase = None
+        if "call" in pytest_result:
+            exit_phase = pytest_result.get("call").get("crash")
+        elif "setup" in pytest_result:
+            exit_phase = pytest_result.get("setup").get("crash")
+        if exit_phase:
+            return exit_phase.get("message", "N/A")
+
+        if "teardown" in pytest_result:
+            exit_phase = pytest_result.get("teardown").get("crash")
+            if exit_phase:
+                return exit_phase.get("message", "N/A")
+        return ""
+
     def _iter_pytest_report(self, global_test_data, summary):
         """Iterate the test report and collect summary."""
         tests = self.json_data.get("tests", [])
@@ -630,6 +654,10 @@ class BuildConfiguration:
                 self._update_result_of_duplicate_tcs(pytest_result, test_result)
 
             verify_duplicate_tcs[test_name] = pytest_result.get("outcome")
+            if verify_duplicate_tcs[test_name] == "xfailed":
+                xfailed_mes = self.get_xfailed_mes(pytest_result)
+                if JIRA_USERNAME and not check_jira_ticket(xfailed_mes):
+                    verify_duplicate_tcs[test_name] = "failed"
             self._add_pytest_test_logs(global_test_data, pytest_result)
 
         self._convert_result_to_summary(verify_duplicate_tcs, summary)
@@ -964,7 +992,6 @@ class TestReportBuilder:
                 test_case = self.get_test_case(
                     target_name, original_name, global_test_case
                 )
-
                 test_case_view, xfailed_element = self._add_xfailedJira_ID(
                     target_name, test_name, test_case, xfailed_element
                 )
@@ -1099,12 +1126,13 @@ class TestReportBuilder:
             for test_case_view in result:
                 pattern = sys_name + "$"
                 if re.search(pattern, test_case_view.id):
-                    if test_case_view.result in status.keys():
-                        status[test_case_view.result] += 1
-                    elif test_case_view.result == "xpassed":
+                    test_case_view_result = test_case_view.result
+                    if test_case_view_result in status.keys():
+                        status[test_case_view_result] += 1
+                    elif test_case_view_result == "xpassed":
                         status["passed"] += 1
                     if (
-                        test_case_view.result != "N/A"
+                        test_case_view_result != "N/A"
                         and sys_name not in group_status[group]["on_sys"]
                     ):
                         group_status[group]["on_sys"].append(sys_name)
@@ -1311,6 +1339,42 @@ class TestReportJSONParser:
         return test_list
 
 
+def get_ticket_status(ticket):
+    """Get Jira ticket status."""
+    uri = f"https://issues.sierrawireless.com/rest/api/2/issue/{ticket}"
+    auth = HTTPBasicAuth(JIRA_USERNAME, JIRA_PASSWORD)
+    headers = {"Accept": "application/json"}
+
+    response = requests.request("GET", uri, headers=headers, auth=auth)
+    if response.status_code == 200:
+        json_data = response.json()
+        status = json_data.get("fields").get("status").get("name")
+        return status
+    else:
+        print(response)
+        return None
+
+
+def check_jira_ticket(xfailed_mes):
+    """Check if the ticket is still valid.
+
+    Returns "True" if ticket status is different from "resolved" and
+    "closed".
+    """
+    is_valid = True
+    jira_status = None
+    xfailed_reg = re.search(r"XFailed:\s(?P<xfailed_ticket>.*)", xfailed_mes)
+    if xfailed_reg:
+        xfailed_ticket = xfailed_reg.group("xfailed_ticket")
+        jira_status = get_ticket_status(xfailed_ticket)
+        if jira_status:
+            if jira_status.lower() in ("resolved", "closed"):
+                is_valid = False
+        else:
+            print(f"Cannot get the status of the ticket {xfailed_ticket}")
+    return is_valid
+
+
 def parse_args():
     """!Parse all arguments for test_report."""
     parser = argparse.ArgumentParser()
@@ -1320,6 +1384,8 @@ def parse_args():
         required=True,
         help="Path to build_configuration.json files",
     )
+    parser.add_argument("--jira-user", help="Account to get the status of Jira ticket")
+    parser.add_argument("--jira-password", help="Jira account password")
     parser.add_argument(
         "--html-section",
         action="store",
@@ -1375,6 +1441,10 @@ if __name__ == "__main__":
             print("Enable merge report.")
             MERGE_REPORT = True
             break
+
+    JIRA_USERNAME = args.jira_user
+    JIRA_PASSWORD = args.jira_password
+
     if args.status:
         test_list = []
         for status in args.status:
