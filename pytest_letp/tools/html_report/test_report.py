@@ -904,7 +904,7 @@ class TestReportBuilder:
         count_campaigns = {
             "wp76xx": [0, 2],
             "wp77xx": [0, 2],
-            "hl7812": [0, 3],
+            "hl7812": [0, 4],
             "rc76": [0, 2],
         }
         for sys_name in sub_systems_names:
