@@ -1,5 +1,6 @@
 # pylint: disable=broad-except
 # pylint: disable=no-member
+# pylint: disable=too-many-statements
 """Module dependant functions.
 
 Set of functions for Linux modules.
@@ -17,6 +18,7 @@ from pytest_letp.lib import app
 from pytest_letp.lib.versions_linux import LinuxVersions
 from pytest_letp.lib.module_exceptions import SlinkException, TargetException
 from pytest_letp.lib.modules import SwiModule, SlinkInfo, ModuleLink
+from pytest_letp.pytest_test_config import TEST_CONFIG_KEY
 
 if os.name == "posix":
     from pytest_letp.lib import ssh_linux
@@ -97,7 +99,13 @@ class ModuleLinux(SwiModule):
     }
 
     def __init__(
-        self, target_name, target_ip, ssh_add, ssh_port, config_target, inst_name
+        self,
+        target_name,
+        target_ip,
+        ssh_add,
+        ssh_port,
+        config_target,
+        inst_name, request
     ):
         super(ModuleLinux, self).__init__(target_name)
 
@@ -162,7 +170,7 @@ class ModuleLinux(SwiModule):
                     and self.get_ip_addr(network_if) != self.ssh.target_ip
                 ):
                     self.get_ip_addr(network_if)
-                    self.configure_board_for_ssh()
+                    self.configure_board_for_ssh(request)
                 self.ssh.login()
                 # Restore ssh as default link
                 self.set_link_alias("ssh", "target")
@@ -199,7 +207,6 @@ class ModuleLinux(SwiModule):
                 # Uart is the main link
                 main_link = "0"
             read_config.find("%s/ssh" % inst_name).set("main_link", main_link)
-
         return cls(
             (module_name, generic_name),
             target_ip,
@@ -207,6 +214,7 @@ class ModuleLinux(SwiModule):
             ssh_port,
             read_config,
             inst_name,
+            request,
         )
 
     def login(self):
@@ -322,11 +330,13 @@ class ModuleLinux(SwiModule):
         swilog.error("No link available.")
         raise SlinkException
 
-    def wait_for_reboot(self, timeout=60):
+    # pylint: disable=arguments-differ
+    def wait_for_reboot(self, timeout=60, request=None):
         """Wait for a reboot of the target (by ssh)."""
         if self.slink1 is not None and self.ssh is not None:
-            self.slink1.wait_for_reboot(timeout)
-            self.configure_board_for_ssh()
+            self.slink1.wait_for_reboot(timeout=timeout)
+            if self.ssh.check_communication() != 0:
+                self.configure_board_for_ssh(request)
         else:
             assert self.wait_for_device_down(timeout) == 0, "No shutdown of the target"
             assert self.wait_for_device_up(timeout) == 0, "Device was not started"
@@ -572,14 +582,14 @@ class ModuleLinux(SwiModule):
         """Get if the ssh is autoconf."""
         return self.config_target.find("%s/ssh" % self.inst_name).get("autoconf", "1")
 
-    def configure_board_for_ssh(self):
+    def configure_board_for_ssh(self, request=None):
         """Use uart to configure SSH."""
-        swilog.debug("configure_board_for_ssh")
-
-        if self.is_autoconf():
+        if self.configure_ssh(request):
+            return
+        elif self.is_autoconf():
             swilog.debug("configure_board_for_ssh: skipping config")
             return
-
+        swilog.debug("configure_board_for_ssh")
         # Change default link to serial link
         self.target = self.slink1
         self.login()
@@ -761,6 +771,40 @@ class ModuleLinux(SwiModule):
         self._remove_file()
         self.reboot(timeout=300)
         return True
+
+    def configure_ssh(self, request=None):
+        """Config ssh board with IP get from system environment."""
+        target_ip = self.config_read(request=request).findtext("module/ssh/ip_address")
+        test_host_ip = self.config_read(request).findtext("host/ip_address")
+        if not target_ip or not test_host_ip:
+            swilog.warning(
+                "Cannot configure target ecm, missing target ip or test host ip"
+            )
+            return False
+        self.slink1.login()
+        if self.is_autoconf() and target_ip in self.slink1.run("configEcm show"):
+            swilog.debug("configure_board_for_ssh: skipping config")
+        else:
+            swilog.debug("configure_board_for_ssh")
+            swilog.info(
+                f"Configuring target ecm to: target={target_ip}, host={test_host_ip}"
+            )
+            cmd = (
+                "configEcm off;"
+                "configEcm on target"
+                f" {target_ip} host {test_host_ip} netmask 255.255.255.0"
+            )
+            self.slink1.run(cmd)
+            if target_ip in self.slink1.run("configEcm show"):
+                swilog.info("ecm is configured correctly")
+        return True
+
+    @staticmethod
+    def config_read(request=None):
+        """Read the default xml configuration for the whole session."""
+        session = request.node.session
+        default_cfg = session.config._store[TEST_CONFIG_KEY]
+        return default_cfg.get()
 
 
 # =====================================================================================
