@@ -144,7 +144,9 @@
     <div class="list">
         <ul style="margin-top: 60px">
             <a href="#Summary"><li>Summary</li></a>
-            <a href="#Groups"><li>Groups</li></a>
+            {% if platform_info %}
+                <a href="#Groups"><li>Groups</li></a>
+            {% endif %}
             <a href="#Environment"><li>Environment</li></a>
             <a href="#Test Results (failed)"><li>Test Results (failed)</li></a>
             <a href="#Test Results (all)"><li>Test Results (all)</li></a>
@@ -208,62 +210,64 @@
         </div>
 
         <!-- Groups -->
-        <div style="margin-top: 50px" id=Groups>
-            <h4 class="summary">Groups</h4>
-            <table align="center">
-                <thead>
-                    <tr class="title">
-                        <th>Platforms</th>
-                        <th scope="col">Groups</th>
-                        {% for row in results_headers %}
-                        {% if row != "Testcases" and row != "Jira ID" %}
-                            <th>{{ row }}</th>
-                        {% endif %}
-                        {% endfor %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set i = namespace(value=1) %}
-                    {% for platform in platform_info %}
-                        {% if platform != "Reinit" and platform_info[platform][1] != 0 %}
-                            <td rowspan={{platform_info[platform][1] + 1}}><big><b>{{ platform }}</b></big></td>
-                            {% for group in platform_info[platform][0] %}
-                            <tr>
-                                <th scope="row"> <a href="#{{group}}">
-                                    Group {{ i.value }} </a>: <b>{{ group }} ({{platform_info[platform][0][group]}} TCs)</b>
-                                    {% set i.value = i.value + 1 %}
-                                </th>
-                                {% for row in results_headers %}
-                                    {% if row != "Testcases" and row != "Jira ID" %}
-                                        {% if group_summary[group][row]["passed"] == 0 and
-                                        group_summary[group][row]["failed"] == 0 and
-                                        group_summary[group][row]["xfailed"] == 0 and
-                                        group_summary[group][row]["error"] == 0 %}
-                                            <th>N/A</th>
-                                        {% else %}
-                                            <th>
-                                                {% for status in group_summary[group][row] %}
-                                                    {% if status == "passed" and group_summary[group][row][status] != 0 %}
-                                                    <span class="passed">{{ group_summary[group][row][status] }} Passed</span>
-                                                    {% elif status == "failed" and group_summary[group][row][status] != 0 %}
-                                                    <span class="failed">{{ group_summary[group][row][status] }} Failed</span>
-                                                    {% elif status == "xfailed" and group_summary[group][row][status] != 0 %}
-                                                    <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
-                                                    {% elif status == "error" and group_summary[group][row][status] != 0 %}
-                                                    <span class="error">{{ group_summary[group][row][status] }} Errors</span>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </th>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </tr>
+        {% if platform_info %}
+            <div style="margin-top: 50px" id=Groups>
+                <h4 class="summary">Groups</h4>
+                <table align="center">
+                    <thead>
+                        <tr class="title">
+                            <th>Platforms</th>
+                            <th scope="col">Groups</th>
+                            {% for row in results_headers %}
+                            {% if row != "Testcases" and row != "Jira ID" %}
+                                <th>{{ row }}</th>
+                            {% endif %}
                             {% endfor %}
-                        {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set i = namespace(value=1) %}
+                        {% for platform in platform_info %}
+                            {% if platform != "Reinit" and platform_info[platform][1] != 0 %}
+                                <td rowspan={{platform_info[platform][1] + 1}}><big><b>{{ platform }}</b></big></td>
+                                {% for group in platform_info[platform][0] %}
+                                <tr>
+                                    <th scope="row"> <a href="#{{group}}">
+                                        Group {{ i.value }} </a>: <b>{{ group }} ({{platform_info[platform][0][group]}} TCs)</b>
+                                        {% set i.value = i.value + 1 %}
+                                    </th>
+                                    {% for row in results_headers %}
+                                        {% if row != "Testcases" and row != "Jira ID" %}
+                                            {% if group_summary[group][row]["passed"] == 0 and
+                                            group_summary[group][row]["failed"] == 0 and
+                                            group_summary[group][row]["xfailed"] == 0 and
+                                            group_summary[group][row]["error"] == 0 %}
+                                                <th>N/A</th>
+                                            {% else %}
+                                                <th>
+                                                    {% for status in group_summary[group][row] %}
+                                                        {% if status == "passed" and group_summary[group][row][status] != 0 %}
+                                                        <span class="passed">{{ group_summary[group][row][status] }} Passed</span>
+                                                        {% elif status == "failed" and group_summary[group][row][status] != 0 %}
+                                                        <span class="failed">{{ group_summary[group][row][status] }} Failed</span>
+                                                        {% elif status == "xfailed" and group_summary[group][row][status] != 0 %}
+                                                        <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
+                                                        {% elif status == "error" and group_summary[group][row][status] != 0 %}
+                                                        <span class="error">{{ group_summary[group][row][status] }} Errors</span>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </th>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
 
         {% macro render_env_table(title, headers, data_dict) -%}
         <h4 style="margin-top: 10px;" class="summary">
@@ -459,9 +463,15 @@
         {% endcall %}
 
         <!-- Results (all) -->
-        {% call render_results_group('Test Results (all)', results_headers,
-            results_all) %}
-        {% endcall %}
+        {% if platform_info %}
+            {% call render_results_group('Test Results (all)', results_headers,
+                results_all) %}
+            {% endcall %}
+        {% else %}
+            {% call render_results('Test Results (all)', results_headers,
+                results_all) %}
+            {% endcall %}
+        {% endif %}
         {% endif %}
 
         {% macro render_logs(title, content, cls) -%}

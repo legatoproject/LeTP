@@ -10,6 +10,7 @@ import sys
 import re
 import argparse
 from collections import OrderedDict, Counter
+import xml.etree.ElementTree as ET
 import requests
 from requests.auth import HTTPBasicAuth
 from build_configuration import PytestResult, Components, Environment
@@ -22,6 +23,7 @@ ALL_ENVIRONMENT_TYPES = list(Environment)
 MERGE_REPORT = False
 JIRA_USERNAME = ""
 JIRA_PASSWORD = ""
+GROUP_CONFIG_PATH = ""
 
 
 # pylint: disable=too-many-instance-attributes
@@ -708,8 +710,8 @@ class TestReportBuilder:
         self.test_summary = TestSummary()
         self.global_test_data = OrderedDict()
         self.results_headers = None
-        self.test_groups = {}
-        self.platform_info = {}
+        self.groups = {}
+        self.platform = {}
         self.group_summary = {}
 
     def set_unique_name(self, build_cfg):
@@ -982,8 +984,9 @@ class TestReportBuilder:
                 test_case = global_test_case.results[original_name]
         return test_case
 
-    def collect_test_result(self, global_test_case, test_name, xfailed_element: dict):
+    def collect_test_result(self, global_test_case, test_name):
         """Collect test result from the test data."""
+        xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
         result = []
         all_targets = self.results_headers[1:]
 
@@ -1001,166 +1004,46 @@ class TestReportBuilder:
             result.append(final_test_case_view)
         return result
 
-    def group_condition(self, test_name, result, colected_tcs):
-        """Create groups of test cases with conditions."""
-        group_condition = {
-            "Reinit": ("reinit_test",),
-            "TCP": ("TcpTest",),
-            "UDP": ("UdpTest",),
-            "FTP": ("FTP",),
-            "HTTP": ("HTTP",),
-            "PROTOCOM": ("PROTOCOM",),
-            "AVMS": ("AVMS", "FOTA", "SOTA", "at_av", "AVDATA", "le_av"),
-            "SANDBOX": ("sandbox", "Cgroups"),
-            "DATAHUB": ("dataHub",),
-            "SECSTORE": ("Secstore", "Securestorage"),
-            "ATSERVER": ("AtCommandsServer", "atserver"),
-            "App": ("le_app",),
-            "GNSS": ("gnss", "position"),
-        }
-        is_colected = False
+    def get_result_groups(self, filter_fn):
+        """Get table of result groups with filter filtering."""
+        results = []
+        group_status = {}
 
-        for group, conditions in group_condition.items():
-            for condition in conditions:
-                if condition.lower() in test_name.lower():
-                    if group not in self.test_groups:
-                        self.test_groups[group] = {test_name: result}
-                    else:
-                        self.test_groups[group][test_name] = result
-                    colected_tcs.append(test_name)
-                    is_colected = True
-                    break
-            if is_colected:
-                break
-        return colected_tcs
+        test_group = TestGroups(
+            GROUP_CONFIG_PATH, self.global_test_data, self.results_headers
+        )
+        self.groups = test_group.gen_groups()
 
-    def temp_group(self, colected_tcs):
-        """Create temporary group of test cases by filename."""
-        temp_group = {}
+        for group, test_cases in self.groups.items():
+            group_status = test_group.gen_group_table(group_status, group)
+            for test_name, global_test_case in test_cases.items():
+                if filter_fn and not filter_fn(global_test_case):
+                    continue
 
-        for test_name, result in self.global_test_data.items():
-            if test_name not in colected_tcs:
-                group = test_name.split(".")
-                if len(group) > 1:
-                    group = group[-2]
-                    group = group.replace("test_", "")
-                    group = group.replace("le_", "")
-                    group = group.title()
+                result = self.collect_test_result(global_test_case, test_name)
+                results.append(result)
+                if not filter_fn:
+                    self.group_summary = test_group._summarize_group(
+                        group, result, group_status
+                    )
+        if not filter_fn:
+            self.platform = test_group.gen_result_platforms()
 
-                if group not in temp_group:
-                    temp_group[group] = {test_name: result}
-                else:
-                    temp_group[group][test_name] = result
-        return temp_group
-
-    def gen_groups(self):
-        """!Create groups of test cases."""
-        colected_tcs = []
-        min_len = 2
-
-        for test_name, result in self.global_test_data.items():
-            colected_tcs = self.group_condition(test_name, result, colected_tcs)
-
-        temp_group = self.temp_group(colected_tcs)
-
-        for group, test_cases in temp_group.items():
-            if len(test_cases) >= min_len:
-                self.test_groups[group] = test_cases
-
-        self.test_groups["Other"] = {}
-        for test_cases in temp_group.values():
-            if len(test_cases) < min_len:
-                self.test_groups["Other"].update(test_cases)
-
-    def gen_group_table(self, group_status, group):
-        """Create status tables of groups."""
-        status = ["passed", "failed", "xfailed", "error"]
-        group_status[group] = {}
-        for sys_name in self.results_headers:
-            if sys_name not in ("Testcases", "Jira ID"):
-                group_status[group][sys_name] = {s: 0 for s in status}
-        group_status[group]["on_sys"] = []
-        return group_status
-
-    def align_group(self, platforms, group, status):
-        """Align groups together by platform."""
-        if group == "Reinit":
-            platforms["Reinit"][group] = self.test_groups[group]
-            return platforms
-        if len(status["on_sys"]) == 2 and ("hl7812" and "rc76") in status["on_sys"]:
-            platforms["Common_RTOS"][group] = self.test_groups[group]
-        elif status["on_sys"] == ["hl7812"]:
-            platforms["FreeRTOS"][group] = self.test_groups[group]
-        elif status["on_sys"] == ["rc76"]:
-            platforms["ThreadX"][group] = self.test_groups[group]
-        elif ("hl7812" and "rc76") not in status["on_sys"]:
-            platforms["Linux"][group] = self.test_groups[group]
-        else:
-            platforms["Common_all_platforms"][group] = self.test_groups[group]
-        return platforms
-
-    def gen_result_platforms(self):
-        """Get platform information."""
-        platforms = {
-            "Reinit": {},
-            "Common_RTOS": {},
-            "FreeRTOS": {},
-            "ThreadX": {},
-            "Linux": {},
-            "Common_all_platforms": {},
-        }
-        temp = {}
-        for group, status in self.group_summary.items():
-            platforms = self.align_group(platforms, group, status)
-
-        for platform, groups in platforms.items():
-            self.platform_info[platform] = [{}, len(groups)]
-            for group, test_cases in groups.items():
-                self.platform_info[platform][0][group] = len(test_cases)
-            temp.update(groups)
-        self.test_groups = temp
-
-    def summarize_group(self, group, result, group_status):
-        """Summarize groups by status."""
-        for sys_name, status in group_status[group].items():
-            for test_case_view in result:
-                pattern = sys_name + "$"
-                if re.search(pattern, test_case_view.id):
-                    test_case_view_result = test_case_view.result
-                    if test_case_view_result in status.keys():
-                        status[test_case_view_result] += 1
-                    elif test_case_view_result == "xpassed":
-                        status["passed"] += 1
-                    if (
-                        test_case_view_result != "N/A"
-                        and sys_name not in group_status[group]["on_sys"]
-                    ):
-                        group_status[group]["on_sys"].append(sys_name)
-        self.group_summary = group_status
+        return results
 
     def gen_results_table(self, filter_fn=None):
         """!Get results table with filtering."""
         results = []
-        group_status = {}
 
-        self.gen_groups()
+        if GROUP_CONFIG_PATH:
+            results = self.get_result_groups(filter_fn)
+        else:
+            for test_name, global_test_case in self.global_test_data.items():
+                if filter_fn and not filter_fn(global_test_case):
+                    continue
 
-        for group, test_cases in self.test_groups.items():
-            group_status = self.gen_group_table(group_status, group)
-            for test_name, global_test_case in test_cases.items():
-                if filter_fn:
-                    if not filter_fn(global_test_case):
-                        continue
-
-                xfailed_element = {"is_xfailed": False, "xfailed_ID": None}
-                result = self.collect_test_result(
-                    global_test_case, test_name, xfailed_element
-                )
+                result = self.collect_test_result(global_test_case, test_name)
                 results.append(result)
-                if not filter_fn:
-                    self.summarize_group(group, result, group_status)
-        if not filter_fn:
-            self.gen_result_platforms()
         return results
 
     def generate_report(self, results_all, status, other_contents: dict):
@@ -1240,8 +1123,8 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "environment_dict": self.environment_dict,
             "results_headers": self.results_headers,
             "results_failed": results_failed,
-            "test_groups": self.test_groups,
-            "platform_info": self.platform_info,
+            "test_groups": self.groups,
+            "platform_info": self.platform,
             "group_summary": self.group_summary,
             "results_all": results_all,
             "test_data": self.global_test_data,
@@ -1339,6 +1222,166 @@ class TestReportJSONParser:
         return test_list
 
 
+class TestGroups:
+    """Group of test cases."""
+
+    def __init__(self, xmlfile, global_test_data, results_headers):
+        """Parse group.xml."""
+        tree = ET.parse(xmlfile)
+        self.root = tree.getroot()
+        self.groups = "test_groups"
+        self.global_test_data = global_test_data
+        self.results_headers = results_headers
+        self.condition = {}
+        self.test_groups = {}
+        self.platform_info = {}
+        self.group_summary = {}
+
+    def _get_keyword(self, group_name):
+        """Get keywords of group."""
+        detail_path_in_xml = os.path.join(self.groups, group_name, "testcase")
+        return self.root.findall(detail_path_in_xml)
+
+    def _get_groups_condition(self):
+        """Get conditions to create groups."""
+        group_elements = self.root.find("test_groups")
+        for element in group_elements:
+            group_name = element.tag
+            keywords = self._get_keyword(group_name)
+            list_keyword = []
+            for keyword in keywords:
+                list_keyword.append(keyword.text)
+            self.condition[group_name] = list_keyword
+        return self.condition
+
+    def gen_groups(self):
+        """!Create groups of test cases."""
+        colected_tcs = []
+        min_len = 2
+
+        for test_name, result in self.global_test_data.items():
+            colected_tcs = self._group_condition(test_name, result, colected_tcs)
+
+        temp_group = self._temp_group(colected_tcs)
+
+        for group, test_cases in temp_group.items():
+            if len(test_cases) >= min_len:
+                self.test_groups[group] = test_cases
+
+        self.test_groups["Other"] = {}
+        for test_cases in temp_group.values():
+            if len(test_cases) < min_len:
+                self.test_groups["Other"].update(test_cases)
+
+        return self.test_groups
+
+    def _group_condition(self, test_name, result, colected_tcs):
+        """Create groups of test cases with conditions."""
+        group_condition = self._get_groups_condition()
+        is_colected = False
+
+        for group, conditions in group_condition.items():
+            for condition in conditions:
+                if condition.lower() in test_name.lower():
+                    if group not in self.test_groups:
+                        self.test_groups[group] = {test_name: result}
+                    else:
+                        self.test_groups[group][test_name] = result
+                    colected_tcs.append(test_name)
+                    is_colected = True
+                    break
+            if is_colected:
+                break
+        return colected_tcs
+
+    def _temp_group(self, colected_tcs):
+        """Create temporary group of test cases by filename."""
+        temp_group = {}
+
+        for test_name, result in self.global_test_data.items():
+            if test_name not in colected_tcs:
+                group = test_name.split(".")
+                if len(group) > 1:
+                    group = group[-2]
+                    group = group.replace("test_", "")
+                    group = group.replace("le_", "")
+                    group = group.title()
+
+                if group not in temp_group:
+                    temp_group[group] = {test_name: result}
+                else:
+                    temp_group[group][test_name] = result
+        return temp_group
+
+    def _summarize_group(self, group, result, group_status):
+        """Summarize groups by status."""
+        for sys_name, status in group_status[group].items():
+            for test_case_view in result:
+                pattern = sys_name + "$"
+                if re.search(pattern, test_case_view.id):
+                    test_case_view_result = test_case_view.result
+                    if test_case_view_result in status.keys():
+                        status[test_case_view_result] += 1
+                    elif test_case_view_result == "xpassed":
+                        status["passed"] += 1
+                    if (
+                        test_case_view_result != "N/A"
+                        and sys_name not in group_status[group]["on_sys"]
+                    ):
+                        group_status[group]["on_sys"].append(sys_name)
+        self.group_summary = group_status
+        return self.group_summary
+
+    def gen_result_platforms(self):
+        """Get platform information."""
+        platforms = {
+            "Reinit": {},
+            "Common_RTOS": {},
+            "FreeRTOS": {},
+            "ThreadX": {},
+            "Linux": {},
+            "Common_all_platforms": {},
+        }
+        temp = {}
+        for group, status in self.group_summary.items():
+            platforms = self._align_group(platforms, group, status)
+
+        for platform, groups in platforms.items():
+            self.platform_info[platform] = [{}, len(groups)]
+            for group, test_cases in groups.items():
+                self.platform_info[platform][0][group] = len(test_cases)
+            temp.update(groups)
+        self.test_groups = temp
+        return self.platform_info
+
+    def _align_group(self, platforms, group, status):
+        """Align groups together by platform."""
+        if group == "Reinit":
+            platforms["Reinit"][group] = self.test_groups[group]
+            return platforms
+        if len(status["on_sys"]) == 2 and ("hl7812" and "rc76") in status["on_sys"]:
+            platforms["Common_RTOS"][group] = self.test_groups[group]
+        elif status["on_sys"] == ["hl7812"]:
+            platforms["FreeRTOS"][group] = self.test_groups[group]
+        elif status["on_sys"] == ["rc76"]:
+            platforms["ThreadX"][group] = self.test_groups[group]
+        elif ("hl7812" and "rc76") not in status["on_sys"]:
+            platforms["Linux"][group] = self.test_groups[group]
+        else:
+            platforms["Common_all_platforms"][group] = self.test_groups[group]
+        return platforms
+
+    def gen_group_table(self, group_status, group):
+        """Create status tables of groups."""
+        status = ["passed", "failed", "xfailed", "error"]
+        group_status[group] = {}
+        for sys_name in self.results_headers:
+            if sys_name not in ("Testcases", "Jira ID"):
+                group_status[group][sys_name] = {s: 0 for s in status}
+        group_status[group]["on_sys"] = []
+        return group_status
+
+
 def get_ticket_status(ticket):
     """Get Jira ticket status."""
     uri = f"https://issues.sierrawireless.com/rest/api/2/issue/{ticket}"
@@ -1429,6 +1472,7 @@ def parse_args():
         Usage: --get-tc <status>; \n
         status can be "failed", "passed", "error", "xfailed", "skipped" \n""",
     )
+    parser.add_argument("--report-groups", help="Path to group config")
     args = parser.parse_args()
     return args
 
@@ -1444,6 +1488,7 @@ if __name__ == "__main__":
 
     JIRA_USERNAME = args.jira_user
     JIRA_PASSWORD = args.jira_password
+    GROUP_CONFIG_PATH = args.report_groups
 
     if args.status:
         test_list = []
