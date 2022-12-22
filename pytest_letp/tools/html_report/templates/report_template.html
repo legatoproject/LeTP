@@ -410,14 +410,20 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% set i = namespace(value=0) %}
+                        {% set i = namespace(value=1) %}
                         {% for platform in platform_info %}
                         {% for group in platform_info[platform][0] %}
                             {% if platform_info[platform][0][group] != 0 %}
+                            {% if group == "Reinit" %}
+                            <tr>
+                                <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> 0: {{ group }} ({{platform_info[platform][0][group]}} TCs)</b> </th>
+                            </tr>
+                            {% else %}
                             <tr>
                                 <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> {{ i.value }}: {{ group }} ({{platform_info[platform][0][group]}} TCs)</b> </th>
                                 {% set i.value = i.value + 1 %}
                             </tr>
+                            {% endif %}
                                 {% for test_case_views in results %}
                                     {% if test_case_views[0].test_name in test_groups[group] %}
                                     <tr>
