@@ -42,9 +42,12 @@ class TestSummary:
             "xFailed",
             "Errors",
             "Skipped",
+            "NoRun",
         ]
 
-    def __init__(self, cfg="global", collected=0, tcs=0, failures=0, errors=0):
+    def __init__(
+        self, cfg="global", collected=0, tcs=0, failures=0, errors=0, tests_num=0
+    ):
         self.cfg = cfg
         self.__status = None
         self.collected_tests_num = collected
@@ -54,6 +57,7 @@ class TestSummary:
         self.stat_xfailed = 0
         self.stat_failures = failures
         self.stat_errors = errors
+        self.tests_num_of_each_campaign = tests_num
         self.sub_summary = {}
 
     def add_summary(self, name, summary):
@@ -63,6 +67,12 @@ class TestSummary:
     def total_tcs(self):
         """Get total test cases."""
         return self.stat_tcs + sum([s.total_tcs() for s in self.sub_summary.values()])
+
+    def total_tcs_of_each_campaign(self):
+        """Get total test cases of each campaign."""
+        return self.tests_num_of_each_campaign + sum(
+            [s.total_tcs_of_each_campaign() for s in self.sub_summary.values()]
+        )
 
     def total_passed(self):
         """Get total passed test cases."""
@@ -86,6 +96,12 @@ class TestSummary:
         """Get total test cases in error state."""
         return self.stat_errors + sum(
             [s.total_errors() for s in self.sub_summary.values()]
+        )
+
+    def total_skipped(self):
+        """Get total skipped test cases - run but have skipped status."""
+        return self.stat_skipped + sum(
+            [s.total_skipped() for s in self.sub_summary.values()]
         )
 
     def total_tcs_run(self):
@@ -121,9 +137,18 @@ class TestSummary:
                 return self.collected_tests_num
             return self.total_tcs()
 
-    def total_skipped(self):
-        """Get total skipped test cases."""
-        return self.total_collected() - self.total_tcs_run()
+    def total_norun(self):
+        """Get total norun test cases."""
+        return self.total_collected() - self.total_tcs_run() - self.total_skipped()
+
+    def total_compare(self):
+        """Get total test cases to compare for report status."""
+        if self.cfg == "global" and MERGE_REPORT:
+            collected = self.total_collected()
+        else:
+            collected = self.total_tcs_of_each_campaign()
+
+        return collected
 
     def stats(self):
         """Get Statistics of tests results."""
@@ -160,6 +185,10 @@ class TestSummary:
                 "count": self.total_skipped(),
                 "percentage": self.total_skipped() / divider,
             },
+            "NoRun": {
+                "count": self.total_norun(),
+                "percentage": self.total_norun() / divider,
+            },
         }
 
     def set_status(self, status):
@@ -171,7 +200,12 @@ class TestSummary:
         if self.__status:
             return self.__status
 
-        if self.total_passed() + self.total_xfailed() != self.total_collected():
+        collected = self.total_compare()
+
+        if (
+            self.total_passed() + self.total_xfailed() + self.total_skipped()
+            != collected
+        ):
             return "FAILED"
 
         if self.total_collected() and not self.total_passed():
@@ -212,10 +246,11 @@ class TestSummary:
                 update_count = Counter(update_system[key])
                 update_count.update(duplicated_count)
                 update_sumary[key] = dict(update_count)
-            if key == "Skipped":
+            if key == "NoRun":
                 update_sumary[key]["count"] = (
                     update_sumary["CollectedTests"]["count"]
                     - update_sumary["TestcasesRun"]["count"]
+                    - update_sumary["Skipped"]["count"]
                 )
             if "percentage" in update_sumary[key].keys():
                 divider = float(update_sumary["CollectedTests"]["count"]) / 100
@@ -678,12 +713,22 @@ class BuildConfiguration:
     def process_test_data(self, global_test_data):
         """!Build test summary."""
         collected_tests_num = self._get_json("test_collected_total")
+        tests_num_of_each_campaign = collected_tests_num
         if MERGE_REPORT:
             system_test_num = self._get_json("system_test_num")
             collected_tests_num = system_test_num
+        elif "test_collected_total" not in self.json_data:
+            test_collected = self._get_json("test_collected")
+            tests_num_of_each_campaign = test_collected
         if collected_tests_num is None:
             collected_tests_num = 0
-        new_summary = TestSummary(self.name, collected=collected_tests_num)
+        if tests_num_of_each_campaign is None:
+            tests_num_of_each_campaign = 0
+        new_summary = TestSummary(
+            self.name,
+            collected=collected_tests_num,
+            tests_num=tests_num_of_each_campaign,
+        )
         if "state" in self.json_data:
             new_summary.set_status(self.json_data["state"])
 

@@ -107,6 +107,7 @@
     .xpass { background-color: #8CCF9C; }
     .xfailed { background-color: #f5c6cb; }
     .running { background-color: #97def0; }
+    .skipped { background-color: #7899a1; }
 
     pre.log {
         font-size: 75%;
@@ -183,6 +184,8 @@
                                     {% set summary_class = "failed" %}
                                 {% elif entry == "Errors" and row[entry] != 0 %}
                                     {% set summary_class = "error" %}
+                                {% elif entry == "Skipped" and row[entry] != 0 %}
+                                    {% set summary_class = "skipped" %}
                                 {% endif %}
 
                                 {% if entry == "Config" %}
