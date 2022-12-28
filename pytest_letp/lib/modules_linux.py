@@ -774,30 +774,37 @@ class ModuleLinux(SwiModule):
 
     def configure_ssh(self, request=None):
         """Config ssh board with IP get from system environment."""
-        target_ip = self.config_read(request=request).findtext("module/ssh/ip_address")
-        test_host_ip = self.config_read(request).findtext("host/ip_address")
-        if not target_ip or not test_host_ip:
-            swilog.warning(
-                "Cannot configure target ecm, missing target ip or test host ip"
+        if request:
+            target_ip = (
+                self.config_read(request=request).findtext("module/ssh/ip_address")
             )
-            return False
-        self.slink1.login()
-        if self.is_autoconf() and target_ip in self.slink1.run("configEcm show"):
-            swilog.debug("configure_board_for_ssh: skipping config")
+            test_host_ip = self.config_read(request).findtext("host/ip_address")
+            if not target_ip or not test_host_ip:
+                swilog.warning(
+                    "Cannot configure target ecm, missing target ip or test host ip"
+                )
+                return False
+            self.slink1.login()
+            if self.is_autoconf() and target_ip in self.slink1.run("configEcm show"):
+                swilog.debug("configure_board_for_ssh: skipping config")
+            else:
+                swilog.debug("configure_board_for_ssh")
+                swilog.info(
+                    "Configuring target ecm to: "
+                    f"target={target_ip}, host={test_host_ip}"
+                )
+                cmd = (
+                    "configEcm off;"
+                    "configEcm on target"
+                    f" {target_ip} host {test_host_ip} netmask 255.255.255.0"
+                )
+                self.slink1.run(cmd)
+                if target_ip in self.slink1.run("configEcm show"):
+                    swilog.info("ecm is configured correctly")
+            return True
         else:
-            swilog.debug("configure_board_for_ssh")
-            swilog.info(
-                f"Configuring target ecm to: target={target_ip}, host={test_host_ip}"
-            )
-            cmd = (
-                "configEcm off;"
-                "configEcm on target"
-                f" {target_ip} host {test_host_ip} netmask 255.255.255.0"
-            )
-            self.slink1.run(cmd)
-            if target_ip in self.slink1.run("configEcm show"):
-                swilog.info("ecm is configured correctly")
-        return True
+            swilog.warning("Cannot read the default configuration information")
+            return False
 
     @staticmethod
     def config_read(request=None):
