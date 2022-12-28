@@ -1,5 +1,5 @@
 # Install lxml by apt-get as it requires some compilation and extra packages (python-dev, ...)
-pytest==6.1.0
+pytest==6.2.5
 lxml==4.6.2
 MarkupSafe==2.0.1
 
