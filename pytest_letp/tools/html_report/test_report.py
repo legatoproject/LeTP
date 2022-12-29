@@ -968,9 +968,9 @@ class TestReportBuilder:
                 self.summary[sub_summary.cfg] = cache_summary
             else:
                 update_summary = self.test_summary.merge_summary(
-                    self.summary[sys_type_dict[sys_type]], sys_name
+                    self.summary[sys_type], sys_name
                 )
-                self.summary[sys_type_dict[sys_type]] = update_summary
+                self.summary[sys_type] = update_summary
         for sys_type, count in count_campaigns.items():
             if count[0] not in [0, count[1]]:
                 self.summary[sys_type]["Status"] = "FAILED"
