@@ -244,7 +244,8 @@
                                             {% if group_summary[group][row]["passed"] == 0 and
                                             group_summary[group][row]["failed"] == 0 and
                                             group_summary[group][row]["xfailed"] == 0 and
-                                            group_summary[group][row]["error"] == 0 %}
+                                            group_summary[group][row]["error"] == 0 and
+                                            group_summary[group][row]["skipped"] == 0 %}
                                                 <th>N/A</th>
                                             {% else %}
                                                 <th>
@@ -257,6 +258,8 @@
                                                         <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
                                                         {% elif status == "error" and group_summary[group][row][status] != 0 %}
                                                         <span class="error">{{ group_summary[group][row][status] }} Errors</span>
+                                                        {% elif status == "skipped" and group_summary[group][row][status] != 0 %}
+                                                        <span class="skipped">{{ group_summary[group][row][status] }} Skipped</span>
                                                         {% endif %}
                                                     {% endfor %}
                                                 </th>

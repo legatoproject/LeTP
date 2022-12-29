@@ -1309,14 +1309,14 @@ class TestGroups:
 
         temp_group = self._temp_group(colected_tcs)
 
+        other_testcases = {}
         for group, test_cases in temp_group.items():
             if len(test_cases) >= min_len:
                 self.test_groups[group] = test_cases
-
-        self.test_groups["Other"] = {}
-        for test_cases in temp_group.values():
-            if len(test_cases) < min_len:
-                self.test_groups["Other"].update(test_cases)
+            else:
+                other_testcases.update(test_cases)
+        if len(other_testcases) > 0:
+            self.test_groups["Other"] = other_testcases
 
         return self.test_groups
 
@@ -1418,7 +1418,7 @@ class TestGroups:
 
     def gen_group_table(self, group_status, group):
         """Create status tables of groups."""
-        status = ["passed", "failed", "xfailed", "error"]
+        status = ["passed", "failed", "xfailed", "error", "skipped"]
         group_status[group] = {}
         for sys_name in self.results_headers:
             if sys_name not in ("Testcases", "Jira ID"):
