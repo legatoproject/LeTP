@@ -791,6 +791,13 @@ class ModuleLinux(SwiModule):
                 swilog.debug("Skipping configure ecm0 on Octave device")
                 return True
             self.slink1.login()
+
+            rsp = self.slink1.run("cat /legato/smack/onlycap")
+            is_onlycap = "admin" in rsp
+            # Temporarily disable smack-onlycap to configure ecm
+            if is_onlycap:
+                self.slink1.run("echo '' > /legato/smack/onlycap")
+
             if self.is_autoconf() and target_ip in self.slink1.run("configEcm show"):
                 swilog.debug("configure_board_for_ssh: skipping config")
             else:
@@ -807,6 +814,9 @@ class ModuleLinux(SwiModule):
                 self.slink1.run(cmd)
                 if target_ip in self.slink1.run("configEcm show"):
                     swilog.info("ecm is configured correctly")
+            # Re-enable smack-onlycap after configuring ecm
+            if is_onlycap:
+                self.slink1.run("echo 'admin' > /legato/smack/onlycap")
             return True
         else:
             swilog.warning("Cannot read the default configuration information")
