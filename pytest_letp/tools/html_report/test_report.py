@@ -758,6 +758,7 @@ class TestReportBuilder:
         self.groups = {}
         self.platform = {}
         self.group_summary = {}
+        self.group_len = {}
 
     def set_unique_name(self, build_cfg):
         """!Set build configure name as the build configuration ID.
@@ -1060,6 +1061,7 @@ class TestReportBuilder:
         self.groups = test_group.gen_groups()
 
         for group, test_cases in self.groups.items():
+            self.group_len[group] = len(test_cases)
             group_status = test_group.gen_group_table(group_status, group)
             for test_name, global_test_case in test_cases.items():
                 if filter_fn and not filter_fn(global_test_case):
@@ -1071,7 +1073,7 @@ class TestReportBuilder:
                     self.group_summary = test_group._summarize_group(
                         group, result, group_status
                     )
-        if not filter_fn:
+        if not filter_fn and MERGE_REPORT:
             self.platform = test_group.gen_result_platforms()
 
         return results
@@ -1169,6 +1171,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "results_headers": self.results_headers,
             "results_failed": results_failed,
             "test_groups": self.groups,
+            "group_len": self.group_len,
             "platform_info": self.platform,
             "group_summary": self.group_summary,
             "results_all": results_all,
