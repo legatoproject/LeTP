@@ -779,11 +779,17 @@ class ModuleLinux(SwiModule):
                 self.config_read(request=request).findtext("module/ssh/ip_address")
             )
             test_host_ip = self.config_read(request).findtext("host/ip_address")
+            octave_capability = (
+                self.config_read(request).find("capabilities/octave").get("used")
+            )
             if not target_ip or not test_host_ip:
                 swilog.warning(
                     "Cannot configure target ecm, missing target ip or test host ip"
                 )
                 return False
+            if octave_capability == "1":
+                swilog.debug("Skipping configure ecm0 on Octave device")
+                return True
             self.slink1.login()
             if self.is_autoconf() and target_ip in self.slink1.run("configEcm show"):
                 swilog.debug("configure_board_for_ssh: skipping config")
