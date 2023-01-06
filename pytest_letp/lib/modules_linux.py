@@ -792,7 +792,7 @@ class ModuleLinux(SwiModule):
                 return True
             self.slink1.login()
 
-            rsp = self.slink1.run("cat /legato/smack/onlycap")
+            rsp = self.slink1.run("cat /legato/smack/onlycap", check=False)
             is_onlycap = "admin" in rsp
             # Temporarily disable smack-onlycap to configure ecm
             if is_onlycap:
