@@ -1287,7 +1287,7 @@ class TestGroups:
 
     def _get_keyword(self, group_name):
         """Get keywords of group."""
-        detail_path_in_xml = os.path.join(self.groups, group_name, "testcase")
+        detail_path_in_xml = "/".join((self.groups, group_name, "testcase"))
         return self.root.findall(detail_path_in_xml)
 
     def _get_groups_condition(self):
