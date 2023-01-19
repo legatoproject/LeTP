@@ -385,9 +385,13 @@ class TestCaseView:
         id_str = re.sub("[^a-zA-Z0-9-_.:]", "_", id_str)
         return id_str
 
-    def crash_status(self, phase):
+    def crash_status(self, phase, pytest_result=None):
         """Check crash for test case."""
-        exit_phase = self.test_case.pytest_json_result.get(phase)
+        if pytest_result is not None:
+            pytest_json_result = pytest_result
+        else:
+            pytest_json_result = self.test_case.pytest_json_result
+        exit_phase = pytest_json_result.get(phase)
         if "crash" in exit_phase:
             result = exit_phase.get("outcome")
             if result == "skipped":
@@ -399,18 +403,23 @@ class TestCaseView:
                     return result
         return None
 
-    def first_crash(self):
+    def first_crash(self, pytest_result=None):
         """Get the first non-passing status received."""
         result = None
-        if "call" in self.test_case.pytest_json_result:
-            result = self.crash_status("call")
-        elif "setup" in self.test_case.pytest_json_result:
-            result = self.crash_status("setup")
+        if pytest_result is not None:
+            pytest_json_result = pytest_result
+        else:
+            pytest_json_result = self.test_case.pytest_json_result
+            pytest_result = None
+        if "call" in pytest_json_result:
+            result = self.crash_status("call", pytest_result=pytest_result)
+        elif "setup" in pytest_json_result:
+            result = self.crash_status("setup", pytest_result=pytest_result)
         if result:
             return result
 
-        if "teardown" in self.test_case.pytest_json_result:
-            result = self.crash_status("teardown")
+        if "teardown" in pytest_json_result:
+            result = self.crash_status("teardown", pytest_result=pytest_result)
         return result
 
     @property
@@ -668,6 +677,22 @@ class BuildConfiguration:
                 return exit_phase.get("message", "N/A")
         return ""
 
+    @staticmethod
+    def get_final_status(pytest_result):
+        """Get the first non-passing status received.
+
+        To convert result into summary.
+        """
+        if pytest_result.get("outcome") in ["skipped", "passed"]:
+            return pytest_result.get("outcome")
+        else:
+            test_case_view = TestCaseView(None, None, None)
+            result = test_case_view.first_crash(pytest_result=pytest_result)
+            # cover xpassed status
+            if result is None:
+                result = "passed"
+            return result
+
     def _iter_pytest_report(self, global_test_data, summary):
         """Iterate the test report and collect summary."""
         tests = self.json_data.get("tests", [])
@@ -690,7 +715,8 @@ class BuildConfiguration:
             else:
                 self._update_result_of_duplicate_tcs(pytest_result, test_result)
 
-            verify_duplicate_tcs[test_name] = pytest_result.get("outcome")
+            outcome = self.get_final_status(pytest_result)
+            verify_duplicate_tcs[test_name] = outcome
             if verify_duplicate_tcs[test_name] == "xfailed":
                 xfailed_mes = self.get_xfailed_mes(pytest_result)
                 if JIRA_USERNAME and not check_jira_ticket(xfailed_mes):
