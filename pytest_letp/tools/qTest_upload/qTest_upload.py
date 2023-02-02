@@ -89,6 +89,32 @@ def get_data_from_json():
     )
 
 
+def get_status_from_json():
+    """Get status from json file.
+
+    Returns:
+        List of test cases upload to qTest.
+        Results of test cases upload to qTest.
+    """
+    with open(JSON_PATH, encoding="utf8") as f:
+        json_data = json.load(f)
+    Config_module = list(json_data["env"]["per_env"].keys())[0]
+    dict_test_cases = {}
+    list_test_cases_run = []
+    list_status = []
+    pattern_name = r"(L[_E].*_\d+)"
+    json_data1 = json_data["tests"]
+    json_data2 = json_data1[1:]
+    num_tcs = len(json_data2)
+    for i in range(num_tcs):
+        test_case_name = re.search(pattern_name, json_data2[i]["name"]).group(0)
+        status = json_data2[i][Config_module]["result"]
+        list_status.append(status)
+        list_test_cases_run.append(test_case_name)
+        dict_test_cases[list_test_cases_run[i]] = list_status[i]
+    return list_test_cases_run, dict_test_cases
+
+
 def pre_upload(test_run_id, versions):
     """Pre-upload test result."""
     property_info = REST_api.get_properties_info(test_run_id)
@@ -157,19 +183,9 @@ print(f"ACCESS_TOKEN: {ACCESS_TOKEN}")
 
 REST_api = QTestAPI(ACCESS_TOKEN, PROJECT_NAME, RELEASE_NAME)
 
-# Load data from html file
-with open(HTML_PATH, "r", encoding="utf8") as f:
-    html_data = f.read()
-html_data1 = html_data.split("L_ReinitTest", 1)[1]
-html_data2 = html_data1.split("<tr>", 1)[1]
-pattern_name = r"scope.*\.(L[_E].*_\d+)"
-pattern_status = r"td class=\"(\w+)"
-list_test_cases_run = re.findall(pattern_name, html_data2)
-list_status = re.findall(pattern_status, html_data2)
-dict_test_cases = {}
-number_testcases = len(list_test_cases_run)
-for i in range(number_testcases):
-    dict_test_cases[list_test_cases_run[i]] = list_status[i]
+# Load data from json file
+(list_test_cases_run, dict_test_cases) = get_status_from_json()
+
 # Get information of jenkins job
 (
     TestbedID,
