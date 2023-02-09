@@ -143,10 +143,10 @@ class TestSummary:
 
     def total_compare(self):
         """Get total test cases to compare for report status."""
-        if self.cfg == "global" and MERGE_REPORT:
-            collected = self.total_collected()
-        else:
+        if self.cfg != "global" and MERGE_REPORT:
             collected = self.total_tcs_of_each_campaign()
+        else:
+            collected = self.total_collected()
 
         return collected
 
