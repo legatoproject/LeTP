@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Differential Report</title>
+
+    <style>
+
+    body {
+        font-family: 'arial', 'sans-serif';
+    }
+
+    table {
+        border-collapse: collapse;
+        border: 2px solid #dee2e6;
+    }
+
+    tr:nth-child(even) {
+        background-color: rgba(0,0,0,.05);
+    }
+
+    thead th {
+        background-color: #00677A;
+        color: white;
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    tbody th {
+        text-align: left;
+        font-weight: 500;
+    }
+
+    th, td {
+        text-align: center;
+        font-size: 15px;
+        white-space: nowrap;
+        padding: .75rem;
+        vertical-align: center;
+        border-top: 1px solid #dee2e6;
+    }
+
+    @media (min-width: 992px) {
+       .modal-xlg {
+          width: 90%;
+          max-width: none;
+       }
+    }
+
+    .passed { background-color: #c3e6cb; }
+    .new-passed { background-color: #0ceb1f; }
+    .failed { background-color: #E77480; }
+    .new-failed { background-color: #f64658; }
+    .error { background-color: #ffeeba; }
+    .new-error { background-color: #eec95a; }
+    .xfailed { background-color: #f5c6cb; }
+    .new-xfailed { background-color: #fa98a2; }
+    .skipped { background-color: #7899a1; }
+    .new-skipped { background-color: #669aa7; }
+    .miss { background-color: #eeaf42; }
+
+    .title {
+        position: sticky;
+        top: 0px;
+    }
+    </style>
+</head>
+<body>
+    <div>
+        <h1 style="text-align: center">Differential Report</h1>
+
+        <div style="margin-top: 50px">
+            <table align="center">
+                <thead>
+                    <tr class="title">
+                        <th>New Status</th>
+                        <th scope="col">Testcases</th>
+                        {% for target in target_list %}
+                            <th>{{ target }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for status in data %}
+                        {% if status == "Miss Tests" %}
+                            <td rowspan={{status_len[status] + 1}}><big><b>{{status}}</b></big></td>
+                        {% else %}
+                            <td rowspan={{status_len[status] + 1}}><big><b style="text-transform:capitalize">New {{status}}</b></big></td>
+                        {% endif %}
+                        {% for test in data[status] %}
+                        <tr>
+                            <th scope="row">{{test}}</th>
+                            {% for status in data[status][test] %}
+                                <th class="status {{ status | lower }}">{{status}}</th>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

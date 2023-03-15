@@ -92,3 +92,7 @@ class HTMLRender(TemplateRender):
                 return self._render_summary_sections()
 
         return None
+
+    def diff(self):
+        """!Render the data."""
+        return self._render_all_sections()
