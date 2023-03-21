@@ -1,13 +1,12 @@
 inherited: true
 owners:
 - akasilingam
-- lpacyk
 - jnorthway
 - nmquan
 matchers:
 - regex: test/*
   owners:
-      [lpacyk]
+      [jnorthway]
 - regex: framework/*
   owners:
-      [lpacyk]
+      [jnorthway]
