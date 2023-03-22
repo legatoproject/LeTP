@@ -77,7 +77,11 @@ class TargetVersions:
         if target is not None:
             if target.__class__.__module__.endswith("modules_altair"):
                 console = com.ComPortType.AT
-
+            if target.__class__.__name__ == "EM92":
+                self.legato_cmd = {
+                    com.ComPortType.CLI: "legato version",
+                    com.ComPortType.AT: "ATI9",
+                }
         return self.get_version(
             cmd=self.legato_cmd,
             pattern=target.legato_pattern,
@@ -96,6 +100,8 @@ class TargetVersions:
 
         e.g. SWI9X07H_00.02.21.00
         """
+        if target.__class__.__name__ == "EM92":
+            self.modem_cmd = {com.ComPortType.CLI: None, com.ComPortType.AT: "ATI9"}
         return self.get_version(
             cmd=self.modem_cmd,
             pattern=target.modem_pattern,

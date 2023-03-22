@@ -49,18 +49,23 @@ def adb_transfer(file_list, dest):
         file_list: python list of files/folder to copy
         dest: destination folder or file
     """
+    adb_path = "/usr/bin/adb"
+    if not os.path.isfile(adb_path):
+        adb_path = "/usr/local/bin/adb"
     time.sleep(5)
     exit_status = -1
     count = 20
     # Wait for a device
     while exit_status != 0:
-        output, exit_status = pexpect.run("adb devices", withexitstatus=1)
+        output, exit_status = pexpect.run(f"{adb_path} devices", withexitstatus=1)
         time.sleep(1)
         count -= 1
         assert count != 0
-    cmd = '/bin/bash -c "%s"' % (
-        "/usr/bin/adb push %s %s" % (" ".join(file_list), dest)
+    cmd = (
+        f'/bin/bash -c "{adb_path} push'
+        f' {file_list if isinstance(file_list, str) else " ".join(file_list)} {dest}"'
     )
+
     swilog.info(cmd)
     output, exit_status = pexpect.run(cmd, withexitstatus=1)
     swilog.info(output)
