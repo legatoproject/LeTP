@@ -785,6 +785,33 @@ class TestReportBuilder:
         self.platform = {}
         self.group_summary = {}
         self.group_len = {}
+        self.min_list = [
+            "Device Up",
+            "Used",
+            "Legato Used",
+            "Base Heap",
+            "Base Static",
+            "Legato Heap",
+            "Legato Static",
+        ]
+        self.max_list = ["Free", "Total Idle", "Idle Percentage"]
+        self.mem_cpu_boottime_tcs_list = [
+            "test_memory_size",
+            "test_idle_memory",
+            "test_idle_atip",
+            "test_cpu_load_idle",
+            "test_startup",
+        ]
+        self.key_memory = [
+            "Base Heap",
+            "Base Static",
+            "Legato Heap",
+            "Legato Static",
+            "Used",
+            "Free",
+            "Total",
+            "Legato Used",
+        ]
 
     def set_unique_name(self, build_cfg):
         """!Set build configure name as the build configuration ID.
@@ -1119,7 +1146,7 @@ class TestReportBuilder:
                 results.append(result)
         return results
 
-    def generate_report(self, results_all, status, other_contents: dict):
+    def generate_report(self, results_all, status, other_contents: dict, data=None):
         """!Generate the test report."""
         raise NotImplementedError
 
@@ -1152,6 +1179,312 @@ class TestReportBuilder:
 
         self.results_headers = results_headers
 
+    @staticmethod
+    def _get_target_name(tc):
+        """Get target name to support collect data of memory, cpu, boot.
+
+        time.
+        """
+        if "hl78" in tc.target_name.lower():
+            target_name = "RTOS"
+        elif "rc76" in tc.target_name.lower():
+            target_name = "ThreadX"
+        elif "wp76" in tc.target_name.lower():
+            target_name = "Linux(WP76xx)"
+        elif "wp77" in tc.target_name.lower():
+            target_name = "Linux(WP77xx)"
+        return target_name
+
+    @staticmethod
+    def _data_of_test_idle_memory(memory, test_log, platforms, target_name):
+        """Collect data of test_idle_memory."""
+        value_free = re.search(r"Final Free:\s+(?P<free>\d+\.\d+)", test_log).group(
+            "free"
+        )
+        value_used = re.search(r"Final Used:\s+(?P<used>\d+\.\d+)", test_log).group(
+            "used"
+        )
+        value_total = re.search(r"Final Total:\s+(?P<total>\d+\.\d+)", test_log).group(
+            "total"
+        )
+        for target in platforms:
+            if target == target_name:
+                memory["Free"][target_name] = round(float(value_free), 2)
+                memory["Used"][target_name] = round(float(value_used), 2)
+                memory["Total"][target_name] = round(float(value_total), 2)
+        return memory
+
+    @staticmethod
+    def _data_of_test_memory_size(memory, test_log, platforms, target_name):
+        """Collect data of test_memory_size."""
+        value_free = re.search(r"'free':\s\[(?P<free>\d+)", test_log).group("free")
+        legato_used = re.search(r"'legato':\s\[(?P<used>\d+)", test_log).group("used")
+        value_total = re.search(r"'total':\s\[(?P<total>\d+)", test_log).group("total")
+        for target in platforms:
+            if target == target_name:
+                memory["Free"][target_name] = round(float(value_free), 2)
+                memory["Legato Used"][target_name] = round(float(legato_used), 2)
+                memory["Total"][target_name] = round(float(value_total), 2)
+        return memory
+
+    @staticmethod
+    def _data_of_test_idle_atip(memory, test_log, platforms, target_name):
+        """Collect data of test_idle_atip test case."""
+        value_free = re.search(r"Total Free:\s+(?P<free>\d+)", test_log).group("free")
+        max_used = re.search(r"Max Used:\s+(?P<max_used>\d+)", test_log).group(
+            "max_used"
+        )
+        base_heap = re.search(r"Base Heap max:\s+(?P<base_heap>\d+)", test_log).group(
+            "base_heap"
+        )
+        base_static = re.search(r"Base Static:\s+(?P<base_static>\d+)", test_log).group(
+            "base_static"
+        )
+        legato_heap = re.search(r"Legato Heap:\s+(?P<legato_heap>\d+)", test_log).group(
+            "legato_heap"
+        )
+        legato_static = re.search(
+            r"Legato Static:\s+(?P<legato_static>\d+)", test_log
+        ).group("legato_static")
+        for target in platforms:
+            if target == target_name:
+                memory["Base Heap"][target_name] = round(float(base_heap), 2)
+                memory["Base Static"][target_name] = round(float(base_static), 2)
+                memory["Legato Heap"][target_name] = round(float(legato_heap), 2)
+                memory["Legato Static"][target_name] = round(float(legato_static), 2)
+                memory["Used"][target_name] = round(float(max_used), 2)
+                memory["Free"][target_name] = round(float(value_free), 2)
+        return memory
+
+    def _collect_data_of_memory(self, memory, tc, platforms):
+        """Collect data of memory on all target."""
+        test_log = None
+        target_name = self._get_target_name(tc)
+        tc_log = tc.test_case.pytest_json_result["call"]
+        for key in tc_log.keys():
+            if key == "stdout":
+                test_log = tc_log["stdout"]
+        if tc.test_name.split(".")[-1] == "test_idle_memory" and test_log is not None:
+            memory = self._data_of_test_idle_memory(
+                memory, test_log, platforms, target_name
+            )
+        elif tc.test_name.split(".")[-1] == "test_idle_atip" and test_log is not None:
+            memory = self._data_of_test_idle_atip(
+                memory, test_log, platforms, target_name
+            )
+        elif tc.test_name.split(".")[-1] == "test_memory_size" and test_log is not None:
+            memory = self._data_of_test_memory_size(
+                memory, test_log, platforms, target_name
+            )
+        return memory
+
+    def _collect_data_of_cpu(self, cpu, tc):
+        """Collect data of cpu on all target."""
+        test_log = None
+        target_name = self._get_target_name(tc)
+        tc_log = tc.test_case.pytest_json_result["call"]
+        for key in tc_log.keys():
+            if key == "stdout":
+                test_log = tc_log["stdout"]
+        if tc.test_name.split(".")[-1] == "test_cpu_load_idle" and test_log is not None:
+            if target_name == "RTOS":
+                idle_percen = re.search(
+                    r"'Total':\s\[(?P<idle_percen>\d+)", test_log
+                ).group("idle_percen")
+                cpu["Idle Percentage"][target_name] = idle_percen
+            elif "Linux" in target_name:
+                total_idle = re.search(
+                    r"'Total Idle':\s\[(?P<total_idle>\d+\.\d)", test_log
+                ).group("total_idle")
+                idle_percen = re.search(
+                    r"'Total':\s\[(?P<idle_percen>\d+\.\d)", test_log
+                ).group("idle_percen")
+                cpu["Total Idle"][target_name] = round(float(total_idle), 2)
+                cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
+        return cpu
+
+    def _collect_data_of_boot_time(self, boot_time, tc, platforms):
+        """Collect data of boot time on all target."""
+        test_log = None
+        target_name = self._get_target_name(tc)
+        tc_log = tc.test_case.pytest_json_result["teardown"]
+        for key in tc_log.keys():
+            if key == "stdout":
+                test_log = tc_log["stdout"]
+        if tc.test_name.split(".")[-1] == "test_startup" and test_log is not None:
+            device_up = re.search(
+                r'"device_up":\s(?P<time>\d+\.\d{5})', test_log
+            ).group("time")
+            for target in platforms:
+                if target == target_name:
+                    boot_time["Device Up"][target_name] = round(float(device_up), 2)
+        return boot_time
+
+    def create_data_file(self, results_all, pre_data: dict):
+        """Create data of memory, cpu and boot time on all target.
+
+        Returns:
+            The json data includes today's data and sample data
+                taken from get_sample_data.
+        """
+        memory = {}
+        cpu = {}
+        boot_time = {}
+        infor = ["Memory", "CPU", "Boot Time"]
+        platforms = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
+        val = ["N/A"] * len(platforms)
+        for data_name in self.key_memory:
+            memory[data_name] = dict(zip(platforms, val))
+        cpu["Total Idle"] = dict(zip(platforms, val))
+        cpu["Idle Percentage"] = dict(zip(platforms, val))
+        boot_time["Device Up"] = dict(zip(platforms, val))
+        for tcs in results_all:
+            for tc in tcs:
+                if (
+                    tc.test_name.split(".")[-1] in self.mem_cpu_boottime_tcs_list
+                    and tc.test_case is not None
+                    and tc.result.lower() == "passed"
+                ):
+                    memory = self._collect_data_of_memory(memory, tc, platforms)
+                    cpu = self._collect_data_of_cpu(cpu, tc)
+                    boot_time = self._collect_data_of_boot_time(
+                        boot_time, tc, platforms
+                    )
+        today_data = dict(zip(infor, [memory, cpu, boot_time]))
+        if not pre_data:
+            sample_data = today_data
+        else:
+            sample_data = self.get_sample_data(pre_data)
+        data = {"Data": today_data, "Sample Data": sample_data}
+
+        return data
+
+    def check_data(self, data: dict):
+        """Check the status of today's data against sample data."""
+        for infor, infor_value in data["Data"].items():
+            for data_name, data_value in infor_value.items():
+                if data_name in self.min_list:
+                    data_1 = data["Sample Data"][infor][data_name]
+                    data["Data"][infor][data_name] = self._check_min_data_status(
+                        data_value, data_1
+                    )
+                elif data_name in self.max_list:
+                    data_2 = data["Sample Data"][infor][data_name]
+                    data["Data"][infor][data_name] = self._check_max_data_status(
+                        data_value, data_2
+                    )
+                else:
+                    for target, value in data_value.items():
+                        data["Data"][infor][data_name][target] = [value, "None"]
+        return data
+
+    @staticmethod
+    def _check_min_data_status(data_value, data_check):
+        """Check the status of today's data with min list of data.
+
+        Status:
+            "passed" if the value of today's data does not exceed '5%' of the
+                sample value.
+            "failed" if the value of today's data exceeds '5%' of the sample value.
+            "None" if either value is N/A or both are N/A.
+        """
+        for target, value in data_value.items():
+            if value == "N/A" or data_check[target] == "N/A":
+                data_value[target] = [value, "None"]
+            else:
+                if value > 1.05 * data_check[target]:
+                    data_value[target] = [value, "failed"]
+                else:
+                    data_value[target] = [value, "passed"]
+
+        return data_value
+
+    @staticmethod
+    def _check_max_data_status(data_value, data_check):
+        """Check the status of today's data with max list of data.
+
+        Status:
+            "passed" if the value of today's data does not exceed '5%' of the
+                sample value.
+            "failed" if the value of today's data exceeds '5%' of the sample value.
+            "None" if either value is N/A or both are N/A.
+        """
+        for target, value in data_value.items():
+            if value == "N/A" or data_check[target] == "N/A":
+                data_value[target] = [value, "None"]
+            else:
+                if value < 0.95 * data_check[target]:
+                    data_value[target] = [value, "failed"]
+                else:
+                    data_value[target] = [value, "passed"]
+
+        return data_value
+
+    def get_sample_data(self, data):
+        """Get sample data of memory, cpu & boot time to compare.
+
+        with today's data.
+        """
+        # Sample data is returned from the memory_data.json file
+        # of the previous most recent date.
+        sample_data = data["Sample Data"]
+        for infor, infor_value in data["Sample Data"].items():
+            for data_name, data_value in infor_value.items():
+                if data_name in self.min_list:
+                    data1 = data["Data"][infor][data_name]
+                    sample_data[infor][data_name] = self._get_min_max_data(
+                        data_value, data1
+                    )
+                elif data_name in self.max_list:
+                    data2 = data["Data"][infor][data_name]
+                    sample_data[infor][data_name] = self._get_min_max_data(
+                        data_value, data2, check_min=False
+                    )
+                else:
+                    data3 = data["Data"][infor][data_name]
+                    sample_data[infor][data_name] = self._get_value(data_value, data3)
+
+        return sample_data
+
+    @staticmethod
+    def _get_value(data_value, compare_value):
+        """Get the min/max value from today's data."""
+        for target, value in data_value.items():
+            data_value[target] = value if value != "N/A" else compare_value[target]
+
+        return data_value
+
+    @staticmethod
+    def _get_min_max_data(data_value, compare_value, check_min=True):
+        """Get the min/max value from today's data."""
+        for target, value in data_value.items():
+            if value != "N/A" and compare_value[target] != "N/A":
+                if check_min:
+                    data_value[target] = min(value, compare_value[target])
+                else:
+                    data_value[target] = max(value, compare_value[target])
+            elif value == "N/A" and compare_value[target] == "N/A":
+                data_value[target] = "N/A"
+            else:
+                data_value[target] = value if value != "N/A" else compare_value[target]
+
+        return data_value
+
+    @staticmethod
+    def get_all_data(mem_data_json_path, all_data, sum_data):
+        """Get all data from memory_data.json to generate report."""
+        date = []
+        i = 0
+        for path in mem_data_json_path:
+            assert os.path.exists(path), "Could not find JSON file"
+            date.append(f"Day {i + 1}")
+            with open(path, encoding="utf8") as f:
+                sum_data[i] = json.load(f)
+                all_data[date[i]] = sum_data[i]["Data"]
+            i += 1
+
+        return all_data, sum_data
+
     def run(self, args):
         """!Run the builder to generate report."""
         self._add_build_cfgs(args.json_path)
@@ -1166,7 +1499,29 @@ class TestReportBuilder:
             "basic": args.basic,
             "section": args.html_section,
         }
-        output = self.generate_report(results_all, status, other_contents)
+        all_data = {}
+        sum_data = {}
+        if args.pre_mem_path:
+            all_data, sum_data = self.get_all_data(
+                args.pre_mem_path, all_data=all_data, sum_data=sum_data
+            )
+        if args.output_mem_data:
+            if len(all_data) > 0:
+                data = self.create_data_file(results_all, list(sum_data.values())[-1])
+            else:
+                data = self.create_data_file(results_all, sum_data)
+            output = json.dumps(data, indent=2, separators=(",", ": "))
+            with open(args.output_mem_data, "w", encoding="utf8") as f:
+                f.write(output)
+            print(f"Generating memory data in {args.output_mem_data}")
+            data_check = self.check_data(data=data)
+            all_data.update(
+                {"Sample Data": data_check["Sample Data"], "Today": data_check["Data"]}
+            )
+
+        output = self.generate_report(
+            results_all, status, other_contents, data=all_data
+        )
         if args.output:
             with open(args.output, "w", encoding="utf8") as f:
                 f.write(output)
@@ -1176,12 +1531,22 @@ class TestReportBuilder:
 class TestReportHTMLBuilder(TestReportBuilder):
     """!Test report HTML format builder."""
 
-    def generate_report(self, results_all, status, other_contents: dict):
+    def generate_report(self, results_all, status, other_contents: dict, data=None):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
         results_failed = self.gen_results_table(lambda x: not x.is_passed())
         summary_headers = ["Config", "Status"]
+        targets = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
         summary_headers.extend(TestSummary.stat_keys())
+        if data is None or data == {}:
+            len_data = None
+            len_date = None
+        else:
+            len_data = {}
+            len_date = len(data)
+            for _, infor in data.items():
+                for key, data_name in infor.items():
+                    len_data[key] = len(data_name)
 
         html_render.contents = {
             "title": other_contents.get("title"),
@@ -1202,6 +1567,10 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "group_summary": self.group_summary,
             "results_all": results_all,
             "test_data": self.global_test_data,
+            "all_data": data,
+            "len_data": len_data,
+            "len_date": len_date,
+            "targets": targets,
         }
 
         return html_render.render()
@@ -1228,7 +1597,7 @@ class TestReportJSONBuilder(TestReportBuilder):
         super().__init__()
         self.content = None
 
-    def generate_report(self, results_all, status, other_contents: dict):
+    def generate_report(self, results_all, status, other_contents: dict, data=None):
         """!Generate report in JSON format."""
         print("Generating JSON")
         tests = []
@@ -1501,6 +1870,9 @@ def parse_args():
         required=True,
         help="Path to build_configuration.json files",
     )
+    parser.add_argument(
+        "--pre-mem-path", action="append", help="Path to memory_data.json files"
+    )
     parser.add_argument("--jira-user", help="Account to get the status of Jira ticket")
     parser.add_argument("--jira-password", help="Jira account password")
     parser.add_argument(
@@ -1523,6 +1895,7 @@ def parse_args():
         "--title", default="Test Report", help="Path to build_configuration.json files"
     )
     parser.add_argument("--output", default="test_report.html", help="Output file path")
+    parser.add_argument("--output-mem-data", help="Output file path")
     parser.add_argument(
         "--output-format", default="HTML", help="Output format (HTML, JSON)"
     )
