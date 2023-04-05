@@ -807,10 +807,10 @@ class TestReportBuilder:
             "Base Static",
             "Legato Heap",
             "Legato Static",
+            "Legato Used",
             "Used",
             "Free",
             "Total",
-            "Legato Used",
         ]
 
     def set_unique_name(self, build_cfg):
@@ -1217,14 +1217,10 @@ class TestReportBuilder:
     @staticmethod
     def _data_of_test_memory_size(memory, test_log, platforms, target_name):
         """Collect data of test_memory_size."""
-        value_free = re.search(r"'free':\s\[(?P<free>\d+)", test_log).group("free")
         legato_used = re.search(r"'legato':\s\[(?P<used>\d+)", test_log).group("used")
-        value_total = re.search(r"'total':\s\[(?P<total>\d+)", test_log).group("total")
         for target in platforms:
             if target == target_name:
-                memory["Free"][target_name] = round(float(value_free), 2)
                 memory["Legato Used"][target_name] = round(float(legato_used), 2)
-                memory["Total"][target_name] = round(float(value_total), 2)
         return memory
 
     @staticmethod
@@ -1291,7 +1287,7 @@ class TestReportBuilder:
                 idle_percen = re.search(
                     r"'Total':\s\[(?P<idle_percen>\d+)", test_log
                 ).group("idle_percen")
-                cpu["Idle Percentage"][target_name] = idle_percen
+                cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
             elif "Linux" in target_name:
                 total_idle = re.search(
                     r"'Total Idle':\s\[(?P<total_idle>\d+\.\d)", test_log

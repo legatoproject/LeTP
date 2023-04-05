@@ -15,7 +15,7 @@
 
     .container {
         min-width: 1000px;
-        margin-left: 225px;
+        margin-left: 245px;
     }
 
     .container > h1 {
@@ -48,6 +48,7 @@
         background-color: #00677A;
         color: white;
         border-bottom: 2px solid #dee2e6;
+        border-right: 2px solid #dee2e6;
     }
 
     th, td {
@@ -69,7 +70,7 @@
     .list {
         position: fixed;
         top: 0px;
-        width: 239px;
+        width: 245px;
         height: 100vh;
         z-index: 1;
         background-color: rgb(230, 224, 224);
@@ -116,7 +117,6 @@
     .running { background-color: #97def0; }
     .skipped { background-color: #7899a1; }
     .sample { background-color: #13b9be; }
-    .None { background-color: #737777; }
 
     pre.log {
         font-size: 75%;
@@ -266,13 +266,17 @@
                                 <td rowspan=2><b>Infor</b></td>
                                 <td rowspan=2><b>Data</b></td>
                                 {% for col in targets %}
-                                    <th colspan={{len_date}}>{{col}}</th>
+                                    <td colspan={{len_date}}>{{col}}</td>
                                 {% endfor %}
                             </tr>
                             <tr>
                                 {% for col in targets %}
                                     {% for day in all_data %}
-                                    <th>{{day}}</th>
+                                        {% if day == "Today" %}
+                                            <td>{{day}}</td>
+                                        {% else %}
+                                            <th>{{day}}</th>
+                                        {% endif %}
                                     {% endfor %}
                                 {% endfor %}
                             </tr>
