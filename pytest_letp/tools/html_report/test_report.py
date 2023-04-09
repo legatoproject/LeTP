@@ -786,7 +786,7 @@ class TestReportBuilder:
         self.group_summary = {}
         self.group_len = {}
         self.min_list = [
-            "Device Up",
+            "Device Up (s)",
             "Used",
             "Legato Used",
             "Base Heap",
@@ -794,7 +794,7 @@ class TestReportBuilder:
             "Legato Heap",
             "Legato Static",
         ]
-        self.max_list = ["Free", "Total Idle", "Idle Percentage"]
+        self.max_list = ["Free", "Total Idle", "Idle Percentage (%)"]
         self.mem_cpu_boottime_tcs_list = [
             "test_memory_size",
             "test_idle_memory",
@@ -1287,7 +1287,7 @@ class TestReportBuilder:
                 idle_percen = re.search(
                     r"'Total':\s\[(?P<idle_percen>\d+)", test_log
                 ).group("idle_percen")
-                cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
+                cpu["Idle Percentage (%)"][target_name] = round(float(idle_percen), 2)
             elif "Linux" in target_name:
                 total_idle = re.search(
                     r"'Total Idle':\s\[(?P<total_idle>\d+\.\d)", test_log
@@ -1296,7 +1296,7 @@ class TestReportBuilder:
                     r"'Total':\s\[(?P<idle_percen>\d+\.\d)", test_log
                 ).group("idle_percen")
                 cpu["Total Idle"][target_name] = round(float(total_idle), 2)
-                cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
+                cpu["Idle Percentage (%)"][target_name] = round(float(idle_percen), 2)
         return cpu
 
     def _collect_data_of_boot_time(self, boot_time, tc, platforms):
@@ -1313,7 +1313,7 @@ class TestReportBuilder:
             ).group("time")
             for target in platforms:
                 if target == target_name:
-                    boot_time["Device Up"][target_name] = round(float(device_up), 2)
+                    boot_time["Device Up (s)"][target_name] = round(float(device_up), 2)
         return boot_time
 
     def create_data_file(self, results_all, pre_data: dict):
@@ -1332,8 +1332,8 @@ class TestReportBuilder:
         for data_name in self.key_memory:
             memory[data_name] = dict(zip(platforms, val))
         cpu["Total Idle"] = dict(zip(platforms, val))
-        cpu["Idle Percentage"] = dict(zip(platforms, val))
-        boot_time["Device Up"] = dict(zip(platforms, val))
+        cpu["Idle Percentage (%)"] = dict(zip(platforms, val))
+        boot_time["Device Up (s)"] = dict(zip(platforms, val))
         for tcs in results_all:
             for tc in tcs:
                 if (
