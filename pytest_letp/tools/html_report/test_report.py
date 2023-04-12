@@ -437,7 +437,7 @@ class TestCaseView:
         if result:
             if result == "xfailed":
                 xfailed_mes = self.test_case.message
-                if JIRA_USERNAME and not check_jira_ticket(xfailed_mes):
+                if JIRA_USERNAME and not JiraServer().check_jira_ticket(xfailed_mes):
                     result = "failed"
             return result
         return self.test_case.pytest_json_result.get("outcome", "N/A")
@@ -719,7 +719,7 @@ class BuildConfiguration:
             verify_duplicate_tcs[test_name] = outcome
             if verify_duplicate_tcs[test_name] == "xfailed":
                 xfailed_mes = self.get_xfailed_mes(pytest_result)
-                if JIRA_USERNAME and not check_jira_ticket(xfailed_mes):
+                if JIRA_USERNAME and not JiraServer().check_jira_ticket(xfailed_mes):
                     verify_duplicate_tcs[test_name] = "failed"
             self._add_pytest_test_logs(global_test_data, pytest_result)
 
@@ -1362,12 +1362,12 @@ class TestReportBuilder:
                 if data_name in self.min_list:
                     data_1 = data["Sample Data"][infor][data_name]
                     data["Data"][infor][data_name] = self._check_min_data_status(
-                        data_value, data_1
+                        data_value, data_1, infor, data_name
                     )
                 elif data_name in self.max_list:
                     data_2 = data["Sample Data"][infor][data_name]
                     data["Data"][infor][data_name] = self._check_max_data_status(
-                        data_value, data_2
+                        data_value, data_2, infor, data_name
                     )
                 else:
                     for target, value in data_value.items():
@@ -1375,7 +1375,7 @@ class TestReportBuilder:
         return data
 
     @staticmethod
-    def _check_min_data_status(data_value, data_check):
+    def _check_min_data_status(data_value, data_check, infor, data_name):
         """Check the status of today's data with min list of data.
 
         Status:
@@ -1389,6 +1389,16 @@ class TestReportBuilder:
                 data_value[target] = [value, "None"]
             else:
                 if value > 1.05 * data_check[target]:
+                    percent = (value - data_check[target]) * 100 / data_check[target]
+                    percent = round(percent, 2)
+                    JiraServer().search_jira_ticket(
+                        value,
+                        data_check[target],
+                        percent,
+                        infor,
+                        data_name,
+                        threshold="min",
+                    )
                     data_value[target] = [value, "failed"]
                 else:
                     data_value[target] = [value, "passed"]
@@ -1396,7 +1406,7 @@ class TestReportBuilder:
         return data_value
 
     @staticmethod
-    def _check_max_data_status(data_value, data_check):
+    def _check_max_data_status(data_value, data_check, infor, data_name):
         """Check the status of today's data with max list of data.
 
         Status:
@@ -1410,6 +1420,11 @@ class TestReportBuilder:
                 data_value[target] = [value, "None"]
             else:
                 if value < 0.95 * data_check[target]:
+                    percent = (data_check[target] - value) * 100 / data_check[target]
+                    percent = round(percent, 2)
+                    JiraServer().search_jira_ticket(
+                        value, data_check[target], percent, infor, data_name
+                    )
                     data_value[target] = [value, "failed"]
                 else:
                     data_value[target] = [value, "passed"]
@@ -1821,40 +1836,147 @@ class TestGroups:
         return group_status
 
 
-def get_ticket_status(ticket):
-    """Get Jira ticket status."""
-    uri = f"https://issues.sierrawireless.com/rest/api/2/issue/{ticket}"
-    auth = HTTPBasicAuth(JIRA_USERNAME, JIRA_PASSWORD)
-    headers = {"Accept": "application/json"}
+class JiraServer:
+    """!Work with the JIRA server."""
 
-    response = requests.request("GET", uri, headers=headers, auth=auth)
-    if response.status_code == 200:
-        json_data = response.json()
-        status = json_data.get("fields").get("status").get("name")
-        return status
-    else:
-        print(response)
-        return None
+    def __init__(self):
+        self.jira_url = "https://issues.sierrawireless.com"
+        self.jira_api_path = self.jira_url + "/rest/api/2"
+        self.auth = HTTPBasicAuth(JIRA_USERNAME, JIRA_PASSWORD)
 
+    def _add_watchers(self, ticket):
+        """Add users to an issue's watcher list."""
+        watchers = ["XLe", "TNguyenHuu", "NKha", "JNorthway", "HOu"]
+        url = self.jira_api_path + f"/issue/{ticket}/watchers"
+        for watcher in watchers:
+            response = requests.post(url, auth=self.auth, json=watcher)
+            if response.status_code == 204:
+                print(f"Add watcher {watcher} to {ticket} successfully")
+            else:
+                print(f"{response.status_code} - {response.text}")
 
-def check_jira_ticket(xfailed_mes):
-    """Check if the ticket is still valid.
-
-    Returns "True" if ticket status is different from "resolved" and
-    "closed".
-    """
-    is_valid = True
-    jira_status = None
-    xfailed_reg = re.search(r"XFailed:\s(?P<xfailed_ticket>.*)", xfailed_mes)
-    if xfailed_reg:
-        xfailed_ticket = xfailed_reg.group("xfailed_ticket")
-        jira_status = get_ticket_status(xfailed_ticket)
-        if jira_status:
-            if jira_status.lower() in ("resolved", "closed"):
-                is_valid = False
+    def _create_jira_ticket(self, value, data_check, percent, infor, data_name, title):
+        """Create a new ticket."""
+        url = self.jira_api_path + "/issue"
+        message = title.replace("more than 5", str(percent))
+        date = datetime.datetime.now()
+        # The default unit is kB, with a few exceptions:
+        # Idle Percentage (%) and Device Up (s)
+        exception_unit = {"Idle Percentage": "%", "Device Up": "s"}
+        if data_name in exception_unit:
+            data_check = str(data_check) + " " + exception_unit[data_name]
+            value = str(value) + " " + exception_unit[data_name]
         else:
-            print(f"Cannot get the status of the ticket {xfailed_ticket}")
-    return is_valid
+            data_check = str(data_check) + " kB"
+            value = str(value) + " kB"
+        description = (
+            f"Nightly report {date.strftime('%B %d, %Y')}: https://get.legato/legato-qa"
+            + f"/nightly/nightly_{date.strftime('%Y.%m.%d')}_master/test_report.html"
+            + f"\n{message}"
+            + f"\nSample value: {data_check}"
+            + f"\nToday value: {value}"
+        )
+
+        data = {
+            "fields": {
+                "project": {"key": "LE"},
+                "summary": f"[Nightly][{infor}] {title}",
+                "description": description,
+                "issuetype": {"name": "Bug"},
+                "versions": [{"name": "master"}],
+                "customfield_11562": title,
+                "customfield_11554": {"value": "1-Systematic(100%)"},
+                "customfield_11010": {"value": "3-Moderate"},
+                "customfield_11542": [
+                    "nightly-master",
+                    infor,
+                    data_name.replace(" ", "-"),
+                ],
+            }
+        }
+        response = requests.post(url, auth=self.auth, json=data)
+        if response.status_code == 201:
+            jira_ticket = response.json().get("key")
+            print(
+                "A ticket has just been created "
+                + f"for the {data_name} issue: {jira_ticket}"
+            )
+            self._add_watchers(jira_ticket)
+        else:
+            print(f"Error creating issue: {response.status_code} - {response.text}")
+
+    def search_jira_ticket(
+        self, value, data_check, percent, infor, data_name, threshold="max"
+    ):
+        """Check if the problem has been generated ticket before.
+
+        Create a new ticket if you haven't found one yet
+        """
+        url = self.jira_api_path + "/search"
+
+        if threshold == "max":
+            title = f"{data_name} reduced by more than 5%"
+        elif threshold == "min":
+            title = f"{data_name} increased by more than 5%"
+        params = {
+            "jql": (
+                f'summary ~ "{title}" AND Keywords  = nightly-master '
+                + f'AND Keywords = {infor} AND Keywords = {data_name.replace(" ","-")} '
+                + "AND status not in (Closed, Resolved)"
+            )
+        }
+
+        response = requests.get(url, params=params, auth=self.auth)
+        if response.status_code == 200:
+            json_data = response.json()
+            jira_count = json_data.get("total")
+            if int(jira_count) > 0:
+                ticket_list = [
+                    json_data.get("issues")[i].get("key")
+                    for i in range(int(jira_count))
+                ]
+                print(
+                    f"Tickets have been created for the {data_name} issue: "
+                    + ", ".join(map(str, ticket_list))
+                )
+            else:
+                self._create_jira_ticket(
+                    value, data_check, percent, infor, data_name, title
+                )
+        else:
+            print(f"{response.status_code} - {response.text}")
+
+    def get_ticket_status(self, ticket):
+        """Get Jira ticket status."""
+        url = self.jira_api_path + f"/issue/{ticket}"
+
+        response = requests.get(url, auth=self.auth)
+        if response.status_code == 200:
+            json_data = response.json()
+            status = json_data.get("fields").get("status").get("name")
+            return status
+        else:
+            print(f"{response.status_code} - {response.text}")
+            return None
+
+    def check_jira_ticket(self, xfailed_mes):
+        """Check if the ticket is still valid.
+
+        Returns "True" if ticket status is different from "resolved" and
+        "closed".
+        """
+        is_valid = True
+        jira_status = None
+        xfailed_reg = re.search(r"XFailed:\s(?P<xfailed_ticket>.*)", xfailed_mes)
+        if xfailed_reg:
+            xfailed_ticket = xfailed_reg.group("xfailed_ticket")
+            jira_status = self.get_ticket_status(xfailed_ticket)
+            if jira_status:
+                if jira_status.lower() in ("resolved", "closed"):
+                    is_valid = False
+            else:
+                print(f"Cannot get the status of the ticket {xfailed_ticket}")
+        return is_valid
 
 
 def parse_args():
