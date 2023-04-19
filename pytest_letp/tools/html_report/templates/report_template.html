@@ -72,8 +72,25 @@
         top: 0px;
         width: 245px;
         height: 100vh;
-        z-index: 1;
+        z-index: 2;
         background-color: rgb(230, 224, 224);
+    }
+
+    .mem {
+        left: 245px;
+        position: sticky;
+        background: white;
+        border-top: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+
+    }
+
+    .mem2 {
+        left: 355px;
+        position: sticky;
+        background: white;
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
     }
 
     li {
@@ -92,15 +109,18 @@
         top: 0px;
         height: 30px;
         background: white;
+        z-index: 1;
     }
 
     .panel {
         position: fixed;
         top: 0px;
+        left: 0px;
         height: 40px;
         color: white;
         background: white;
         width: 2000px;
+        z-index: 1;
     }
 
     ul a:hover {
@@ -133,6 +153,7 @@
     .title {
         position: sticky;
         top: 30px;
+        z-index: 1;
     }
 
     pre.message    { border-left-color: #828992; }
@@ -167,7 +188,7 @@
     </div>
     <div class="container">
         <span class="panel">background panel</span>
-        <h1>{{ title }}</h1>
+        <h1 style="z-index: 1">{{ title }}</h1>
 
         {% if online_link and basic %}
             <a href="{{ online_link }}">Detailed report</a>
@@ -260,12 +281,12 @@
             <div style="margin-top: 50px" id="Memory Measurement">
                 <h4 style="text-align: center">Memory Measurement</h4>
                 <div style="margin-top: 10px">
-                    <h6 style="margin-bottom: 0px; text-align: left">Unit: kB</h6>
+                    <span class="mem" style="background: white; border: 0px;">Unit: kB</span>
                     <table>
                         <thead>
                             <tr>
-                                <td rowspan=2><b>Infor</b></td>
-                                <td rowspan=2><b>Data</b></td>
+                                <td class="mem" style="background: #00677A" rowspan=2><big><b>Infor</b><big></td>
+                                <td class="mem2" style="background: #00677A" rowspan=2><big><b>Data</b><big></td>
                                 {% for col in targets %}
                                     <td colspan={{len_date}}>{{col}}</td>
                                 {% endfor %}
@@ -284,18 +305,36 @@
                         </thead>
                         <tbody>
                             {% for key, data in all_data["Today"].items() %}
-                                <td rowspan={{len_data[key] + 1}}><big><b>{{key}}</b></big></td>
+                                <td class="mem" rowspan={{len_data[key] + 1}}><big><b>{{key}}</b></big></td>
                                 {% for info, info_value in data.items() %}
                                 <tr>
-                                    <th>{{info}}</th>
+                                    {% if info == "Device Up" %}
+                                        <th class="mem2">{{info}} (s)</th>
+                                    {% elif info == "Idle Percentage" %}
+                                        <th class="mem2">{{info}} (%)</th>
+                                    {% else %}
+                                        <th class="mem2">{{info}}</th>
+                                    {% endif %}
                                     {% for target, value in info_value.items() %}
                                         {% for day in all_data %}
-                                            {% if day == "Sample Data" and len_date > 2 %}
+                                            {% if day == "Reference Data" and len_date > 2 %}
                                                 <td class="sample">{{all_data[day][key][info][target]}}</td>
-                                            {% elif day == "Sample Data" and len_date == 2 %}
+                                            {% elif day == "Reference Data" and len_date == 2 %}
                                                 <td class="sample">{{all_data[day][key][info][target][0]}}</td>
                                             {% elif day == "Today" %}
-                                                <td class={{value[1]}}>{{value[0]}}</td>
+                                                {% if value[1] == "failed" %}
+                                                    {% if value[3] == "" %}
+                                                        <td class={{value[1]}}>{{value[0]}} ({{value[2]}} %)</td>
+                                                    {% else %}
+                                                        <td class={{value[1]}}>
+                                                            <a href="https://issues.sierrawireless.com/browse/{{ value[3] }}" target="_blank">
+                                                                {{value[0]}} ({{value[2]}} %)
+                                                            </a>
+                                                        </td>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <td class={{value[1]}}>{{value[0]}}</td>
+                                                {% endif %}
                                             {% else %}
                                                 <td>{{all_data[day][key][info][target]}}</td>
                                             {% endif %}

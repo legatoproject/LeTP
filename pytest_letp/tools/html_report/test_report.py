@@ -24,6 +24,7 @@ MERGE_REPORT = False
 JIRA_USERNAME = ""
 JIRA_PASSWORD = ""
 GROUP_CONFIG_PATH = ""
+REPORT_DATE = ""
 
 
 # pylint: disable=too-many-instance-attributes
@@ -786,7 +787,7 @@ class TestReportBuilder:
         self.group_summary = {}
         self.group_len = {}
         self.min_list = [
-            "Device Up (s)",
+            "Device Up",
             "Used",
             "Legato Used",
             "Base Heap",
@@ -794,7 +795,7 @@ class TestReportBuilder:
             "Legato Heap",
             "Legato Static",
         ]
-        self.max_list = ["Free", "Total Idle", "Idle Percentage (%)"]
+        self.max_list = ["Free", "Total Idle", "Idle Percentage"]
         self.mem_cpu_boottime_tcs_list = [
             "test_memory_size",
             "test_idle_memory",
@@ -1287,7 +1288,7 @@ class TestReportBuilder:
                 idle_percen = re.search(
                     r"'Total':\s\[(?P<idle_percen>\d+)", test_log
                 ).group("idle_percen")
-                cpu["Idle Percentage (%)"][target_name] = round(float(idle_percen), 2)
+                cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
             elif "Linux" in target_name:
                 total_idle = re.search(
                     r"'Total Idle':\s\[(?P<total_idle>\d+\.\d)", test_log
@@ -1296,7 +1297,7 @@ class TestReportBuilder:
                     r"'Total':\s\[(?P<idle_percen>\d+\.\d)", test_log
                 ).group("idle_percen")
                 cpu["Total Idle"][target_name] = round(float(total_idle), 2)
-                cpu["Idle Percentage (%)"][target_name] = round(float(idle_percen), 2)
+                cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
         return cpu
 
     def _collect_data_of_boot_time(self, boot_time, tc, platforms):
@@ -1313,15 +1314,15 @@ class TestReportBuilder:
             ).group("time")
             for target in platforms:
                 if target == target_name:
-                    boot_time["Device Up (s)"][target_name] = round(float(device_up), 2)
+                    boot_time["Device Up"][target_name] = round(float(device_up), 2)
         return boot_time
 
     def create_data_file(self, results_all, pre_data: dict):
         """Create data of memory, cpu and boot time on all target.
 
         Returns:
-            The json data includes today's data and sample data
-                taken from get_sample_data.
+            The json data includes today's data and reference data
+                taken from get_refer_data.
         """
         memory = {}
         cpu = {}
@@ -1332,8 +1333,8 @@ class TestReportBuilder:
         for data_name in self.key_memory:
             memory[data_name] = dict(zip(platforms, val))
         cpu["Total Idle"] = dict(zip(platforms, val))
-        cpu["Idle Percentage (%)"] = dict(zip(platforms, val))
-        boot_time["Device Up (s)"] = dict(zip(platforms, val))
+        cpu["Idle Percentage"] = dict(zip(platforms, val))
+        boot_time["Device Up"] = dict(zip(platforms, val))
         for tcs in results_all:
             for tc in tcs:
                 if (
@@ -1348,24 +1349,24 @@ class TestReportBuilder:
                     )
         today_data = dict(zip(infor, [memory, cpu, boot_time]))
         if not pre_data:
-            sample_data = today_data
+            refer_data = today_data
         else:
-            sample_data = self.get_sample_data(pre_data)
-        data = {"Data": today_data, "Sample Data": sample_data}
+            refer_data = self.get_refer_data(pre_data)
+        data = {"Data": today_data, "Reference Data": refer_data}
 
         return data
 
     def check_data(self, data: dict):
-        """Check the status of today's data against sample data."""
+        """Check the status of today's data against reference data."""
         for infor, infor_value in data["Data"].items():
             for data_name, data_value in infor_value.items():
                 if data_name in self.min_list:
-                    data_1 = data["Sample Data"][infor][data_name]
+                    data_1 = data["Reference Data"][infor][data_name]
                     data["Data"][infor][data_name] = self._check_min_data_status(
                         data_value, data_1, infor, data_name
                     )
                 elif data_name in self.max_list:
-                    data_2 = data["Sample Data"][infor][data_name]
+                    data_2 = data["Reference Data"][infor][data_name]
                     data["Data"][infor][data_name] = self._check_max_data_status(
                         data_value, data_2, infor, data_name
                     )
@@ -1375,31 +1376,37 @@ class TestReportBuilder:
         return data
 
     @staticmethod
-    def _check_min_data_status(data_value, data_check, infor, data_name):
+    def _check_min_data_status(
+        data_value, data_check, infor, data_name, percent_check=1.05
+    ):
         """Check the status of today's data with min list of data.
 
         Status:
             "passed" if the value of today's data does not exceed '5%' of the
-                sample value.
-            "failed" if the value of today's data exceeds '5%' of the sample value.
+                reference value.
+            "failed" if the value of today's data exceeds '5%' of the reference value.
             "None" if either value is N/A or both are N/A.
         """
+        # If the data is boot time then the difference check percentage is 10%
+        if data_name == "Device Up":
+            percent_check = 1.1
         for target, value in data_value.items():
             if value == "N/A" or data_check[target] == "N/A":
                 data_value[target] = [value, "None"]
             else:
-                if value > 1.05 * data_check[target]:
+                if value > percent_check * data_check[target]:
                     percent = (value - data_check[target]) * 100 / data_check[target]
                     percent = round(percent, 2)
-                    JiraServer().search_jira_ticket(
+                    jira_ticket = JiraServer().search_jira_ticket(
                         value,
                         data_check[target],
                         percent,
                         infor,
                         data_name,
+                        target,
                         threshold="min",
                     )
-                    data_value[target] = [value, "failed"]
+                    data_value[target] = [value, "failed", percent, jira_ticket]
                 else:
                     data_value[target] = [value, "passed"]
 
@@ -1411,8 +1418,8 @@ class TestReportBuilder:
 
         Status:
             "passed" if the value of today's data does not exceed '5%' of the
-                sample value.
-            "failed" if the value of today's data exceeds '5%' of the sample value.
+                reference value.
+            "failed" if the value of today's data exceeds '5%' of the reference value.
             "None" if either value is N/A or both are N/A.
         """
         for target, value in data_value.items():
@@ -1422,40 +1429,40 @@ class TestReportBuilder:
                 if value < 0.95 * data_check[target]:
                     percent = (data_check[target] - value) * 100 / data_check[target]
                     percent = round(percent, 2)
-                    JiraServer().search_jira_ticket(
-                        value, data_check[target], percent, infor, data_name
+                    jira_ticket = JiraServer().search_jira_ticket(
+                        value, data_check[target], percent, infor, data_name, target
                     )
-                    data_value[target] = [value, "failed"]
+                    data_value[target] = [value, "failed", percent, jira_ticket]
                 else:
                     data_value[target] = [value, "passed"]
 
         return data_value
 
-    def get_sample_data(self, data):
-        """Get sample data of memory, cpu & boot time to compare.
+    def get_refer_data(self, data):
+        """Get Reference Data of memory, cpu & boot time to compare.
 
         with today's data.
         """
-        # Sample data is returned from the memory_data.json file
+        # Reference Data is returned from the memory_data.json file
         # of the previous most recent date.
-        sample_data = data["Sample Data"]
-        for infor, infor_value in data["Sample Data"].items():
+        refer_data = data["Reference Data"]
+        for infor, infor_value in data["Reference Data"].items():
             for data_name, data_value in infor_value.items():
                 if data_name in self.min_list:
                     data1 = data["Data"][infor][data_name]
-                    sample_data[infor][data_name] = self._get_min_max_data(
+                    refer_data[infor][data_name] = self._get_min_max_data(
                         data_value, data1
                     )
                 elif data_name in self.max_list:
                     data2 = data["Data"][infor][data_name]
-                    sample_data[infor][data_name] = self._get_min_max_data(
+                    refer_data[infor][data_name] = self._get_min_max_data(
                         data_value, data2, check_min=False
                     )
                 else:
                     data3 = data["Data"][infor][data_name]
-                    sample_data[infor][data_name] = self._get_value(data_value, data3)
+                    refer_data[infor][data_name] = self._get_value(data_value, data3)
 
-        return sample_data
+        return refer_data
 
     @staticmethod
     def _get_value(data_value, compare_value):
@@ -1488,7 +1495,7 @@ class TestReportBuilder:
         i = 0
         for path in mem_data_json_path:
             assert os.path.exists(path), "Could not find JSON file"
-            date.append(f"Day {i + 1}")
+            date.append(path.split("_")[1].split(".", 1)[1].replace(".", "/"))
             with open(path, encoding="utf8") as f:
                 sum_data[i] = json.load(f)
                 all_data[date[i]] = sum_data[i]["Data"]
@@ -1527,7 +1534,10 @@ class TestReportBuilder:
             print(f"Generating memory data in {args.output_mem_data}")
             data_check = self.check_data(data=data)
             all_data.update(
-                {"Sample Data": data_check["Sample Data"], "Today": data_check["Data"]}
+                {
+                    "Reference Data": data_check["Reference Data"],
+                    "Today": data_check["Data"],
+                }
             )
 
         output = self.generate_report(
@@ -1855,13 +1865,15 @@ class JiraServer:
             else:
                 print(f"{response.status_code} - {response.text}")
 
-    def _create_jira_ticket(self, value, data_check, percent, infor, data_name, title):
+    def _create_jira_ticket(
+        self, value, data_check, percent, infor, data_name, title, platform
+    ):
         """Create a new ticket."""
+        date_obj = datetime.datetime.strptime(REPORT_DATE, "%Y.%m.%d")
+        jira_ticket = ""
         url = self.jira_api_path + "/issue"
-        message = title.replace("more than 5", str(percent))
-        date = datetime.datetime.now()
         # The default unit is kB, with a few exceptions:
-        # Idle Percentage (%) and Device Up (s)
+        # Idle Percentage and Device Up
         exception_unit = {"Idle Percentage": "%", "Device Up": "s"}
         if data_name in exception_unit:
             data_check = str(data_check) + " " + exception_unit[data_name]
@@ -1870,17 +1882,17 @@ class JiraServer:
             data_check = str(data_check) + " kB"
             value = str(value) + " kB"
         description = (
-            f"Nightly report {date.strftime('%B %d, %Y')}: https://get.legato/legato-qa"
-            + f"/nightly/nightly_{date.strftime('%Y.%m.%d')}_master/test_report.html"
-            + f"\n{message}"
-            + f"\nSample value: {data_check}"
+            f"Nightly report {date_obj.strftime('%B %d, %Y')}: https://get.legato/"
+            + f"legato-qa/nightly/nightly_{REPORT_DATE}_master/test_report.html"
+            + f"\n{title.replace('more than 5', str(percent))}"
+            + f"\nReference value: {data_check}"
             + f"\nToday value: {value}"
         )
 
         data = {
             "fields": {
                 "project": {"key": "LE"},
-                "summary": f"[Nightly][{infor}] {title}",
+                "summary": f"[Nightly][{platform.split('(')[0]}][{infor}] {title}",
                 "description": description,
                 "issuetype": {"name": "Bug"},
                 "versions": [{"name": "master"}],
@@ -1889,8 +1901,9 @@ class JiraServer:
                 "customfield_11010": {"value": "3-Moderate"},
                 "customfield_11542": [
                     "nightly-master",
-                    infor,
+                    infor.replace(" ", "-"),
                     data_name.replace(" ", "-"),
+                    platform.split("(")[0],
                 ],
             }
         }
@@ -1905,13 +1918,16 @@ class JiraServer:
         else:
             print(f"Error creating issue: {response.status_code} - {response.text}")
 
+        return jira_ticket
+
     def search_jira_ticket(
-        self, value, data_check, percent, infor, data_name, threshold="max"
+        self, value, data_check, percent, infor, data_name, platform, threshold="max"
     ):
         """Check if the problem has been generated ticket before.
 
         Create a new ticket if you haven't found one yet
         """
+        jira_ticket = ""
         url = self.jira_api_path + "/search"
 
         if threshold == "max":
@@ -1921,30 +1937,36 @@ class JiraServer:
         params = {
             "jql": (
                 f'summary ~ "{title}" AND Keywords  = nightly-master '
-                + f'AND Keywords = {infor} AND Keywords = {data_name.replace(" ","-")} '
+                + f'AND Keywords = {infor.replace(" ","-")} '
+                + f'AND Keywords = {data_name.replace(" ","-")} '
+                + f'AND Keywords = {platform.split("(")[0]} '
                 + "AND status not in (Closed, Resolved)"
+                + "AND ORDER BY createdDate ASC"
             )
         }
 
         response = requests.get(url, params=params, auth=self.auth)
         if response.status_code == 200:
             json_data = response.json()
-            jira_count = json_data.get("total")
-            if int(jira_count) > 0:
+            # Check the number of jira tickets 'json_data.get("total")'
+            if int(json_data.get("total")) > 0:
                 ticket_list = [
                     json_data.get("issues")[i].get("key")
-                    for i in range(int(jira_count))
+                    for i in range(int(json_data.get("total")))
                 ]
                 print(
                     f"Tickets have been created for the {data_name} issue: "
                     + ", ".join(map(str, ticket_list))
                 )
+                jira_ticket = ticket_list[0]
             else:
-                self._create_jira_ticket(
-                    value, data_check, percent, infor, data_name, title
+                jira_ticket = self._create_jira_ticket(
+                    value, data_check, percent, infor, data_name, title, platform
                 )
         else:
             print(f"{response.status_code} - {response.text}")
+
+        return jira_ticket
 
     def get_ticket_status(self, ticket):
         """Get Jira ticket status."""
@@ -2046,7 +2068,9 @@ if __name__ == "__main__":
     args = parse_args()
     # Enable merge report for nightly master
     for path in args.json_path:
-        if re.search("nightly_.*_master", path):
+        rsp = re.search(r"nightly_(?P<date>\d+\.\d+\.\d+)_master", path)
+        if rsp:
+            REPORT_DATE = rsp.group("date")
             print("Enable merge report.")
             MERGE_REPORT = True
             break
