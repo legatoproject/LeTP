@@ -5,7 +5,7 @@ import os
 import json
 import getopt
 import re
-from qTest_lib import QTestAPI, write_config
+from qTest_lib import QTestAPI, UploadNightly, write_config
 
 
 # ====================================================================================
@@ -169,22 +169,9 @@ print(f"Json path: {JSON_PATH}")
 print(f"HTML path: {HTML_PATH}")
 QTEST_INFO = os.getenv("QTEST_INFO")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
-RELEASE_NAME = QTEST_INFO
-if ";" in QTEST_INFO:
-    pattern = r"(?P<release>.*)?;\s?(?P<test_suit>.*)"
-    RELEASE_NAME = re.search(pattern, QTEST_INFO).group("release")
-    TEST_SUITE_NAME = re.search(pattern, QTEST_INFO).group("test_suit")
-print(f"RELEASE_NAME: {RELEASE_NAME}")
-print(f"TEST_SUITE_NAME: {TEST_SUITE_NAME}")
-
 pattern = r"(Bearer\s)?(?P<token>.*)"
 ACCESS_TOKEN = re.search(pattern, ACCESS_TOKEN).group("token")
 print(f"ACCESS_TOKEN: {ACCESS_TOKEN}")
-
-REST_api = QTestAPI(ACCESS_TOKEN, PROJECT_NAME, RELEASE_NAME)
-
-# Load data from json file
-(list_test_cases_run, dict_test_cases) = get_status_from_json()
 
 # Get information of jenkins job
 (
@@ -197,6 +184,32 @@ REST_api = QTestAPI(ACCESS_TOKEN, PROJECT_NAME, RELEASE_NAME)
     Yocto_version,
     Build_number,
 ) = get_data_from_json()
+
+if "Nightly-master" in QTEST_INFO:  # Upload Nightly Legato-QA results to qTest
+    Legato_version = "Master"
+    FW_Version = "N/A"
+    Yocto_version = "N/A"
+    manifest = os.getenv("MANIFEST_PATH")
+    print(f"MANIFEST_PATH: {manifest}")
+    pattern = r"(?P<day>\d{4}\.\d{2}\.\d{2})"
+    run_day = re.search(pattern, manifest).group("day")
+    REST_api = UploadNightly(ACCESS_TOKEN, run_day)
+    TEST_SUITE_NAME = REST_api.get_nightly_TS_name()
+    print(f"TEST_SUITE_NAME: {TEST_SUITE_NAME}")
+
+else:
+    RELEASE_NAME = QTEST_INFO
+    if ";" in QTEST_INFO:
+        pattern = r"(?P<release>.*)?;\s?(?P<test_suit>.*)"
+        RELEASE_NAME = re.search(pattern, QTEST_INFO).group("release")
+        TEST_SUITE_NAME = re.search(pattern, QTEST_INFO).group("test_suit")
+    print(f"RELEASE_NAME: {RELEASE_NAME}")
+    print(f"TEST_SUITE_NAME: {TEST_SUITE_NAME}")
+
+    REST_api = QTestAPI(ACCESS_TOKEN, PROJECT_NAME, RELEASE_NAME)
+
+# Load data from json file
+(list_test_cases_run, dict_test_cases) = get_status_from_json()
 
 # Write data to test_data.xml file
 write_config("Module_Ref/value_id", TestbedID)
@@ -215,7 +228,6 @@ elif "WP76" in TBmodule or "WP77" in TBmodule:
     else:
         write_config("FW_Version_WP77/value", FW_Version)
 
-dict_test_suites = {}
 release_data = {}
 if TEST_SUITE_NAME != "":
     print(f"Upload test result for test suite: {TEST_SUITE_NAME}")
