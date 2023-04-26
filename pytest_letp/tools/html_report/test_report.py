@@ -1869,6 +1869,7 @@ class JiraServer:
         self, value, data_check, percent, infor, data_name, title, platform
     ):
         """Create a new ticket."""
+        print(f"Start create a new ticket for the {data_name} issue.")
         date_obj = datetime.datetime.strptime(REPORT_DATE, "%Y.%m.%d")
         jira_ticket = ""
         url = self.jira_api_path + "/issue"
@@ -1927,6 +1928,7 @@ class JiraServer:
 
         Create a new ticket if you haven't found one yet
         """
+        print(f"Check if the problem with {data_name} has been generated before")
         jira_ticket = ""
         url = self.jira_api_path + "/search"
 
@@ -1941,7 +1943,7 @@ class JiraServer:
                 + f'AND Keywords = {data_name.replace(" ","-")} '
                 + f'AND Keywords = {platform.split("(")[0]} '
                 + "AND status not in (Closed, Resolved)"
-                + "AND ORDER BY createdDate ASC"
+                + " ORDER BY createdDate ASC"
             )
         }
 
@@ -1960,6 +1962,7 @@ class JiraServer:
                 )
                 jira_ticket = ticket_list[0]
             else:
+                print("No tickets have been generated before")
                 jira_ticket = self._create_jira_ticket(
                     value, data_check, percent, infor, data_name, title, platform
                 )
