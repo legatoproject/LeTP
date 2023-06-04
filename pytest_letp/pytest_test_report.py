@@ -5,8 +5,9 @@ human friendly HTML test report.
 """
 import os
 import random
-from xml.etree.ElementTree import Element
-
+import re
+import urllib.request
+from xml.etree.ElementTree import Element, parse
 import pytest
 from _pytest import junitxml
 from pytest_letp.tools.html_report import test_report
@@ -90,8 +91,16 @@ def pytest_collection_modifyitems(items, session):
     """
     default_cfg = session.config._store[TEST_CONFIG_KEY]
     randomize = "true" in default_cfg.is_random().lower()
+    group_execute = default_cfg.get().getroot().find("test_run/group_execute").text
     if randomize:
         random.shuffle(items)
+    if group_execute:
+        if "http" in group_execute:
+            group_file_path = "/tmp/group.xml"
+            urllib.request.urlretrieve(group_execute, group_file_path)
+        else:
+            group_file_path = group_execute
+        session.items = group_test_executed(items, group_file_path)
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -154,3 +163,48 @@ class TestReporter:
         test_report.TestReportHTMLBuilder().build(
             title, [self._json_file], self._html_file
         )
+
+
+def group_test_executed(items, group_file_path):
+    """Pre-order test execution with groups.
+
+    Keyword Arguments:
+    :param List[_pytest.nodes.Item] items: list of item objects
+    :group_file_path: contains group file information
+    """
+    def sort_key(item):
+        count = count_dict[item[1]]
+        return (-count, item[1])
+
+    root = (parse(group_file_path)).getroot()
+    impor_group = []
+    normal_group = []
+    testcases = [testcase.text for testcase in root.findall('.//testcase')]
+    temp_group = {testcase: [] for testcase in testcases}
+    for item in items:
+        for testcase in testcases:
+            if testcase.lower() in item.nodeid.lower():
+                temp_group[testcase].append(item)
+                break
+
+    impor_group = [
+        item for sublist in temp_group.values() for item in sublist if sublist
+    ]
+    normal_group = [item for item in items if item not in impor_group]
+
+    filtered_items = []
+    for item in normal_group:
+        match = re.search(r'[^/]+/([^/]+)\.py', item.nodeid)
+        if match:
+            a = match.group(1)
+            a = re.sub(r'^(test_|le_)', '', a)
+            filtered_items.append((item, a))
+
+    count_dict = {}
+    for _, a in filtered_items:
+        count_dict[a] = count_dict.get(a, 0) + 1
+    filtered_items.sort(key=sort_key)
+    normal_group = [item for item, _ in filtered_items]
+
+    items = impor_group + normal_group
+    return items

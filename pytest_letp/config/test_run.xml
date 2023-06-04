@@ -4,5 +4,6 @@
         <id></id>
         <context></context>
         <randomize>false</randomize>
+        <group_execute></group_execute>
     </test_run>
 </test>
