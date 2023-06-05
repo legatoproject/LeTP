@@ -601,20 +601,20 @@ class SwiModule:
         return self.slink2.run_at_cmd(at_cmd, timeout, expect_rsp, check, eol)
 
 
-def look_for_tty(root_dir, path, prefix):
+def look_for_tty(root_dir, path, prefix, usb_dev):
     """Look for tty port."""
+    # LETEST-8249
     for name in os.listdir(path):
-        # Max depth of 3
-        entry = os.path.join(path, name)
-        depth = entry.replace(root_dir, "").count("/")
-        if depth > 3:
-            continue
         if name.startswith(prefix):
             return name
-        if os.path.isdir(entry) or os.path.islink(entry):
-            name = look_for_tty(root_dir, entry, prefix)
-            if name:
-                return name
+
+    for name in os.listdir(path):
+        entry = os.path.join(path, name)
+        if name.startswith(usb_dev) and os.path.isdir(entry):
+            for _name in os.listdir(entry):
+                if _name.startswith(prefix):
+                    return _name
+
     return None
 
 
@@ -625,7 +625,7 @@ def get_tty_device(usb_dev, prefix="ttyUSB"):
     if not os.path.isdir(root_dir):
         return None
 
-    return look_for_tty(root_dir, root_dir, prefix)
+    return look_for_tty(root_dir, root_dir, prefix, usb_dev)
 
 
 class SlinkInfo:
