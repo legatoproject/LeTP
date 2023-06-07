@@ -417,60 +417,26 @@
         <section class="my-4">
         <h1 class="mb-3 text-center">Task Information</h1>
         <div class="container">
-            <div class="row no-gutters">
-                <div class="col-2">
-                <div class="input-group">
-                    <input
-                    type="text"
-                    class="form-control"
-                    value="Information"
-                    readonly
-                    style="background-color: #8f8a89; color: white"
-                    />
-                </div>
-                </div>
+            <table class="table table-bordered text-center">
+            <thead style="background-color: #8f8a89; color: white">
+                <tr>
+                <th style="text-align: left" scope="col">Information</th>
                 {% for platform in execution %}
-                <div class="col-4">
-                <div class="input-group">
-                    <input
-                    type="text"
-                    class="form-control"
-                    value="{{platform}}"
-                    readonly
-                    style="background-color: #8f8a89; color: white; text-align: center"
-                    />
-                </div>
-                </div>
+                <th scope="col">{{ platform }}</th>
                 {% endfor %}
-            </div>
-            {% for info in execution_info %}
-            <div class="row no-gutters">
-                <div class="col-2">
-                    <div class="input-group text-left">
-                    <input
-                        type="text"
-                        class="form-control"
-                        value="{{info}}"
-                        readonly
-                        style="background-color: #006779; color: white; text-align: left"
-                    />
-                    </div>
-                </div>
-                {% for platform in execution %}
-                <div class="col-4">
-                    <div class="input-group">
-                    <input
-                        type="text"
-                        class="form-control"
-                        value="{{execution[platform][info]}}"
-                        readonly
-                        style="text-align: center; background-color: white"
-                    />
-                    </div>
-                </div>
+                </tr>
+            </thead>
+            <tbody>
+                {% for info in execution_info %}
+                    <tr>
+                    <td style="text-align: left; background-color: #006779; color: white" scope="row">{{ info }}</td>
+                    {% for platform in execution %}
+                    <td>{{ execution[platform][info] }}</td>
+                    {% endfor %}
+                    </tr>
                 {% endfor %}
-            </div>
-            {% endfor %}
+            </tbody>
+            </table>
         </div>
         </section>
         {% endif %}
