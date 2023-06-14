@@ -2,410 +2,599 @@
 <html>
     <head>
         <title>Test Report</title>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <!-- Load Bootstrap CSS -->
-        <link
-        rel="stylesheet"
-        href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
-        crossorigin="anonymous"
-        />
-        <style>
-        #custom-modal-dialog {
-            max-width: 1440px !important;
-            max-height: calc(100vh - 100px);
-        }
+        {% if combine_report %}
+            <style>
 
-        pre > p {
-            color: white;
-        }
-        </style>
+            body {
+                font-family: 'arial', 'sans-serif';
+            }
+
+            .container {
+                min-width: 1000px;
+            }
+
+            .container > h1 {
+                text-align: center;
+                background-color: #e1ec7c;
+            }
+
+            .title_summary {
+                text-align: center;
+                margin-bottom: 0px;
+                margin-top: 50px
+            }
+
+            table {
+                border-collapse: collapse;
+                border: 2px solid #dee2e6;
+            }
+
+            thead th {
+                background-color: #00677A;
+                color: white;
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            tbody th {
+                text-align: left;
+                font-weight: 500;
+            }
+
+            thead td {
+                background-color: #00677A;
+                color: white;
+                border-bottom: 2px solid #dee2e6;
+                border-right: 2px solid #dee2e6;
+            }
+
+            th, td {
+                text-align: center;
+                font-size: 15px;
+                white-space: nowrap;
+                padding: .75rem;
+                vertical-align: center;
+                border-top: 1px solid #dee2e6;
+            }
+
+            .passed { background-color: #c3e6cb; }
+            .failed { background-color: #E77480; }
+            .error { background-color: #ffeeba; }
+            .xfailed { background-color: #f5c6cb; }
+            .running { background-color: #97def0; }
+            .skipped { background-color: #7899a1; }
+            .NoTC { background-color: #7899a1; }
+            .NA { background-color: #9accd3; }
+
+            </style>
+        {% else %}
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <!-- Load Bootstrap CSS -->
+            <link
+            rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+            crossorigin="anonymous"
+            />
+            <style>
+            #custom-modal-dialog {
+                max-width: 1440px !important;
+                max-height: calc(100vh - 100px);
+            }
+
+            pre > p {
+                color: white;
+            }
+            </style>
+        {% endif %}
     </head>
 
     <body>
-        <h1 class="mb-3 text-center">{{title}}</h1>
+        {% if combine_report %}
+            <div class="container">
+                <h1>{{title}}</h1>
 
-        <!-- Execution information -->
-        {% if execution %}
-        <section class="my-4">
-        <h1 class="mb-3 text-center">Task Information</h1>
-        <div class="container">
-            <div class="row no-gutters">
-                <div class="col-2">
-                <div class="input-group">
-                    <input
-                    type="text"
-                    class="form-control"
-                    value="Information"
-                    readonly
-                    style="background-color: #8f8a89; color: white"
-                    />
-                </div>
-                </div>
-                {% for platform in execution %}
-                <div class="col-5">
-                <div class="input-group">
-                    <input
-                    type="text"
-                    class="form-control"
-                    value="{{platform}}"
-                    readonly
-                    style="background-color: #8f8a89; color: white; text-align: center"
-                    />
-                </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% for info in execution_info %}
-            <div class="row no-gutters">
-                <div class="col-2">
-                    <div class="input-group text-left">
-                    <input
-                        type="text"
-                        class="form-control"
-                        value="{{info}}"
-                        readonly
-                        style="background-color: #006779; color: white; text-align: left"
-                    />
+                <!-- One click summary -->
+                {% if one_click_data %}
+                    <div style="margin-top: 20px">
+                        <h2 class="title_summary">One-Click Summary</h2>
+                        <a href="{{ artifact_path }}/oneclick/test_report.html" target="_blank">
+                            <h4 style="text-align: center; margin-top: 0px;">Detailed report</h4>
+                        </a>
+                        <table align="center">
+                            <thead>
+                                <tr>
+                                    <th>Platform</th>
+                                {% for entry in one_click_headers %}
+                                    <th>{{ entry }}</th>
+                                {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for platform in one_click_data %}
+                                    <tr>
+                                        <th>{{ platform }}</th>
+                                        {% for entry in one_click_headers %}
+                                            {% if entry == "Passed" and one_click_data[platform][entry] != 0 %}
+                                                {% set summary_class = "passed" %}
+                                            {% elif entry == "Failed" and one_click_data[platform][entry] != 0 %}
+                                                {% set summary_class = "failed" %}
+                                            {% elif entry == "NoTC" and one_click_data[platform][entry] != 0 %}
+                                                {% set summary_class = "NoTC" %}
+                                            {% elif entry == "No Run" and one_click_data[platform][entry] != 0 %}
+                                                {% set summary_class = "norun" %}
+                                            {% elif entry == "N/A" and one_click_data[platform][entry] != 0 %}
+                                                {% set summary_class = "NA" %}
+                                            {% endif %}
+
+                                            {% if entry == "TestcasesRun" %}
+                                                <td style="background-color: rgb(138, 225, 236)">{{ one_click_data[platform][entry]["count"] }}
+                                                    <small>({{ '%.2f' % one_click_data[platform][entry]["percentage"]|float }} %)</small>
+                                                </td>
+                                            {% else %}
+                                                <td class="{{ summary_class }}">{{ one_click_data[platform][entry]["count"] }}
+                                                    {% if entry != "Testcases" %}
+                                                        <small>({{ '%.2f' % one_click_data[platform][entry]["percentage"]|float }} %)</small>
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-                {% for platform in execution %}
-                <div class="col-5">
+                {% else %}
+                    <h2 class="title_summary">
+                        <u>One-Click Report not available</u>
+                    </h2>
+                {% endif %}
+
+                <!-- LeTP summary -->
+                {% if letp_data %}
+                    <div style="margin-top: 20px">
+                        <h2 class="title_summary">LeTP Summary</h2>
+                        <a href="{{ artifact_path }}/letp/test_report.html" target="_blank">
+                            <h4 style="text-align: center; margin-top: 0px;">Detailed report</h4>
+                        </a>
+                        <table align="center">
+                            <thead>
+                                <tr class="title">
+                                {% for entry in letp_headers %}
+                                    <th>{{entry}}</th>
+                                {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for platform in letp_data %}
+                                    <tr>
+                                        {% for entry in letp_headers %}
+                                            {% if entry == "Passed" and letp_data[platform][entry] != 0 %}
+                                                {% set summary_class = "passed" %}
+                                            {% elif entry == "xFailed" and letp_data[platform][entry] != 0 %}
+                                                {% set summary_class = "xfailed" %}
+                                            {% elif entry == "Failed" and letp_data[platform][entry] != 0 %}
+                                                {% set summary_class = "failed" %}
+                                            {% elif entry == "Errors" and letp_data[platform][entry] != 0 %}
+                                                {% set summary_class = "error" %}
+                                            {% elif entry == "Skipped" and letp_data[platform][entry] != 0 %}
+                                                {% set summary_class = "skipped" %}
+                                            {% endif %}
+
+                                            {% if entry == "Config" %}
+                                                <th>{{ letp_data[platform][entry] }}</th>
+                                            {% elif entry == "Status" %}
+                                                <td class="status {{ letp_data[platform][entry] | lower }}">
+                                                    {{ letp_data[platform][entry] }}
+                                                </td>
+                                            {% elif entry == "TestcasesRun" %}
+                                                <td style="background-color: rgb(138, 225, 236)">{{ letp_data[platform][entry]["count"] }}
+                                                    <small>({{ '%.2f' % letp_data[platform][entry]["percentage"]|float }} %)</small>
+                                                </td>
+                                            {% else %}
+                                                <td class="{{ summary_class }}">{{ letp_data[platform][entry]["count"] }}
+                                                    {% if entry != "Testcases" %}
+                                                        <small>({{ '%.2f' % letp_data[platform][entry]["percentage"]|float }} %)</small>
+                                                    {% endif %}
+                                                </td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <h2 class="title_summary">
+                        <u>LeTP Report not available</u>
+                    </h2>
+                {% endif %}
+            </div>
+        {% else %}
+            <h1 class="mb-3 text-center">{{title}}</h1>
+
+            <!-- Execution information -->
+            {% if execution %}
+            <section class="my-4">
+            <h1 class="mb-3 text-center">Task Information</h1>
+            <div class="container">
+                <div class="row no-gutters">
+                    <div class="col-2">
                     <div class="input-group">
-                    <input
+                        <input
                         type="text"
                         class="form-control"
-                        value="{{execution[platform][info]}}"
+                        value="Information"
                         readonly
-                        style="text-align: center; background-color: white"
-                    />
+                        style="background-color: #8f8a89; color: white"
+                        />
                     </div>
+                    </div>
+                    {% for platform in execution %}
+                    <div class="col-5">
+                    <div class="input-group">
+                        <input
+                        type="text"
+                        class="form-control"
+                        value="{{platform}}"
+                        readonly
+                        style="background-color: #8f8a89; color: white; text-align: center"
+                        />
+                    </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% for info in execution_info %}
+                <div class="row no-gutters">
+                    <div class="col-2">
+                        <div class="input-group text-left">
+                        <input
+                            type="text"
+                            class="form-control"
+                            value="{{info}}"
+                            readonly
+                            style="background-color: #006779; color: white; text-align: left"
+                        />
+                        </div>
+                    </div>
+                    {% for platform in execution %}
+                    <div class="col-5">
+                        <div class="input-group">
+                        <input
+                            type="text"
+                            class="form-control"
+                            value="{{execution[platform][info]}}"
+                            readonly
+                            style="text-align: center; background-color: white"
+                        />
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% endfor %}
             </div>
-            {% endfor %}
-        </div>
-        </section>
-        {% endif %}
+            </section>
+            {% endif %}
 
-        <!-- Test System informtion -->
-        {% if testsystem %}
-        <section class="my-4">
-        <h1 class="mb-3 text-center">Test System</h1>
-        <div class="container">
-            <table class="table table-bordered text-center">
-            <thead style="background-color: #006779; color: white">
-                <tr>
-                <th scope="col" data-sort="id">History ID</th>
-                <th scope="col" data-sort="id">Task Log</th>
-                <th scope="col" data-sort="case_name">Test Platform Type</th>
-                <th scope="col" data-sort="case_name">Module Type</th>
-                <th scope="col" data-sort="result">Module Ref</th>
-                <th scope="col" data-sort="log">SIM Ref</th>
-                <th scope="col" data-sort="log">FW Version</th>
-                <th scope="col" data-sort="log">Legato Ver</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for platform in testsystem %}
-                {% for row in testsystem[platform] %}
+            <!-- Test System informtion -->
+            {% if testsystem %}
+            <section class="my-4">
+            <h1 class="mb-3 text-center">Test System</h1>
+            <div class="container">
+                <table class="table table-bordered text-center">
+                <thead style="background-color: #006779; color: white">
                     <tr>
-                    <td>
-                        <a
-                        href="http://10.29.51.78:1337/execution/{{ row['history_ID'] }}/"
-                        >{{ row['history_ID'] }}</a
-                        >
-                    </td>
-                    <td>
-                        <button
-                        type="button"
-                        class="btn btn-primary"
-                        data-toggle="modal"
-                        data-target="#log-modal-monitor-log_{{platform}}"
-                        >
-                        <i class="fas fa-eye"></i>
-                        </button>
-                        <!-- Modal -->
-                        <div
-                        class="modal fade"
-                        id="log-modal-monitor-log_{{platform}}"
-                        tabindex="-1"
-                        role="dialog"
-                        aria-labelledby="log-modal-label"
-                        aria-hidden="true"
-                        >
-                        <div
-                            class="modal-dialog"
-                            id="custom-modal-dialog"
-                            role="document"
-                        >
-                            <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="log-modal-label">Task Log</h5>
-                                <button
-                                type="button"
-                                class="close"
-                                data-dismiss="modal"
-                                aria-label="Close"
-                                >
-                                <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body p-4 text-left">{{task_log[platform]}}</div>
-                            <div class="modal-footer">
-                                <button
-                                type="button"
-                                class="btn btn-secondary"
-                                data-dismiss="modal"
-                                >
-                                Close
-                                </button>
-                            </div>
-                            </div>
-                        </div>
-                        </div>
-                    </td>
-                    <td>{{ row['Test Framework'] }}</td>
-                    <td>{{ row['Module Type'] }}</td>
-                    <td>{{ row['Module Ref'] }}</td>
-                    <td>{{ row['SIM Ref'] }}</td>
-                    <td>{{ row['FW Version'] }}</td>
-                    <td>{{ row['Legato Ver'] }}</td>
+                    <th scope="col" data-sort="id">History ID</th>
+                    <th scope="col" data-sort="id">Task Log</th>
+                    <th scope="col" data-sort="case_name">Test Platform Type</th>
+                    <th scope="col" data-sort="case_name">Module Type</th>
+                    <th scope="col" data-sort="result">Module Ref</th>
+                    <th scope="col" data-sort="log">SIM Ref</th>
+                    <th scope="col" data-sort="log">FW Version</th>
+                    <th scope="col" data-sort="log">Legato Ver</th>
                     </tr>
-                <!-- {% endfor %} -->
-                {% endfor %}
-            </tbody>
-            </table>
-        </div>
-        </section>
-        {% endif %}
-
-        <!-- Test Report -->
-        <section class="my-4">
-        <h1 class="mb-3 text-center">Test Results</h1>
-        <div class="container">
-            <table class="table table-bordered text-center" id="testTable">
-            <thead style="background-color: #006779; color: white">
-                <tr>
-                <th
-                    scope="col"
-                    class="sort"
-                    data-sort-dir="up"
-                    data-sort="test_id"
-                >
-                    Test Id
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th
-                    scope="col"
-                    class="sort"
-                    data-sort-dir="up"
-                    data-sort="test_case"
-                >
-                    Test Case
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th
-                    scope="col"
-                    class="sort"
-                    data-sort-dir="up"
-                    data-sort="test_platform"
-                >
-                    Test Platform
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th scope="col" class="sort" data-sort-dir="down">
-                    Result
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th scope="col" class="sort" data-sort-dir="down">
-                    Log Link
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th scope="col" class="sort" data-sort-dir="down">
-                    Raw log
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th scope="col" class="sort" data-sort-dir="down">
-                    Coredump
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                <th scope="col" class="sort" data-sort-dir="down">
-                    Duration
-                    <span class="float-right sort-icon">
-                    <i class="fas fa-sort-up"></i>
-                    </span>
-                </th>
-                </tr>
-            </thead>
-            <tbody id="sort">
-                {% for platform in data %}
-                    {% for row in data[platform] %}
-                    <tr class="sort">
-                    <td>{{ row['Id'] }}</td>
-                    <td>{{ row['Test Name'] }}</td>
-                    <td>{{ row['Test Platform'] }}</td>
-                    <td>
-                        {% if row['Result'] == 'Passed' %}
-                        <span class="badge badge-success">{{ row['Result'] }}</span>
-                        {% elif row['Result'] == 'N/A' %}
-                        <span class="badge badge-info">{{ row['Result'] }}</span>
-                        {% elif row['Result'] == 'No Run' %}
-                        <span class="badge badge-secondary">{{ row['Result'] }}</span>
-                        {% else %}
-                        <span class="badge badge-danger">{{ row['Result'] }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if row['Log Link'] != "N/A" %}
-                        <a href="{{row['Log Link']}}"> <i class="fas fa-link"></i></a>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if row['Log Link'] != "N/A" %}
-                        <button
-                        type="button"
-                        class="btn btn-primary"
-                        data-toggle="modal"
-                        data-target="#log-modal{{ row['Test Name'] }}"
-                        >
-                        View Log
-                        </button>
-                        {% endif %}
-                        <!-- Modal -->
-                        <div
-                        class="modal fade"
-                        id="log-modal{{ row['Test Name'] }}"
-                        tabindex="-1"
-                        role="dialog"
-                        aria-labelledby="log-modal-label"
-                        aria-hidden="true"
-                        >
-                        <div
-                            class="modal-dialog"
-                            id="custom-modal-dialog"
-                            role="document"
-                        >
-                            <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="log-modal-label">
-                                {{ row['Test Name'] }}
-                                </h5>
-                                <button
-                                type="button"
-                                class="close"
-                                data-dismiss="modal"
-                                aria-label="Close"
-                                >
-                                <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div
-                                class="modal-body p-4 text-left"
-                                style="background-color: #002b36"
+                </thead>
+                <tbody>
+                    {% for platform in testsystem %}
+                    {% for row in testsystem[platform] %}
+                        <tr>
+                        <td>
+                            <a
+                            href="http://10.29.51.78:1337/execution/{{ row['history_ID'] }}/"
+                            >{{ row['history_ID'] }}</a
                             >
-                                {{row['raw_log']}}
+                        </td>
+                        <td>
+                            <button
+                            type="button"
+                            class="btn btn-primary"
+                            data-toggle="modal"
+                            data-target="#log-modal-monitor-log_{{platform}}"
+                            >
+                            <i class="fas fa-eye"></i>
+                            </button>
+                            <!-- Modal -->
+                            <div
+                            class="modal fade"
+                            id="log-modal-monitor-log_{{platform}}"
+                            tabindex="-1"
+                            role="dialog"
+                            aria-labelledby="log-modal-label"
+                            aria-hidden="true"
+                            >
+                            <div
+                                class="modal-dialog"
+                                id="custom-modal-dialog"
+                                role="document"
+                            >
+                                <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="log-modal-label">Task Log</h5>
+                                    <button
+                                    type="button"
+                                    class="close"
+                                    data-dismiss="modal"
+                                    aria-label="Close"
+                                    >
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body p-4 text-left">{{task_log[platform]}}</div>
+                                <div class="modal-footer">
+                                    <button
+                                    type="button"
+                                    class="btn btn-secondary"
+                                    data-dismiss="modal"
+                                    >
+                                    Close
+                                    </button>
+                                </div>
+                                </div>
                             </div>
-                            <div class="modal-footer">
-                                <button
-                                type="button"
-                                class="btn btn-secondary"
-                                data-dismiss="modal"
-                                >
-                                Close
-                                </button>
                             </div>
-                            </div>
-                        </div>
-                        </div>
-                    </td>
-                    <td>{% if row['Log Link'] != "N/A" %} {{row['coredump']}} {% endif %}</td>
-                    <td>{{row['Duration(secs)']}} seconds</td>
-                    </tr>
+                        </td>
+                        <td>{{ row['Test Framework'] }}</td>
+                        <td>{{ row['Module Type'] }}</td>
+                        <td>{{ row['Module Ref'] }}</td>
+                        <td>{{ row['SIM Ref'] }}</td>
+                        <td>{{ row['FW Version'] }}</td>
+                        <td>{{ row['Legato Ver'] }}</td>
+                        </tr>
+                    <!-- {% endfor %} -->
                     {% endfor %}
-                {% endfor %}
-            </tbody>
-            </table>
-        </div>
-        </section>
-        <!-- Load Bootstrap JS -->
-        <script
-        src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"
-        ></script>
-        <script
-        src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-        crossorigin="anonymous"
-        ></script>
-        <script
-        src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"
-        ></script>
-        <script
-        defer
-        src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"
-        integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc"
-        crossorigin="anonymous"
-        ></script>
+                </tbody>
+                </table>
+            </div>
+            </section>
+            {% endif %}
 
-        <!-- Custom JavaScript function for sorting -->
-        <script>
-        $(document).ready(function () {
-            // Attach click event listener to table headerss
-            $("th.sort").each(function (index, element) {
-            $(this).click(function () {
-                const rows = $("tr.sort").get();
+            <!-- Test Report -->
+            <section class="my-4">
+            <h1 class="mb-3 text-center">Test Results</h1>
+            <div class="container">
+                <table class="table table-bordered text-center" id="testTable">
+                <thead style="background-color: #006779; color: white">
+                    <tr>
+                    <th
+                        scope="col"
+                        class="sort"
+                        data-sort-dir="up"
+                        data-sort="test_id"
+                    >
+                        Test Id
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th
+                        scope="col"
+                        class="sort"
+                        data-sort-dir="up"
+                        data-sort="test_case"
+                    >
+                        Test Case
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th
+                        scope="col"
+                        class="sort"
+                        data-sort-dir="up"
+                        data-sort="test_platform"
+                    >
+                        Test Platform
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th scope="col" class="sort" data-sort-dir="down">
+                        Result
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th scope="col" class="sort" data-sort-dir="down">
+                        Log Link
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th scope="col" class="sort" data-sort-dir="down">
+                        Raw log
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th scope="col" class="sort" data-sort-dir="down">
+                        Coredump
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    <th scope="col" class="sort" data-sort-dir="down">
+                        Duration
+                        <span class="float-right sort-icon">
+                        <i class="fas fa-sort-up"></i>
+                        </span>
+                    </th>
+                    </tr>
+                </thead>
+                <tbody id="sort">
+                    {% for platform in data %}
+                        {% for row in data[platform] %}
+                        <tr class="sort">
+                        <td>{{ row['Id'] }}</td>
+                        <td>{{ row['Test Name'] }}</td>
+                        <td>{{ row['Test Platform'] }}</td>
+                        <td>
+                            {% if row['Result'] == 'Passed' %}
+                            <span class="badge badge-success">{{ row['Result'] }}</span>
+                            {% elif row['Result'] == 'N/A' %}
+                            <span class="badge badge-info">{{ row['Result'] }}</span>
+                            {% elif row['Result'] == 'No Run' %}
+                            <span class="badge badge-secondary">{{ row['Result'] }}</span>
+                            {% else %}
+                            <span class="badge badge-danger">{{ row['Result'] }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row['Log Link'] != "N/A" %}
+                            <a href="{{row['Log Link']}}"> <i class="fas fa-link"></i></a>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if row['Log Link'] != "N/A" %}
+                            <button
+                            type="button"
+                            class="btn btn-primary"
+                            data-toggle="modal"
+                            data-target="#log-modal{{ row['Test Name'] }}"
+                            >
+                            View Log
+                            </button>
+                            {% endif %}
+                            <!-- Modal -->
+                            <div
+                            class="modal fade"
+                            id="log-modal{{ row['Test Name'] }}"
+                            tabindex="-1"
+                            role="dialog"
+                            aria-labelledby="log-modal-label"
+                            aria-hidden="true"
+                            >
+                            <div
+                                class="modal-dialog"
+                                id="custom-modal-dialog"
+                                role="document"
+                            >
+                                <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="log-modal-label">
+                                    {{ row['Test Name'] }}
+                                    </h5>
+                                    <button
+                                    type="button"
+                                    class="close"
+                                    data-dismiss="modal"
+                                    aria-label="Close"
+                                    >
+                                    <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div
+                                    class="modal-body p-4 text-left"
+                                    style="background-color: #002b36"
+                                >
+                                    {{row['raw_log']}}
+                                </div>
+                                <div class="modal-footer">
+                                    <button
+                                    type="button"
+                                    class="btn btn-secondary"
+                                    data-dismiss="modal"
+                                    >
+                                    Close
+                                    </button>
+                                </div>
+                                </div>
+                            </div>
+                            </div>
+                        </td>
+                        <td>{% if row['Log Link'] != "N/A" %} {{row['coredump']}} {% endif %}</td>
+                        <td>{{row['Duration(secs)']}} seconds</td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+                </table>
+            </div>
+            </section>
+            <!-- Load Bootstrap JS -->
+            <script
+            src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+            crossorigin="anonymous"
+            ></script>
+            <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"
+            ></script>
+            <script
+            src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"
+            ></script>
+            <script
+            defer
+            src="https://use.fontawesome.com/releases/v5.15.4/js/all.js"
+            integrity="sha384-rOA1PnstxnOBLzCLMcre8ybwbTmemjzdNlILg8O7z1lUkLXozs4DHonlDtnE7fpc"
+            crossorigin="anonymous"
+            ></script>
 
-                const currentDir = $(this).data("sortDir");
-                const newDir = currentDir === "up" ? "down" : "up";
-                console.log(newDir);
-                $(this).data("sortDir", newDir);
+            <!-- Custom JavaScript function for sorting -->
+            <script>
+            $(document).ready(function () {
+                // Attach click event listener to table headerss
+                $("th.sort").each(function (index, element) {
+                $(this).click(function () {
+                    const rows = $("tr.sort").get();
 
-                icon = `<span class="float-right sort-icon">
-                <i class="fas fa-sort-${newDir}"></i>
-                </span>
-                `;
+                    const currentDir = $(this).data("sortDir");
+                    const newDir = currentDir === "up" ? "down" : "up";
+                    console.log(newDir);
+                    $(this).data("sortDir", newDir);
 
-                $(this).html($(this).text());
-                $(this).append(icon);
+                    icon = `<span class="float-right sort-icon">
+                    <i class="fas fa-sort-${newDir}"></i>
+                    </span>
+                    `;
 
-                rows.sort((rowA, rowB) => {
-                const cellA = $(rowA).find("td").eq(index);
-                const cellB = $(rowB).find("td").eq(index);
-                const valueA = cellA.text().trim();
-                const valueB = cellB.text().trim();
+                    $(this).html($(this).text());
+                    $(this).append(icon);
 
-                if (newDir == "down") {
-                    return valueB.localeCompare(valueA);
-                } else {
-                    return valueA.localeCompare(valueB);
-                }
+                    rows.sort((rowA, rowB) => {
+                    const cellA = $(rowA).find("td").eq(index);
+                    const cellB = $(rowB).find("td").eq(index);
+                    const valueA = cellA.text().trim();
+                    const valueB = cellB.text().trim();
+
+                    if (newDir == "down") {
+                        return valueB.localeCompare(valueA);
+                    } else {
+                        return valueA.localeCompare(valueB);
+                    }
+                    });
+
+                    $.each(rows, function (index, row) {
+                    $("tbody#sort").append(row);
+                    });
                 });
-
-                $.each(rows, function (index, row) {
-                $("tbody#sort").append(row);
                 });
             });
-            });
-        });
-        </script>
+            </script>
+        {% endif %}
     </body>
 </html>
