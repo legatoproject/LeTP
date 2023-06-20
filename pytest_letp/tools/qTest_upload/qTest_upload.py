@@ -102,12 +102,11 @@ def get_status_from_json():
     dict_test_cases = {}
     list_test_cases_run = []
     list_status = []
-    pattern_name = r"(L[_E].*_\d+)"
     json_data1 = json_data["tests"]
     json_data2 = json_data1[1:]
     num_tcs = len(json_data2)
     for i in range(num_tcs):
-        test_case_name = re.search(pattern_name, json_data2[i]["name"]).group(0)
+        test_case_name = json_data2[i]["name"].split(".")[-1]
         status = json_data2[i][Config_module]["result"]
         list_status.append(status)
         list_test_cases_run.append(test_case_name)
