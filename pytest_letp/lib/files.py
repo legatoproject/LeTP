@@ -42,12 +42,13 @@ def scp(file_list, dest, target):
     assert _exit == 0, "Impossible to copy"
 
 
-def adb_transfer(file_list, dest):
+def adb_transfer(file_list, dest, timeout=180):
     """Copy files to target with adb.
 
     Args:
         file_list: python list of files/folder to copy
         dest: destination folder or file
+        timeout: timeout of file transfer
     """
     adb_path = "/usr/bin/adb"
     if not os.path.isfile(adb_path):
@@ -67,7 +68,7 @@ def adb_transfer(file_list, dest):
     )
 
     swilog.info(cmd)
-    output, exit_status = pexpect.run(cmd, withexitstatus=1)
+    output, exit_status = pexpect.run(cmd, timeout=timeout, withexitstatus=1)
     swilog.info(output)
     assert exit_status == 0
     time.sleep(1)
