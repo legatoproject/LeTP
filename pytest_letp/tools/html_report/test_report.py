@@ -203,10 +203,9 @@ class TestSummary:
 
         collected = self.total_compare()
 
-        if (
-            self.total_passed() + self.total_xfailed() + self.total_skipped()
-            != collected
-        ):
+        total_exc = self.total_passed() + self.total_xfailed() + self.total_skipped()
+
+        if total_exc != collected or total_exc == 0:
             return "FAILED"
 
         if self.total_collected() and not self.total_passed():
@@ -601,7 +600,7 @@ class BuildConfiguration:
 
     def _lookup_pytest_json_result(self, test_name) -> dict:
         """!Look up pytest json result dictionary."""
-        if test_name not in self.pytest_test_name_array:
+        if not test_name or test_name not in self.pytest_test_name_array:
             return {}
         idx = self.pytest_test_name_array.index(test_name)
         return self.pytest_results[idx]
@@ -701,7 +700,6 @@ class BuildConfiguration:
         for elmt in tests:
             test_name = PytestResult(elmt).get_test_name()
             pytest_result = self._lookup_pytest_json_result(test_name)
-
             if not pytest_result:
                 print(f"Unable to get the test result for {pytest_result}")
                 continue
