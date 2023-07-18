@@ -30,15 +30,30 @@ class HTMLRender(TemplateRender):
 
     def __init__(self, template_file):
         super().__init__()
-        self.env.filters["convert_colors"] = self._convert_colors
+        self.env.filters["html_encoding"] = self._html_encoding
         self.env.filters["clean_pytest_name"] = self._clean_pytest_name
         self.template = self.env.get_template(template_file)
+
+    def _html_encoding(self, msg):
+        """Process text before it is displayed in HTML."""
+        if not msg:
+            return msg
+        msg = self._convert_special_character(msg)
+        return self._convert_colors(msg)
+
+    @staticmethod
+    def _convert_special_character(msg):
+        """!Replace special characters with HTML encoded characters."""
+        msg = msg.replace("&", '&amp;')
+        msg = msg.replace("<", '&lt;')
+        msg = msg.replace(">", '&gt;')
+        msg = msg.replace('"', '&quot;')
+        msg = msg.replace("'", '&apos;')
+        return msg
 
     @staticmethod
     def _convert_colors(msg):
         """!Replace ansi color by html colors."""
-        if not msg:
-            return msg
         msg = msg.replace("\x1b[0m", "</font>")
         msg = msg.replace("\x1b[01m", '<font class="bold">')
         msg = msg.replace("\x1b[02m", "</font>")

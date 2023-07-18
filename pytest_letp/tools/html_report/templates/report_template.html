@@ -622,7 +622,7 @@
         {% macro render_logs(title, content, cls) -%}
             <div>
                 <h4>{{ title }}</h4>
-                <pre class="log {{ cls }}">{{ content|convert_colors }}</pre>
+                <pre class="log {{ cls }}">{{ content|html_encoding }}</pre>
                 {{ caller() }}
             </div>
         {% endmacro %}
@@ -664,22 +664,22 @@
                                         </tbody>
                                     </table>
 
-                    {% if test_case_view.test_case %}
-                        {% if test_case_view.test_case.message %}
-                            {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
-                            {% endcall %}
-                        {% endif %}
+                                    {% if test_case_view.test_case %}
+                                        {% if test_case_view.test_case.message %}
+                                            {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
+                                            {% endcall %}
+                                        {% endif %}
 
-                        {% if test_case_view.test_case.system_out %}
-                            {% call render_logs('Output Stream', test_case_view.test_case.system_out, 'system_out') %}
-                            {% endcall %}
-                        {% endif %}
+                                        {% if test_case_view.test_case.system_out %}
+                                            {% call render_logs('Output Stream', test_case_view.test_case.system_out, 'system_out') %}
+                                            {% endcall %}
+                                        {% endif %}
 
-                        {% if test_case_view.test_case.system_err %}
-                            {% call render_logs('Error Stream', test_case_view.test_case.system_err, 'system_err') %}
-                            {% endcall %}
-                        {% endif %}
-                    {% endif %}
+                                        {% if test_case_view.test_case.system_err %}
+                                            {% call render_logs('Error Stream', test_case_view.test_case.system_err, 'system_err') %}
+                                            {% endcall %}
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
