@@ -149,7 +149,7 @@ def generate_report(title, task_log, execution, data):
 
     testsystem = {}
     for platform in data:
-        testsystem[platform] = data[platform][0]
+        testsystem[platform] = [data[platform][0]]
         for tc in data[platform]:
             if tc["Result"] != "No Run":
                 testsystem[platform] = [tc]
