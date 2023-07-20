@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% if not basic %}
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    {% endif %}
+
+    <style>
+
+    body {
+        font-family: 'arial', 'sans-serif';
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .row {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        margin-right: -15px;
+        margin-left: -15px
+    }
+
+    .container > h1 {
+        position: relative;
+        text-align: center;
+    }
+
+    table {
+        border-collapse: collapse;    
+        overflow-x: scroll;
+        display: block;
+    }
+
+    table tr {
+        border: 1px solid;
+    }
+
+    tr:nth-child(even) {
+        background-color: rgba(0,0,0,.05);
+    }
+
+    thead th {
+        background-color: #00677A;
+        color: white;
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    tbody th {
+        text-align: left;
+        font-weight: 500;
+    }
+
+    thead td {
+        background-color: #00677A;
+        color: white;
+        border-bottom: 2px solid #dee2e6;
+        border-right: 2px solid #dee2e6;
+    }
+
+    th, td {
+        text-align: center;
+        font-size: 15px;
+        white-space: nowrap;
+        padding: .75rem;
+        vertical-align: center;
+        border: 1px solid #333;
+    }
+
+    @media (min-width: 992px) {
+       .modal-xlg {
+          width: 90%;
+          max-width: none;
+       }
+    }
+
+    @media screen and (max-width: 820px) {
+        nav a {
+            font-size: 12px !important;
+        }
+        nav {
+            position: relative !important;
+        }
+        .main-title {
+            margin-top: 5px !important;
+        }
+    }
+
+    .list {
+        position: fixed;
+        top: 0px;
+        width: 245px;
+        height: 100vh;
+        z-index: 2;
+        background-color: rgb(230, 224, 224);
+    }
+
+    .mem {
+        background: white;
+        border-top: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+
+    }
+
+    .mem2 {
+        background: white;
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    li {
+        font-size: 20px;
+        padding: 1px;
+        white-space: nowrap;
+    }
+
+    li:hover {
+        background-color: #828992;
+    }
+
+    .summary {
+        text-align: center;
+        position: sticky;
+        top: 0px;
+        line-height: 50px;
+        color: white;
+        z-index: 1;
+        background: #00677A;
+    }
+
+    .panel {
+        position: fixed;
+        top: 0px;
+        left: 0px;
+        height: 40px;
+        color: white;
+        background: white;
+        width: 2000px;
+        z-index: 1;
+    }
+
+    ul a:hover {
+        color: black;
+        text-decoration: none;
+    }
+
+    .passed { background-color: #c3e6cb; }
+    .failed { background-color: #E77480; }
+    .error { background-color: #ffeeba; }
+    .aborted { background-color: #fff7ba; }
+    .xpass { background-color: #8CCF9C; }
+    .xfailed { background-color: #f5c6cb; }
+    .running { background-color: #97def0; }
+    .skipped { background-color: #7899a1; }
+    .sample { background-color: #13b9be; }
+
+    pre.log {
+        font-size: 75%;
+        max-height: 70vh;
+        overflow: auto;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        border-left: 7px solid #95a0a2;
+        background: #002b36;
+        color: #93a1a1;
+        padding: 10px;
+    }
+
+    .title {
+        position: sticky;
+        z-index: 1;
+    }
+
+    pre.message    { border-left-color: #828992; }
+    pre.system_out { border-left-color: #009ac1; }
+    pre.system_err { border-left-color: #a02929; }
+
+    pre.log font.bold       { font-weight: bold; }
+    pre.log font.yellow     { color: #b58900; }
+    pre.log font.orange     { color: #cb4b16; }
+    pre.log font.red        { color: #dc322f; }
+    pre.log font.magenta    { color: #d33682; }
+    pre.log font.violet     { color: #6c71c4; }
+    pre.log font.blue       { color: #268bd2; }
+    pre.log font.cyan       { color: #2aa198; }
+    pre.log font.green      { color: #859900; }
+
+    .modal table{
+        display: table;
+    }
+    nav {
+        margin: 0 auto 0;
+        text-align: center;
+        margin-bottom: 25px;
+        background-color: #34495e;
+        font-size: 0;
+        position: fixed;
+        width: 100%;
+        z-index: 9;
+    }
+    nav a {
+        line-height: 50px;
+        height: 100%;
+        padding: 0 10px 0 10px;
+        font-size: 15px;
+        display: inline-block;
+        position: relative;
+        z-index: 1;
+        text-decoration: none;
+        text-transform: uppercase;
+        text-align: center;
+        color: white;
+        cursor: pointer;
+        text-decoration: auto;
+    }
+
+    nav a:hover {
+        background-color: #1abc9c;
+        text-decoration: auto;
+    }
+    nav a:active {
+        background-color: #1abc9c;
+        text-decoration: auto;
+    }
+    nav .animation {
+        position: absolute;
+        height: 100%;
+        top: 0;
+        z-index: 0;
+        transition: all .5s ease 0s;
+        border-radius: 8px;
+    }
+    h1 {
+        text-align: center;
+        text-align: center;
+        font-size: 30px;
+        color: #333;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Cherry Swash', cursive;
+    }
+
+    p {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        text-align: center;
+        color: #ecf0f1;
+        font-family: 'Cherry Swash',cursive;
+        font-size: 16px;
+    }
+
+    span {
+        color: #2BD6B4;
+    }
+    .modal table{
+        display: table;
+    }
+    .main-title {
+        margin-top: 60px;
+        z-index: 1;
+    }
+
+    </style>
+</head>
+<body id="body">
+    <nav>
+        <a href="#Summary"><font color="#FFFFFF">Summary</font></a>
+        {% if all_data %}
+            <a href="#Memory Measurement"><font color="#FFFFFF">Memory Measurement</font></a>
+        {% endif %}
+        {% if test_groups %}
+            <a href="#Groups"><font color="#FFFFFF">Groups</font></a>
+        {% endif %}
+        <a href="#Environment"><font color="#FFFFFF">Environment</font></a>
+        <a href="#Test Results (failed)"><font color="#FFFFFF">Test Results (failed)</font></a>
+        <a href="#Test Results (all)"><font color="#FFFFFF">Test Results (all)</font></a>
+        <div class="animation start-home"></div>
+    </nav>
+    <div class="container">
+        <h1 class="main-title">{{ title }}</h1>
+
+        {% if online_link and basic %}
+            <a href="{{ online_link }}">Detailed report</a>
+        {% endif %}
+
+        <!-- Summary -->
+        <div style="margin-top: 20px; overflow: hidden; width: 100%;" id=Summary>
+            <h4 class="summary">Summary</h4>
+            <table align="center">
+                <thead>
+                    <tr class="title">
+                    {% for entry in summary_headers %}
+                        <th>{{entry}}</th>
+                    {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary.values() %}
+                        <tr>
+                            {% for entry in summary_headers %}
+                                {% if entry == "Passed" and row[entry] != 0 %}
+                                    {% set summary_class = "passed" %}
+                                {% elif entry == "xFailed" and row[entry] != 0 %}
+                                    {% set summary_class = "xfailed" %}
+                                {% elif entry == "Failed" and row[entry] != 0 %}
+                                    {% set summary_class = "failed" %}
+                                {% elif entry == "Errors" and row[entry] != 0 %}
+                                    {% set summary_class = "error" %}
+                                {% elif entry == "Skipped" and row[entry] != 0 %}
+                                    {% set summary_class = "skipped" %}
+                                {% endif %}
+
+                                {% if entry == "Config" %}
+                                    <th>{{ row[entry] }}</th>
+                                {% elif entry == "Status" %}
+                                    <td class="status {{ row[entry] | lower }}">
+                                        {{ row[entry] }}
+                                    </td>
+                                {% elif entry == "TestcasesRun" %}
+                                    <td style="background-color: rgb(138, 225, 236)">{{ row[entry]["count"] }}
+                                        <small>({{ '%.2f' % row[entry]["percentage"]|float }} %)</small>
+                                    </td>
+                                {% else %}
+                                    <td class="{{ summary_class }}">{{ row[entry]["count"] }}
+                                        {% if entry != "Testcases" %}
+                                            <small>({{ '%.2f' % row[entry]["percentage"]|float }} %)</small>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% macro render_group_content(group) -%}
+            {% for row in results_headers %}
+                {% if row != "Testcases" and row != "Jira ID" %}
+                    {% if group_summary[group][row]["passed"] == 0 and
+                    group_summary[group][row]["failed"] == 0 and
+                    group_summary[group][row]["xfailed"] == 0 and
+                    group_summary[group][row]["error"] == 0 and
+                    group_summary[group][row]["skipped"] == 0 %}
+                        <th>N/A</th>
+                    {% else %}
+                        <th>
+                            {% for status in group_summary[group][row] %}
+                                {% if status == "passed" and group_summary[group][row][status] != 0 %}
+                                <span class="passed">{{ group_summary[group][row][status] }} Passed</span>
+                                {% elif status == "failed" and group_summary[group][row][status] != 0 %}
+                                <span class="failed">{{ group_summary[group][row][status] }} Failed</span>
+                                {% elif status == "xfailed" and group_summary[group][row][status] != 0 %}
+                                <span class="xfailed">{{ group_summary[group][row][status] }} xFailed</span>
+                                {% elif status == "error" and group_summary[group][row][status] != 0 %}
+                                <span class="error">{{ group_summary[group][row][status] }} Errors</span>
+                                {% elif status == "skipped" and group_summary[group][row][status] != 0 %}
+                                <span class="skipped">{{ group_summary[group][row][status] }} Skipped</span>
+                                {% endif %}
+                            {% endfor %}
+                        </th>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            {{ caller() }}
+        {%- endmacro %}
+
+        <!-- Memory Measurement -->
+        {% if all_data %}
+            <div style="margin-top: 50px; overflow: hidden; width: 100%;" id="Memory Measurement">
+                <h4 style="text-align: center">Memory Measurement</h4>
+                <div style="margin-top: 10px">
+                    <span class="mem" style="background: white; border: 0px;">Unit: kB</span>
+                    <table>
+                        <thead>
+                            <tr>
+                                <td class="mem" style="background: #00677A" rowspan=2><big><b>Infor</b><big></td>
+                                <td class="mem2" style="background: #00677A" rowspan=2><big><b>Data</b><big></td>
+                                {% for col in targets %}
+                                    <td colspan={{len_date}}>{{col}}</td>
+                                {% endfor %}
+                            </tr>
+                            <tr>
+                                {% for col in targets %}
+                                    {% for day in all_data %}
+                                        {% if day == "Today" %}
+                                            <td>{{day}}</td>
+                                        {% else %}
+                                            <th>{{day}}</th>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, data in all_data["Today"].items() %}
+                                <td class="mem" rowspan={{len_data[key] + 1}}><big><b>{{key}}</b></big></td>
+                                {% for info, info_value in data.items() %}
+                                <tr>
+                                    {% if info == "Device Up" %}
+                                        <th class="mem2">{{info}} (s)</th>
+                                    {% elif info == "Idle Percentage" %}
+                                        <th class="mem2">{{info}} (%)</th>
+                                    {% else %}
+                                        <th class="mem2">{{info}}</th>
+                                    {% endif %}
+                                    {% for target, value in info_value.items() %}
+                                        {% for day in all_data %}
+                                            {% if day == "Reference Data" and len_date > 2 %}
+                                                <td class="sample">{{all_data[day][key][info][target]}}</td>
+                                            {% elif day == "Reference Data" and len_date == 2 %}
+                                                <td class="sample">{{all_data[day][key][info][target][0]}}</td>
+                                            {% elif day == "Today" %}
+                                                {% if value[1] == "failed" %}
+                                                    {% if value[3] == "" %}
+                                                        <td class={{value[1]}}>{{value[0]}} ({{value[2]}} %)</td>
+                                                    {% else %}
+                                                        <td class={{value[1]}}>
+                                                            <a href="https://issues.sierrawireless.com/browse/{{ value[3] }}" target="_blank">
+                                                                {{value[0]}} ({{value[2]}} %)
+                                                            </a>
+                                                        </td>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <td class={{value[1]}}>{{value[0]}}</td>
+                                                {% endif %}
+                                            {% else %}
+                                                <td>{{all_data[day][key][info][target]}}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Groups -->
+        {% if test_groups %}
+            <div style="margin-top: 50px; overflow: hidden; width: 100%;" id=Groups>
+                <h4 class="summary">Groups</h4>
+                <table align="center">
+                    <thead>
+                        <tr class="title">
+                            {% if platform_info %}
+                                <th>Platforms</th>
+                            {% endif %}
+                            <th scope="col">Groups</th>
+                            {% for row in results_headers %}
+                            {% if row != "Testcases" and row != "Jira ID" %}
+                                <th>{{ row }}</th>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set i = namespace(value=1) %}
+                        {% if platform_info %}
+                        {% for platform in platform_info %}
+                            {% if platform != "Reinit" and platform_info[platform][1] != 0 %}
+                                <th><big><b>{{ platform }}</b></big></th>
+                                {% for group in platform_info[platform][0] %}
+                                    <th> <a href="#{{group}}">
+                                        Group {{ i.value }} </a>: <b>{{ group }} ({{platform_info[platform][0][group]}} TCs)</b>
+                                        {% set i.value = i.value + 1 %}
+                                    </th>
+                                    {% call render_group_content(group) %}{% endcall %}
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                        {% else %}
+                            {% for group in test_groups %}
+                                {% if group != "Reinit" and group_len[group] != 0 %}
+                                <tr>
+                                    <th scope="row"> <a href="#{{group}}">
+                                        Group {{ i.value }} </a>: <b>{{ group }} ({{group_len[group]}} TCs)</b>
+                                        {% set i.value = i.value + 1 %}
+                                    </th>
+                                    {% call render_group_content(group) %}{% endcall %}
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% macro render_env_table(title, headers, data_dict) -%}
+            <h4 style="margin-top: 10px;" class="summary">
+            <small>{{ title }}</small></h4>
+            <table align="center">
+                <thead>
+                    <tr class="title">
+                        {% for entry in headers %}
+                            {% if entry != 'job.url' %}
+                                <th>{{ entry }}</th>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data_dict.values() %}
+                    <tr>
+                        {% for k in headers %}
+                            {% if k == "tb.id" %}
+                                <td>
+                                    <a href="https://farm.legato/testbench/testbeds/{{ row[k] }}">
+                                        {{ row[k] }}</a>
+                                </td>
+                            {% elif k != "job.url" %}
+                                {% if "https://" in row[k] or "http://" in row[k] %}
+                                    <td>
+                                        <a href="{{ row[k] }}">{{ row[k] }}</a>
+                                    </td>
+                                {% else %}
+                                    <td>
+                                        {{ row[k] }}
+                                    </td>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {{ caller() }}
+            </table>
+        {%- endmacro %}
+
+        <!-- Environment -->
+        {% if section == 'all' %}
+        <div style="margin-top: 50px; overflow: hidden; width: 100%;">
+            <h4 style="text-align: center; position: relative; z-index: 1;" id="Environment">Environment</h4>
+
+            <!-- Common -->
+            {% if env_global_list | length > 0 %}
+                <h6 style="text-align: center;">
+                    Common</h6>
+                <table align="center">
+                    <thead>
+                        <tr>
+                            <th>Env.</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in env_global_list | dictsort %}
+                            <tr>
+                                <th>{{ k[0] }}</th>
+                                {% if 'url' in k[1] %}
+                                    <td><a href="{{ k[1].url }}">
+                                        {{ k[1].text }}</a></td>
+                                {% else %}
+                                    <td>{{ k[1].text }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <!-- Per test env tables.-->
+            {% call render_env_table('Target Components Versions',
+                target_components, environment_dict) %}
+            {% endcall %}
+
+            {% call render_env_table('Testing environment other information',
+                testing_env_infos, environment_dict) %}
+            {% endcall %}
+        </div>
+
+        {% macro render_testcase_content(test_case_views) -%}
+            <th scope="row">{{ test_case_views[0].test_name }}</th>
+            {% for test_case_view in test_case_views %}
+                <td class="{{ test_case_view.result }}">
+                    {% if not basic %}
+                        {% if test_case_view.target_name == "Jira ID" %}
+                            {% if test_case_view.result == "N/A"%}
+                                <a style="color:#007bff">N/A</a>
+                            {% else %}
+                                <a href="https://issues.sierrawireless.com/browse/{{ test_case_view.result }}">
+                                    {{ test_case_view.result }}
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <a data-toggle="modal"
+                            href="#info-{{ test_case_view.id|clean_pytest_name }}"
+                            data-target="#info-{{ test_case_view.id|clean_pytest_name }}">
+                                {{ test_case_view.result }}
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        {{ test_case_view.result }}
+                    {% endif %}
+                </td>
+            {% endfor %}
+            {{ caller() }}
+        {%- endmacro %}
+
+        {% macro render_results(title, headers, results) -%}
+            <div style="margin-top: 50px; overflow: hidden; width: 100%;" id="{{ title }}">
+                <h4 class="summary">{{ title }}</h4>
+                <table align="center">
+                    <thead>
+                        <tr class="title">
+                            {% for entry in headers %}
+                                <th scope="col">{{ entry }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test_case_views in results %}
+                        <tr>
+                            {% call render_testcase_content(test_case_views) %}{% endcall %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {{ caller() }}
+            </div>
+        {%- endmacro %}
+
+        {% macro render_results_group(title, headers, results) -%}
+            <div style="margin-top: 50px; overflow: hidden; width: 100%;" id="{{ title }}">
+                <h4 class="summary">{{ title }}</h4>
+                <table align="center">
+                    <thead>
+                        <tr class="title">
+                            {% for entry in headers %}
+                                <th scope="col">{{ entry }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set i = namespace(value=1) %}
+                        {% if platform_info %}
+                            {% for platform in platform_info %}
+                            {% for group in platform_info[platform][0] %}
+                                {% if platform_info[platform][0][group] != 0 %}
+                                {% if group == "Reinit" %}
+                                <tr>
+                                    <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> 0: {{ group }} ({{platform_info[platform][0][group]}} TCs)</b> </th>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> {{ i.value }}: {{ group }} ({{platform_info[platform][0][group]}} TCs)</b> </th>
+                                    {% set i.value = i.value + 1 %}
+                                </tr>
+                                {% endif %}
+                                {% for test_case_views in results %}
+                                    {% if test_case_views[0].test_name in test_groups[group] %}
+                                    <tr>
+                                        {% call render_testcase_content(test_case_views) %}{% endcall %}
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            {% for group in test_groups %}
+                                {% if group_len[group] != 0 %}
+                                {% if group == "Reinit" %}
+                                <tr>
+                                    <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> 0: {{ group }} ({{group_len[group]}} TCs)</b> </th>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <th scope="row" id={{group}}> <b> <a href="#Groups">Group</a> {{ i.value }}: {{ group }} ({{group_len[group]}} TCs)</b> </th>
+                                    {% set i.value = i.value + 1 %}
+                                </tr>
+                                {% endif %}
+                                {% for test_case_views in results %}
+                                    {% if test_case_views[0].test_name in test_groups[group] %}
+                                    <tr>
+                                        {% call render_testcase_content(test_case_views) %}{% endcall %}
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+                {{ caller() }}
+            </div>
+        {%- endmacro %}
+
+        <!-- Results (failed) -->
+        {% call render_results('Test Results (failed)', results_headers,
+            results_failed) %}
+        {% endcall %}
+
+        <!-- Results (all) -->
+        {% if test_groups %}
+            {% call render_results_group('Test Results (all)', results_headers,
+                results_all) %}
+            {% endcall %}
+        {% else %}
+            {% call render_results('Test Results (all)', results_headers,
+                results_all) %}
+            {% endcall %}
+        {% endif %}
+        {% endif %}
+
+        {% macro render_logs(title, content, cls) -%}
+            <div>
+                <h4>{{ title }}</h4>
+                <pre class="log {{ cls }}">{{ content|convert_colors }}</pre>
+                {{ caller() }}
+            </div>
+        {% endmacro %}
+
+        <!-- Results # sections. -->
+        {% if not basic %} <div>
+            {% for test_case_views in results_all %}
+                {% for test_case_view in test_case_views %}
+                    <div class="modal fade"
+                        id="info-{{ test_case_view.id|clean_pytest_name }}"
+                        role="dialog"
+                        aria-labelledby="#info-{{ test_case_view.id }}-title"
+                        aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-xlg"
+                            role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title"
+                                        id="info-{{ test_case_view.id }}-title">
+                                        {{ test_case_view.test_name }} ::
+                                        {{ test_case_view.target_name }}</h5>
+                                    <button type="button" class="close"
+                                    data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <table class="table table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <th>Result</th>
+                                                <td class="{{ test_case_view.result }}">
+                                                    {{ test_case_view.result }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Configuration</th><td>
+                                                    {{ test_case_view.target_name }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                    {% if test_case_view.test_case %}
+                        {% if test_case_view.test_case.message %}
+                            {% call render_logs('Message', test_case_view.test_case.message, 'message') %}
+                            {% endcall %}
+                        {% endif %}
+
+                        {% if test_case_view.test_case.system_out %}
+                            {% call render_logs('Output Stream', test_case_view.test_case.system_out, 'system_out') %}
+                            {% endcall %}
+                        {% endif %}
+
+                        {% if test_case_view.test_case.system_err %}
+                            {% call render_logs('Error Stream', test_case_view.test_case.system_err, 'system_err') %}
+                            {% endcall %}
+                        {% endif %}
+                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if not basic %}
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    {% endif %}
+</body>
+</html>
