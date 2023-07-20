@@ -21,10 +21,12 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 ALL_COMPONENTS = [x.name for x in Components]
 ALL_ENVIRONMENT_TYPES = list(Environment)
 MERGE_REPORT = False
+JIRA_SERVER = True
 JIRA_USERNAME = ""
 JIRA_PASSWORD = ""
 GROUP_CONFIG_PATH = ""
 REPORT_DATE = ""
+THRESHOLD = ""
 
 
 # pylint: disable=too-many-instance-attributes
@@ -784,6 +786,13 @@ class TestReportBuilder:
         self.platform = {}
         self.group_summary = {}
         self.group_len = {}
+        self.summary_log = {
+            "test_memory_size": {},
+            "test_idle_memory": {},
+            "test_idle_atip": {},
+            "test_cpu_load_idle": {},
+            "test_startup": {},
+        }
         self.min_list = [
             "Device Up",
             "Used",
@@ -1194,8 +1203,7 @@ class TestReportBuilder:
             target_name = "Linux(WP77xx)"
         return target_name
 
-    @staticmethod
-    def _data_of_test_idle_memory(memory, test_log, platforms, target_name):
+    def _data_of_test_idle_memory(self, memory, test_log, platforms, target_name):
         """Collect data of test_idle_memory."""
         value_free = re.search(r"Final Free:\s+(?P<free>\d+\.\d+)", test_log).group(
             "free"
@@ -1208,22 +1216,22 @@ class TestReportBuilder:
         )
         for target in platforms:
             if target == target_name:
+                self.summary_log["test_idle_memory"][target_name] = test_log
                 memory["Free"][target_name] = round(float(value_free), 2)
                 memory["Used"][target_name] = round(float(value_used), 2)
                 memory["Total"][target_name] = round(float(value_total), 2)
         return memory
 
-    @staticmethod
-    def _data_of_test_memory_size(memory, test_log, platforms, target_name):
+    def _data_of_test_memory_size(self, memory, test_log, platforms, target_name):
         """Collect data of test_memory_size."""
         legato_used = re.search(r"'legato':\s\[(?P<used>\d+)", test_log).group("used")
         for target in platforms:
             if target == target_name:
+                self.summary_log["test_memory_size"][target_name] = test_log
                 memory["Legato Used"][target_name] = round(float(legato_used), 2)
         return memory
 
-    @staticmethod
-    def _data_of_test_idle_atip(memory, test_log, platforms, target_name):
+    def _data_of_test_idle_atip(self, memory, test_log, platforms, target_name):
         """Collect data of test_idle_atip test case."""
         value_free = re.search(r"Total Free:\s+(?P<free>\d+)", test_log).group("free")
         max_used = re.search(r"Max Used:\s+(?P<max_used>\d+)", test_log).group(
@@ -1243,6 +1251,7 @@ class TestReportBuilder:
         ).group("legato_static")
         for target in platforms:
             if target == target_name:
+                self.summary_log["test_idle_atip"][target_name] = test_log
                 memory["Base Heap"][target_name] = round(float(base_heap), 2)
                 memory["Base Static"][target_name] = round(float(base_static), 2)
                 memory["Legato Heap"][target_name] = round(float(legato_heap), 2)
@@ -1286,6 +1295,7 @@ class TestReportBuilder:
                 idle_percen = re.search(
                     r"'Total':\s\[(?P<idle_percen>\d+)", test_log
                 ).group("idle_percen")
+                self.summary_log["test_cpu_load_idle"][target_name] = test_log
                 cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
             elif "Linux" in target_name:
                 total_idle = re.search(
@@ -1294,6 +1304,7 @@ class TestReportBuilder:
                 idle_percen = re.search(
                     r"'Total':\s\[(?P<idle_percen>\d+\.\d)", test_log
                 ).group("idle_percen")
+                self.summary_log["test_cpu_load_idle"][target_name] = test_log
                 cpu["Total Idle"][target_name] = round(float(total_idle), 2)
                 cpu["Idle Percentage"][target_name] = round(float(idle_percen), 2)
         return cpu
@@ -1310,8 +1321,10 @@ class TestReportBuilder:
             device_up = re.search(
                 r'"device_up":\s(?P<time>\d+\.\d{5})', test_log
             ).group("time")
+            stdout_call_log = tc.test_case.pytest_json_result["call"]["stdout"]
             for target in platforms:
                 if target == target_name:
+                    self.summary_log["test_startup"][target_name] = stdout_call_log
                     boot_time["Device Up"][target_name] = round(float(device_up), 2)
         return boot_time
 
@@ -1373,9 +1386,8 @@ class TestReportBuilder:
                         data["Data"][infor][data_name][target] = [value, "None"]
         return data
 
-    @staticmethod
     def _check_min_data_status(
-        data_value, data_check, infor, data_name, percent_check=1.05
+        self, data_value, data_check, infor, data_name, percent_check=1.05
     ):
         """Check the status of today's data with min list of data.
 
@@ -1385,6 +1397,7 @@ class TestReportBuilder:
             "failed" if the value of today's data exceeds '5%' of the reference value.
             "None" if either value is N/A or both are N/A.
         """
+        global THRESHOLD
         # If the data is boot time then the difference check percentage is 10%
         if data_name == "Device Up":
             percent_check = 1.1
@@ -1395,6 +1408,7 @@ class TestReportBuilder:
                 if value > percent_check * data_check[target]:
                     percent = (value - data_check[target]) * 100 / data_check[target]
                     percent = round(percent, 2)
+                    THRESHOLD = "min"
                     jira_ticket = JiraServer().search_jira_ticket(
                         value,
                         data_check[target],
@@ -1402,7 +1416,7 @@ class TestReportBuilder:
                         infor,
                         data_name,
                         target,
-                        threshold="min",
+                        self.summary_log,
                     )
                     data_value[target] = [value, "failed", percent, jira_ticket]
                 else:
@@ -1410,8 +1424,7 @@ class TestReportBuilder:
 
         return data_value
 
-    @staticmethod
-    def _check_max_data_status(data_value, data_check, infor, data_name):
+    def _check_max_data_status(self, data_value, data_check, infor, data_name):
         """Check the status of today's data with max list of data.
 
         Status:
@@ -1420,6 +1433,7 @@ class TestReportBuilder:
             "failed" if the value of today's data exceeds '5%' of the reference value.
             "None" if either value is N/A or both are N/A.
         """
+        global THRESHOLD
         for target, value in data_value.items():
             if value == "N/A" or data_check[target] == "N/A":
                 data_value[target] = [value, "None"]
@@ -1427,8 +1441,15 @@ class TestReportBuilder:
                 if value < 0.95 * data_check[target]:
                     percent = (data_check[target] - value) * 100 / data_check[target]
                     percent = round(percent, 2)
+                    THRESHOLD = "max"
                     jira_ticket = JiraServer().search_jira_ticket(
-                        value, data_check[target], percent, infor, data_name, target
+                        value,
+                        data_check[target],
+                        percent,
+                        infor,
+                        data_name,
+                        target,
+                        self.summary_log,
                     )
                     data_value[target] = [value, "failed", percent, jira_ticket]
                 else:
@@ -1516,27 +1537,30 @@ class TestReportBuilder:
             "section": args.html_section,
         }
         all_data = {}
-        sum_data = {}
-        if args.pre_mem_path:
-            all_data, sum_data = self.get_all_data(
-                args.pre_mem_path, all_data=all_data, sum_data=sum_data
-            )
-        if args.output_mem_data:
-            if len(all_data) > 0:
-                data = self.create_data_file(results_all, list(sum_data.values())[-1])
-            else:
-                data = self.create_data_file(results_all, sum_data)
-            output = json.dumps(data, indent=2, separators=(",", ": "))
-            with open(args.output_mem_data, "w", encoding="utf8") as f:
-                f.write(output)
-            print(f"Generating memory data in {args.output_mem_data}")
-            data_check = self.check_data(data=data)
-            all_data.update(
-                {
-                    "Reference Data": data_check["Reference Data"],
-                    "Today": data_check["Data"],
-                }
-            )
+        if args.output_format == "HTML":
+            sum_data = {}
+            if args.pre_mem_path:
+                all_data, sum_data = self.get_all_data(
+                    args.pre_mem_path, all_data=all_data, sum_data=sum_data
+                )
+            if args.output_mem_data:
+                if len(all_data) > 0:
+                    data = self.create_data_file(
+                        results_all, list(sum_data.values())[-1]
+                    )
+                else:
+                    data = self.create_data_file(results_all, sum_data)
+                output = json.dumps(data, indent=2, separators=(",", ": "))
+                with open(args.output_mem_data, "w", encoding="utf8") as f:
+                    f.write(output)
+                print(f"Generating memory data in {args.output_mem_data}")
+                data_check = self.check_data(data=data)
+                all_data.update(
+                    {
+                        "Reference Data": data_check["Reference Data"],
+                        "Today": data_check["Data"],
+                    }
+                )
 
         output = self.generate_report(
             results_all, status, other_contents, data=all_data
@@ -1919,21 +1943,142 @@ class JiraServer:
 
         return jira_ticket
 
-    def search_jira_ticket(
-        self, value, data_check, percent, infor, data_name, platform, threshold="max"
+    def _add_comments(
+        self, ticket, data_name, value, data_check, percent, title, file_name
     ):
-        """Check if the problem has been generated ticket before.
+        """Add comment to Jira ticket."""
+        url = self.jira_api_path + f"/issue/{ticket}/comment"
+        date_obj = datetime.datetime.strptime(REPORT_DATE, "%Y.%m.%d")
+        exception_unit = {"Idle Percentage": "%", "Device Up": "s"}
+        if data_name in exception_unit:
+            data_check = str(data_check) + " " + exception_unit[data_name]
+            value = str(value) + " " + exception_unit[data_name]
+        else:
+            data_check = str(data_check) + " kB"
+            value = str(value) + " kB"
+        comment = (
+            f"This issue happened again on Nightly on "
+            f"{date_obj.strftime('%B %d, %Y')}"
+            + "\nNightly report : https://get.legato/"
+            + f"legato-qa/nightly/nightly_{REPORT_DATE}_master/test_report.html"
+            + f"\n{title.replace('more than 5', str(percent))}"
+            + f"\nReference value: {data_check}"
+            + f"\nToday value: {value}"
+        )
+        if file_name:
+            comment = comment + f"\nReference log: [^{file_name}]"
+        data = {"body": comment}
+        response = requests.post(url, auth=self.auth, json=data)
+        if response.status_code == 201:
+            print(f"Added a new comment to the ticket: {ticket}")
+            json_cmt = response.json()
+            print(f"Comment ID: {json_cmt['self']}")
+        else:
+            print(f"Error adding comment: {response.status_code} - {response.text}")
 
-        Create a new ticket if you haven't found one yet
+    @staticmethod
+    def _get_attachments(data_name, platform, summary_log):
+        """Get attachments from log of memory data."""
+        refer_log = ""
+        tc_name = ""
+        data_in_tcs = {
+            "test_cpu_load_idle": ["Total Idle", "Idle Percentage"],
+            "test_memory_size": ["Legato Used"],
+            "test_startup": ["Device Up"],
+            "test_idle_atip": [
+                "Base Heap",
+                "Base Static",
+                "Legato Heap",
+                "Legato Static",
+            ],
+        }
+        if data_name in ("Free", "Used"):
+            if platform == "RTOS":
+                refer_log = summary_log["test_idle_atip"][platform]
+                tc_name = "test_idle_atip"
+            else:
+                refer_log = summary_log["test_idle_memory"][platform]
+                tc_name = "test_idle_memory"
+        for tc, value in data_in_tcs.items():
+            if data_name in value:
+                refer_log = summary_log[tc][platform]
+                tc_name = tc
+        file_name = f"{tc_name}_{data_name.replace(' ', '-')}_{REPORT_DATE}.log"
+        with open(file_name, "w", encoding="utf8") as f:
+            f.write(refer_log)
+        print(f"Generating log file related to the issue {data_name} in {file_name}")
+
+        return file_name
+
+    def _add_attachments(self, ticket, data_name, platform, summary_log):
+        """Add attachments to Jira tickets."""
+        url = self.jira_api_path + f"/issue/{ticket}/attachments"
+        headers = {"X-Atlassian-Token": "no-check"}
+        file_name = self._get_attachments(data_name, platform, summary_log)
+
+        if not os.path.exists(file_name):
+            print("Attachment could not be found")
+            return None
+
+        with open(file_name, encoding="utf8") as file:
+            files = {"file": file}
+            response = requests.post(url, files=files, headers=headers, auth=self.auth)
+
+        if response.status_code == 200:
+            print(f"Successful attachment to ticket: {ticket}")
+            return file_name
+        else:
+            print("File attachment failed. Status code:", response.status_code)
+            print(response.text)
+            return None
+
+    def _search_comments(self, ticket, ticket_detail):
+        """Check if there have been comments regarding the issue before.
+
+        Returns:
+            True: if there was a previous comment related to the issue
+                or the ticket has just been created.
+            False: if no comment has been added before.
         """
-        print(f"Check if the problem with {data_name} has been generated before")
-        jira_ticket = ""
-        url = self.jira_api_path + "/search"
+        url = self.jira_api_path + f"/issue/{ticket}/comment"
+        date_obj = datetime.datetime.strptime(REPORT_DATE, "%Y.%m.%d")
+        text = (
+            "This issue happened again on Nightly on "
+            + f"{date_obj.strftime('%B %d, %Y')}"
+            + "\nNightly report : https://get.legato/"
+            + f"legato-qa/nightly/nightly_{REPORT_DATE}_master/test_report.html"
+        )
+        print(
+            "Check comments before attaching log & add comments "
+            + f"to avoid duplicates in the ticket: {ticket}"
+        )
+        response = requests.get(url, auth=self.auth)
+        if response.status_code == 200:
+            json_data = response.json()
+            if int(json_data.get("total")) > 0:
+                for i in range(int(json_data.get("total"))):
+                    if text in json_data.get("comments")[i].get("body"):
+                        comment_id = json_data.get("comments")[i].get("self")
+                        print(
+                            "There have been comments regarding the issue "
+                            + f"reported in the ticket {ticket} before"
+                        )
+                        print(f"Comment ID: {comment_id}")
+                        return True
+            elif REPORT_DATE in ticket_detail.get("fields").get("description"):
+                return True
+        else:
+            print(f"{response.status_code} - {response.text}")
 
-        if threshold == "max":
-            title = f"{data_name} reduced by more than 5%"
-        elif threshold == "min":
+        return False
+
+    @staticmethod
+    def _get_params(data_name, infor, platform):
+        """Get parameters and title to search Jira tickets."""
+        if THRESHOLD == "min":
             title = f"{data_name} increased by more than 5%"
+        elif THRESHOLD == "max":
+            title = f"{data_name} reduced by more than 5%"
         params = {
             "jql": (
                 f'summary ~ "{title}" AND Keywords  = nightly-master '
@@ -1945,27 +2090,58 @@ class JiraServer:
             )
         }
 
-        response = requests.get(url, params=params, auth=self.auth)
-        if response.status_code == 200:
-            json_data = response.json()
-            # Check the number of jira tickets 'json_data.get("total")'
-            if int(json_data.get("total")) > 0:
-                ticket_list = [
-                    json_data.get("issues")[i].get("key")
-                    for i in range(int(json_data.get("total")))
-                ]
-                print(
-                    f"Tickets have been created for the {data_name} issue: "
-                    + ", ".join(map(str, ticket_list))
-                )
-                jira_ticket = ticket_list[0]
+        return params, title
+
+    def search_jira_ticket(
+        self, value, data_check, percent, infor, data_name, platform, summary_log
+    ):
+        """Check if the problem has been generated ticket before.
+
+        Create a new ticket if you haven't found one yet
+        """
+        jira_ticket = ""
+
+        if JIRA_SERVER:
+            print(f"Check if the problem with {data_name} has been generated before")
+            params, title = self._get_params(data_name, infor, platform)
+            response = requests.get(
+                f"{self.jira_api_path}/search", params=params, auth=self.auth
+            )
+            if response.status_code == 200:
+                json_data = response.json()
+                # Check the number of jira tickets 'json_data.get("total")'
+                if int(json_data.get("total")) > 0:
+                    ticket_list = [
+                        json_data.get("issues")[i].get("key")
+                        for i in range(int(json_data.get("total")))
+                    ]
+                    print(
+                        f"Tickets have been created for the {data_name} issue: "
+                        + ", ".join(map(str, ticket_list))
+                    )
+                    jira_ticket = ticket_list[0]
+                    if not self._search_comments(
+                        jira_ticket, json_data.get("issues")[0]
+                    ):
+                        file_name = self._add_attachments(
+                            jira_ticket, data_name, platform, summary_log
+                        )
+                        self._add_comments(
+                            jira_ticket,
+                            data_name,
+                            value,
+                            data_check,
+                            percent,
+                            title,
+                            file_name,
+                        )
+                else:
+                    print("No tickets have been generated before")
+                    jira_ticket = self._create_jira_ticket(
+                        value, data_check, percent, infor, data_name, title, platform
+                    )
             else:
-                print("No tickets have been generated before")
-                jira_ticket = self._create_jira_ticket(
-                    value, data_check, percent, infor, data_name, title, platform
-                )
-        else:
-            print(f"{response.status_code} - {response.text}")
+                print(f"{response.status_code} - {response.text}")
 
         return jira_ticket
 
@@ -2075,6 +2251,8 @@ if __name__ == "__main__":
             print("Enable merge report.")
             MERGE_REPORT = True
             break
+    if args.basic:
+        JIRA_SERVER = False
 
     JIRA_USERNAME = args.jira_user
     JIRA_PASSWORD = args.jira_password
