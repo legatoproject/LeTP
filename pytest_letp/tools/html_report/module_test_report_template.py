@@ -1,4 +1,4 @@
-"""!@package report_template renders the contents to report template.
+"""!@package module_test_report_template renders the contents to report template.
 
 Report can be any text-based format
 """
@@ -22,7 +22,7 @@ class TemplateRender:
         raise NotImplementedError
 
 
-class HTMLRender(TemplateRender):
+class HTMLRenderModuel(TemplateRender):
     """!Render the contents to the html-based template.
 
     HTML template contains sections: summary environment test results
