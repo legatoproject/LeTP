@@ -720,7 +720,7 @@
         {% macro render_logs(title, content, cls) -%}
             <div>
                 <h4>{{ title }}</h4>
-                <pre class="log {{ cls }}">{{ content|convert_colors }}</pre>
+                <pre class="log {{ cls }}">{{ content|html_encoding }}</pre>
                 {{ caller() }}
             </div>
         {% endmacro %}
