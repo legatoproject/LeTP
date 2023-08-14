@@ -361,6 +361,8 @@
                             {% elif row['Result'] == 'N/A' %}
                             <span class="badge badge-info">{{ row['Result'] }}</span>
                             {% elif row['Result'] == 'Failed' %}
+                            <span class="badge badge-danger">{{ row['Result'] }}</span>
+                            {% elif row['Result'] == 'No Run' %}
                             <span class="badge badge-secondary">{{ row['Result'] }}</span>
                             {% endif %}
                         </td>

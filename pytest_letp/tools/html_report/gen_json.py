@@ -46,7 +46,7 @@ class Informations:
     def _get_FW_ver(test_log):
         """Get Firmware & Legato version from test log."""
         firmware_ver = "N/A"
-        firmware = re.search(r"(?P<fw>HL78xx\..+)", test_log)
+        firmware = re.search(r"(?P<fw>HL78\d{2}\..+?)(\n|<CR>)", test_log)
         if firmware:
             firmware_ver = firmware.group("fw")
 
