@@ -12,6 +12,8 @@ import subprocess
 import sys
 import traceback
 import pytest
+from lxml import etree
+from pytest_letp.lib import pytest_qTest
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
@@ -45,17 +47,17 @@ def _get_version():
     """Get the version of LeTP."""
     version = "unknown"
     try:
-        with open(os.path.join(script_dir, '.version'), 'r') as f:
+        with open(os.path.join(script_dir, '.version'), 'r', encoding="utf-8") as f:
             version = f.readline()
     except:
         try:
             if os.name == "nt":
                 version = subprocess.check_output(
-                    "git -C {} describe --tag".format(script_dir), shell=True
+                    f"git -C {script_dir} describe --tag", shell=True
                 ).decode('utf-8')
             else:
                 version = subprocess.check_output(
-                    "git -C {} describe --tag 2> /dev/null".format(script_dir),
+                    f"git -C {script_dir} describe --tag 2> /dev/null",
                     shell=True
                 ).decode('utf-8')
         except subprocess.CalledProcessError:
@@ -78,8 +80,13 @@ def _get_arguments():
     else:
         subparsers = parser.add_subparsers(dest="command_name")
 
-    # # subparser for version
+    # subparser for version
     subparsers.add_parser("version", help="get the LeTP version")
+
+    # subparser for running test from the qTest
+    qtest_parser = subparsers.add_parser(
+        "runqTest",
+        help="run test with config from qTest.xml file and pytest parameters.")
 
     # subparser for running tests
     run_parser = subparsers.add_parser("run", help="run test with pytest parameters.")
@@ -87,6 +94,22 @@ def _get_arguments():
     # Debug level
     # Simple option like -d is reserved by pytest. This is obsolete.
     # Please always use --dbg-lvl which is supported in pytest_letp plugin.
+    qtest_parser.add_argument(
+        "-d",
+        "--dbg-lvl",
+        metavar="N",
+        type=int,
+        dest="dbglvl",
+        help="""legato or swilog debug level as an integer
+                                                    0 = DEBUG,
+                                                    1 = INFO (default),
+                                                    2 = WARN,
+                                                    3 = ERR,
+                                                    4 = CRIT,
+                                                    5 = EMERG""",
+        default="1",
+    )
+
     run_parser.add_argument(
         "-d",
         "--dbg-lvl",
@@ -109,7 +132,7 @@ def run(args, pytest_args):
     """Run the the tests when the run argument is used."""
     _pytest_config_file = "pytest.ini"
     pytest_root = os.path.expandvars("$LETP_TESTS")
-    print("$LETP_TESTS={}".format(pytest_root))
+    print(f"$LETP_TESTS={pytest_root}")
 
     # Set rootdir, pytest.ini and the plugin pytest-letp
     # in case the json test set is outside of the workspace
@@ -153,7 +176,32 @@ def main():
         # Set a default value for LETP_TEST_SET (set of public tests)
         os.environ["LETP_TEST_SET"] = "public"
 
-    if command == "run":
+    if command == "runqTest":
+        xmlpath = os.path.join(
+            os.environ.get("LETP_PATH"),
+            "pytest_letp",
+            "config",
+            "qTest.xml")
+        tree = etree.parse(xmlpath)
+
+        qtest_info = {}
+        qtest_info["token"] = tree.findtext("token")
+        qtest_info["projectId"] = int(tree.findtext("projectId"))
+        print("projectId: ", qtest_info["projectId"])
+        qtest_info["testSuiteId"] = int(tree.findtext("testSuiteId"))
+        print("testSuiteId: ", qtest_info["testSuiteId"])
+
+        data = pytest_qTest.get_test_cases(qtest_info)
+
+        json_file = "test.json"
+        file_path = os.path.join(os.environ.get("LETP_TESTS"), json_file)
+        pytest_qTest.gen_json_file(data, file_path)
+
+        pytest_args = [json_file] + pytest_args
+        print(f"Run the test cases in the {json_file} file")
+        run(args, pytest_args)
+
+    elif command == "run":
         run(args, pytest_args)
     elif command == "version":
         print(_get_version())

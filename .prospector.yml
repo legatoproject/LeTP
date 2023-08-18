@@ -30,6 +30,7 @@ pylint: # Just a example. This will be overwritten if .pylintrc exists.
       - useless-object-inheritance
     options:
       max-args: 7
+      extension-pkg-whitelist: lxml
 
 pep257:
     run: true
