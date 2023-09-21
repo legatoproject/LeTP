@@ -9,7 +9,11 @@ from datetime import datetime
 import requests
 
 SERVER_URL = "https://sierrawireless.qtestnet.com/"
-CONFIG_PATH = "$PWD/test_data.xml"
+CONFIG_PATH = os.path.join(os.environ.get("LETP_PATH"),
+                           "pytest_letp",
+                           "tools",
+                           "qTest_upload",
+                           "test_data.xml")
 
 
 def read_test_config(path_dir):
@@ -245,7 +249,9 @@ class QTestAPI:
             "exe_start_date": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "exe_end_date": datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
-        if status == "passed":
+        if status == "Unexecuted":
+            payload["status"] = {"id": 605, "name": status}
+        elif status == "passed":
             payload["status"] = {"id": 601, "name": "Passed"}
         elif status in ("failed", "xfailed"):
             payload["status"] = {"id": 602, "name": "Failed"}
@@ -316,101 +322,6 @@ class QTestAPI:
 class UploadNightly(QTestAPI):
     """Class for upload Nightly Legato-QA results to qTest."""
 
-    def __init__(self, accessToken, run_day):
+    def __init__(self, accessToken):
         super().__init__(accessToken)
-        self.access_token = accessToken  # Get accesstoken with login
-        self.project_id = 99501  # Legato
-        self.parent_id = 4076133  # Test Cycle CL-103: Nightly-master
-        self.test_suite = os.getenv("TEST_RUN_ID")
-        self.cycle_name = self.test_suite.upper()
-        self.cycle_id = self.get_test_cycle_id()
-        self.test_suite_by_day = self.test_suite + "_" + run_day
-
-    def get_test_cycle_id(self):
-        """Get Nightly test cycle ID.
-
-        API: /api/v3/projects/{Project_ID}/test-cycles
-        Returns:
-            test cycle ID (int) of test cycle name
-            0 if otherwise
-        """
-        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/test-cycles"
-        params = {
-            "access_token": self.access_token,
-            "parentId": self.parent_id,
-            "parentType": "test-cycle",
-        }
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        json_data = response.json()
-        for testCycle in json_data:
-            if testCycle["name"] == self.cycle_name:
-                print(f'Test suite ID: {testCycle["id"]}')
-                return testCycle["id"]
-        return 0
-
-    def update_nightly_TS_name(self, json_data):
-        """Update the oldest Nightly test suite.
-
-        API: /api/v3/projects/{Project_ID}/test-suites/{testSuite_ID}
-        """
-        testSuite_list = [testSuite["name"] for testSuite in json_data]
-        oldest_test_suite = sorted(testSuite_list)[0]
-        for testSuite in json_data:
-            if testSuite["name"] == oldest_test_suite:
-                oldest_test_suite_id = testSuite["id"]
-
-        api_url = (
-            SERVER_URL
-            + f"/api/v3/projects/{self.project_id}/test-suites/{oldest_test_suite_id}"
-        )
-        data = {"name": self.test_suite_by_day}
-        params = {"access_token": self.access_token}
-        response = requests.put(api_url, params=params, json=data)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-
-    def get_nightly_TS_name(self):
-        """Get Nightly test suite name to update results.
-
-        API: /api/v3/projects/{Project_ID}/test-suites
-        Returns: test suite name
-        """
-        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/test-suites"
-        params = {
-            "access_token": self.access_token,
-            "parentId": self.cycle_id,
-            "parentType": "test-cycle",
-        }
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        json_data = response.json()
-        for testSuite in json_data:
-            if testSuite["name"] == self.test_suite_by_day:
-                break
-        else:
-            self.update_nightly_TS_name(json_data)
-
-        return self.test_suite_by_day
-
-    def get_testSuite_ID(self, test_suite_name):
-        """Get Nightly test suite ID ready to update results.
-
-        API: /api/v3/projects/{Project_ID}/test-suites
-        Returns:
-            test suite ID (int) of test suite name
-            0 if otherwise
-        """
-        api_url = SERVER_URL + f"/api/v3/projects/{self.project_id}/test-suites"
-        params = {
-            "access_token": self.access_token,
-            "parentId": self.cycle_id,
-            "parentType": "test-cycle",
-        }
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        json_data = response.json()
-        for testSuite in json_data:
-            if testSuite["name"] == test_suite_name:
-                print(f'Test suite ID: {testSuite["id"]}')
-                return testSuite["id"]
-        return 0
+        self.project_id = "99501"  # Legato project

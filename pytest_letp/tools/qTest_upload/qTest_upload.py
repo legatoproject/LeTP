@@ -5,6 +5,7 @@ import os
 import json
 import getopt
 import re
+from lxml import etree
 from qTest_lib import QTestAPI, UploadNightly, write_config
 
 
@@ -30,9 +31,9 @@ def get_param():
         json path for get data.
         html path for get data.
     """
-    assert len(sys.argv) == 5, "Incorrect parameter"
+    JSON_PATH = HTML_PATH = wipe = ""
     try:
-        opts = getopt.getopt(sys.argv[1:], "", ["json=", "html="])[0]
+        opts = getopt.getopt(sys.argv[1:], "", ["json=", "html=", "wipe="])[0]
     except getopt.GetoptError:
         print("python3 qTest_upload.py --json <json path> --html <html path>")
     for opt, arg in opts:
@@ -40,9 +41,11 @@ def get_param():
             JSON_PATH = arg
         elif opt == "--html":
             HTML_PATH = arg
+        elif opt == "--wipe":
+            wipe = arg
         else:
             assert False, "Unhandled option"
-    return JSON_PATH, HTML_PATH
+    return JSON_PATH, HTML_PATH, wipe
 
 
 def get_data_from_json():
@@ -100,31 +103,20 @@ def get_status_from_json():
         json_data = json.load(f)
     Config_module = list(json_data["env"]["per_env"].keys())[0]
     dict_test_cases = {}
-    list_test_cases_run = []
-    list_status = []
     json_data1 = json_data["tests"]
-    json_data2 = json_data1[1:]
-    num_tcs = len(json_data2)
-    for i in range(num_tcs):
-        test_case_name = json_data2[i]["name"].split(".")[-1]
-        status = json_data2[i][Config_module]["result"]
-        list_status.append(status)
-        list_test_cases_run.append(test_case_name)
-        dict_test_cases[list_test_cases_run[i]] = list_status[i]
-    return list_test_cases_run, dict_test_cases
+    for test_case in json_data1:
+        test_case_name = test_case["name"].split(".")[-1]
+        status = test_case[Config_module]["result"]
+        dict_test_cases[test_case_name] = status
+    return dict_test_cases
 
 
 def pre_upload(test_run_id, versions):
     """Pre-upload test result."""
     property_info = REST_api.get_properties_info(test_run_id)
-    print("==== Check the validity of Legato, FW, Yocto version =====")
-    print(versions)
     for version in versions:
-        if version in str(property_info):
-            print(f"{version} had been added to qTest")
-        else:
-            print(f"ERROR: {version} had not been added to qTest")
-            assert False
+        assert (version in str(property_info)
+                ), f"ERROR: {version} had not been added to qTest"
     REST_api.fill_field_ID(property_info, test_run_id)
 
 
@@ -162,39 +154,60 @@ def upload_qtest(release_data, test_case_name, status):
 # ====================================================================================
 # Main
 # ====================================================================================
-print("=====================================START===================================")
-JSON_PATH, HTML_PATH = get_param()
-print(f"Json path: {JSON_PATH}")
-print(f"HTML path: {HTML_PATH}")
+JSON_PATH, HTML_PATH, wipe = get_param()
 QTEST_INFO = os.getenv("QTEST_INFO")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 pattern = r"(Bearer\s)?(?P<token>.*)"
 ACCESS_TOKEN = re.search(pattern, ACCESS_TOKEN).group("token")
-print(f"ACCESS_TOKEN: {ACCESS_TOKEN}")
 
-# Get information of jenkins job
-(
-    TestbedID,
-    TBmodule,
-    TBimei,
-    TBiccid,
-    Legato_version,
-    FW_Version,
-    Yocto_version,
-    Build_number,
-) = get_data_from_json()
+if wipe:
+    # Simulate data
+    (
+        TestbedID,
+        TBmodule,
+        TBimei,
+        TBiccid,
+        FW_Version,
+        Yocto_version,
+        Build_number,
+    ) = ("N/A",) * 7
 
+    Legato_version = "Master"
+else:
+    # Get information of jenkins job
+    (
+        TestbedID,
+        TBmodule,
+        TBimei,
+        TBiccid,
+        Legato_version,
+        FW_Version,
+        Yocto_version,
+        Build_number,
+    ) = get_data_from_json()
+
+    # Load data from json file
+    dict_test_cases = get_status_from_json()
+
+list_test_case_campaign = {}
 if "Nightly-master" in QTEST_INFO:  # Upload Nightly Legato-QA results to qTest
     Legato_version = "Master"
     FW_Version = "N/A"
     Yocto_version = "N/A"
-    manifest = os.getenv("MANIFEST_PATH")
-    print(f"MANIFEST_PATH: {manifest}")
-    pattern = r"(?P<day>\d{4}\.\d{2}\.\d{2})"
-    run_day = re.search(pattern, manifest).group("day")
-    REST_api = UploadNightly(ACCESS_TOKEN, run_day)
-    TEST_SUITE_NAME = REST_api.get_nightly_TS_name()
-    print(f"TEST_SUITE_NAME: {TEST_SUITE_NAME}")
+    xmlpath = os.path.join(
+        os.environ.get("LETP_PATH"),
+        "pytest_letp",
+        "config",
+        "qTest.xml")
+    tree = etree.parse(xmlpath)
+    campaign_id = os.getenv("QTEST_CAMPAIGN")
+    if not campaign_id:
+        campaign_id = tree.findtext("campaign_id")
+    REST_api = UploadNightly(ACCESS_TOKEN)
+    list_test_cases = REST_api.get_testRun_ID(campaign_id)
+    list_test_case_campaign[campaign_id] = list_test_cases
+    assert list_test_cases, "There are no test cases in the test campaign"
+    SAMPLE_TEST_CASE_ID = list(list_test_cases.values())[0]
 
 else:
     RELEASE_NAME = QTEST_INFO
@@ -206,9 +219,6 @@ else:
     print(f"TEST_SUITE_NAME: {TEST_SUITE_NAME}")
 
     REST_api = QTestAPI(ACCESS_TOKEN, PROJECT_NAME, RELEASE_NAME)
-
-# Load data from json file
-(list_test_cases_run, dict_test_cases) = get_status_from_json()
 
 # Write data to test_data.xml file
 write_config("Module_Ref/value_id", TestbedID)
@@ -227,57 +237,75 @@ elif "WP76" in TBmodule or "WP77" in TBmodule:
     else:
         write_config("FW_Version_WP77/value", FW_Version)
 
-release_data = {}
-if TEST_SUITE_NAME != "":
-    print(f"Upload test result for test suite: {TEST_SUITE_NAME}")
-    TEST_SUITE_ID = REST_api.get_testSuite_ID(TEST_SUITE_NAME)
-    list_test_cases = REST_api.get_testRun_ID(TEST_SUITE_ID)
-    release_data[TEST_SUITE_NAME] = list_test_cases
-    SAMPLE_TEST_CASE_ID = list(list_test_cases.values())[0]
-else:
-    print(f"List of test suite on release {RELEASE_NAME}: {REST_api.test_suite_names}")
-    for test_suite_name in REST_api.test_suite_names:
-        print(f"test_suite_name: {test_suite_name}")
-        TEST_SUITE_ID = REST_api.get_testSuite_ID(test_suite_name)
+if "Nightly-master" not in QTEST_INFO:
+    if TEST_SUITE_NAME != "":
+        print(f"Upload test result for test suite: {TEST_SUITE_NAME}")
+        TEST_SUITE_ID = REST_api.get_testSuite_ID(TEST_SUITE_NAME)
         list_test_cases = REST_api.get_testRun_ID(TEST_SUITE_ID)
-        release_data[test_suite_name] = list_test_cases
+        list_test_case_campaign[TEST_SUITE_NAME] = list_test_cases
         SAMPLE_TEST_CASE_ID = list(list_test_cases.values())[0]
+    else:
+        print(f"Test suites of {RELEASE_NAME}: {REST_api.test_suite_names}")
+        for test_suite_name in REST_api.test_suite_names:
+            print(f"test_suite_name: {test_suite_name}")
+            TEST_SUITE_ID = REST_api.get_testSuite_ID(test_suite_name)
+            list_test_cases = REST_api.get_testRun_ID(TEST_SUITE_ID)
+            list_test_case_campaign[test_suite_name] = list_test_cases
+            SAMPLE_TEST_CASE_ID = list(list_test_cases.values())[0]
 pre_upload(SAMPLE_TEST_CASE_ID, versions)
 Uploaded_test_cases = []
 Need_to_reupload_test_cases = []
 Remaining_test_cases = []
-print(f"===> Uploading test result for {len(list_test_cases_run)} test cases .... ")
-for test_case_name in list_test_cases_run:
-    # Check if test case is duplicated
-    up_qtest = check_duplicate(release_data, test_case_name)
-    upload_result = False
-    if up_qtest:
-        # Upload test result to qTest
-        upload_result = upload_qtest(
-            release_data, test_case_name, dict_test_cases[test_case_name]
-        )
-        if upload_result:
-            # Add test case to list of uploaded test cases successfully
-            Uploaded_test_cases.append(test_case_name)
+if wipe:
+    status = "Unexecuted"
+    for test_cases in list_test_case_campaign.values():
+        for test_case_name, test_id in test_cases.items():
+            upload_result = REST_api.post_result_qtest(test_id, status)
+            if upload_result:
+                # Add test case to list of uploaded test cases successfully
+                Uploaded_test_cases.append(test_case_name)
+            else:
+                # Add test case to list of uploaded test cases unsuccessfully
+                Need_to_reupload_test_cases.append(test_case_name)
+    if Need_to_reupload_test_cases:
+        print(f"===> List of {len(Need_to_reupload_test_cases)}"
+              + " test cases whose old status has not been deleted")
+        for i in Need_to_reupload_test_cases:
+            print(i)
+
+else:
+    print(f"===> Uploading test result for {len(dict_test_cases)} test cases .... ")
+    for test_case_name, result in dict_test_cases.items():
+        # Check if test case is duplicated
+        up_qtest = check_duplicate(list_test_case_campaign, test_case_name)
+        upload_result = False
+        if up_qtest:
+            # Upload test result to qTest
+            upload_result = upload_qtest(
+                list_test_case_campaign, test_case_name, result
+            )
+            if upload_result:
+                # Add test case to list of uploaded test cases successfully
+                Uploaded_test_cases.append(test_case_name)
+            else:
+                # Add test case to list of uploaded test cases unsuccessfully
+                Need_to_reupload_test_cases.append(test_case_name)
         else:
-            # Add test case to list of uploaded test cases unsuccessfully
-            Need_to_reupload_test_cases.append(test_case_name)
-    else:
-        # Add test case to list duplicated
-        Remaining_test_cases.append(test_case_name)
-print(f"===> List of {len(Uploaded_test_cases)} test cases are uploaded successfully")
-for i in Uploaded_test_cases:
-    print(i)
-print(
-    f"===> List of {len(Need_to_reupload_test_cases)} test cases "
-    + "are uploaded unsuccessfully"
-)
-for i in Need_to_reupload_test_cases:
-    print(i)
-print(
-    f"===> List of {len(Remaining_test_cases)} test cases "
-    + "are duplicated or not exist on this release"
-)
-for i in Remaining_test_cases:
-    print(i)
-print("======================================END====================================")
+            # Add test case to list duplicated
+            Remaining_test_cases.append(test_case_name)
+    print(f"===> List of {len(Uploaded_test_cases)}"
+          + " test cases are uploaded successfully")
+    for i in Uploaded_test_cases:
+        print(i)
+    print(
+        f"===> List of {len(Need_to_reupload_test_cases)} test cases "
+        + "are uploaded unsuccessfully"
+    )
+    for i in Need_to_reupload_test_cases:
+        print(i)
+    print(
+        f"===> List of {len(Remaining_test_cases)} test cases "
+        + "are duplicated or not exist on this release"
+    )
+    for i in Remaining_test_cases:
+        print(i)

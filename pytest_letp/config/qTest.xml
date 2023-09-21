@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <qTest>
     <token></token>
-    <projectId></projectId>
-    <testSuiteId></testSuiteId>
+    <project_id></project_id>
+    <campaign_id></campaign_id>
+    <campaign_type></campaign_type>
 </qTest>

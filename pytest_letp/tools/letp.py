@@ -11,13 +11,14 @@ import os
 import subprocess
 import sys
 import traceback
+import re
 import pytest
-from lxml import etree
 from pytest_letp.lib import pytest_qTest
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
+pytest_root = os.path.expandvars("$LETP_TESTS")
 
 # Keep the following for the backward compatability, to be removed later
 pytest_lib = os.path.abspath(os.path.join(script_dir, "../lib"))
@@ -87,6 +88,16 @@ def _get_arguments():
     qtest_parser = subparsers.add_parser(
         "runqTest",
         help="run test with config from qTest.xml file and pytest parameters.")
+    qtest_parser.add_argument("--path",
+                              dest="path",
+                              help="Determine a campaign on qTest based on path")
+    qtest_parser.add_argument("--project-id",
+                              dest="project_id",
+                              help="Project ID")
+    qtest_parser.add_argument("--campaign",
+                              dest="campaign",
+                              help="Determine a campaign on qTest based on type/ID.\n"
+                              "such as test-suite:111111")
 
     # subparser for running tests
     run_parser = subparsers.add_parser("run", help="run test with pytest parameters.")
@@ -131,7 +142,6 @@ def _get_arguments():
 def run(args, pytest_args):
     """Run the the tests when the run argument is used."""
     _pytest_config_file = "pytest.ini"
-    pytest_root = os.path.expandvars("$LETP_TESTS")
     print(f"$LETP_TESTS={pytest_root}")
 
     # Set rootdir, pytest.ini and the plugin pytest-letp
@@ -167,6 +177,57 @@ def run(args, pytest_args):
         sys.exit(_rc)
 
 
+def run_qtest(args, pytest_args):
+    """Get and run the tests from qTest."""
+    xmlpath = os.path.join(
+        os.environ.get("LETP_PATH"),
+        "pytest_letp",
+        "config",
+        "qTest.xml")
+    access_token = os.getenv("ACCESS_TOKEN")
+    pattern = r"(Bearer\s)?(?P<token>.*)"
+    access_token = re.search(pattern, access_token).group("token")
+
+    if args.path:
+        qtest_path = args.path.split("/")
+        qtest = pytest_qTest.QTestAPI(access_token)
+        qtest.get_id(qtest_path)
+        test_campaign_name = qtest_path[-1] + ".json"
+    elif args.project_id and args.campaign:
+        campaign = args.campaign
+        project_id = args.project_id
+        print(f"Project ID: {project_id}")
+        assert project_id.isdigit(), "Project ID must be a numeric string"
+
+        campaign_type, campaign_id = campaign.split(":")
+        # Test Runs under root or under a container (Release, Test Cycle or Test Suite)
+        container = ("root", "release", "test-cycle", "test-suite")
+        print(f"{campaign_type}: {campaign_id}")
+        assert (campaign_type in container
+                ), "Campaign type must be " + " or ".join(container)
+        assert campaign_id.isdigit(), "Campaign ID must be a numeric string"
+
+        qtest = pytest_qTest.QTestAPI(access_token,
+                                      int(project_id),
+                                      parent_id=int(campaign_id),
+                                      parent_type=campaign_type)
+        test_campaign_name = qtest.get_campaign_name()
+    else:
+        print("Invalid command: Please check the qTest information provided")
+
+    test_cases = qtest.get_test_script()
+    file_path = os.path.join(pytest_root, test_campaign_name)
+    pytest_qTest.gen_json_file(test_cases, file_path)
+
+    pytest_args = [test_campaign_name] + pytest_args
+    print(f"Run the test cases in the {test_campaign_name} file")
+    run(args, pytest_args)
+
+    # Save qTest information for post-processing
+    # when test case results are available
+    qtest.save_qtest_info(xmlpath)
+
+
 def main():
     """Entry point of LeTP."""
     args, pytest_args = _get_arguments()
@@ -177,30 +238,7 @@ def main():
         os.environ["LETP_TEST_SET"] = "public"
 
     if command == "runqTest":
-        xmlpath = os.path.join(
-            os.environ.get("LETP_PATH"),
-            "pytest_letp",
-            "config",
-            "qTest.xml")
-        tree = etree.parse(xmlpath)
-
-        qtest_info = {}
-        qtest_info["token"] = tree.findtext("token")
-        qtest_info["projectId"] = int(tree.findtext("projectId"))
-        print("projectId: ", qtest_info["projectId"])
-        qtest_info["testSuiteId"] = int(tree.findtext("testSuiteId"))
-        print("testSuiteId: ", qtest_info["testSuiteId"])
-
-        data = pytest_qTest.get_test_cases(qtest_info)
-
-        json_file = "test.json"
-        file_path = os.path.join(os.environ.get("LETP_TESTS"), json_file)
-        pytest_qTest.gen_json_file(data, file_path)
-
-        pytest_args = [json_file] + pytest_args
-        print(f"Run the test cases in the {json_file} file")
-        run(args, pytest_args)
-
+        run_qtest(args, pytest_args)
     elif command == "run":
         run(args, pytest_args)
     elif command == "version":
