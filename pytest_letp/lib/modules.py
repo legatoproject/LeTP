@@ -373,7 +373,6 @@ class SwiModule:
                     return False
             else:
                 idx = link.expect([rsp, pexpect.TIMEOUT], timeout)
-
                 if idx == 1:
                     return False
 
@@ -399,7 +398,6 @@ class SwiModule:
         re_opened_port = com.SerialPort.open(
             link_obj.dev_tty, link_obj.baudrate, link_obj.rtscts
         )
-
         if not re_opened_port:
             return False
 
@@ -589,12 +587,31 @@ class SwiModule:
         swilog.warning("Device may be at some bad state")
         return 1
 
+    def wait_for_AT_down(self, timeout=5):
+        """Wait for device down by checking links."""
+        time_elapsed = time.time()
+        end_time = time.time() + timeout
+        while time_elapsed <= end_time:
+            swilog.info("Wait for AT down...")
+            if self.is_port_accessible(com.ComPortType.AT.name, timeout=2):
+                swilog.warning("AT port still up")
+            else:
+                swilog.info("AT port is down!")
+                return 0
+            time.sleep(1)
+            time_elapsed = time.time()
+
+        swilog.warning("Device is still up")
+        return 1
+
     def wait_for_reboot(self, timeout=180):
         """Wait for the device to complete reboot."""
-        if self.wait_for_device_up(timeout) == 1:
+        if self.wait_for_AT_down() == 0:
+            if self.wait_for_device_up(timeout) == 1:
+                return False
+            return True
+        else:
             return False
-
-        return True
 
     def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"):
         """Run a cmd in AT console."""
