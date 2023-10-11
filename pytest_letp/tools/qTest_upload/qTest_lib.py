@@ -124,6 +124,7 @@ class QTestAPI:
         }
         headers = {}
         response = requests.request("GET", api_url, params=params, headers=headers)
+        assert response.status_code == 200, f"{response.status_code} - {response.text}"
         responsejson = response.json()
         dict_test_cases = {}
         for testRun in responsejson["items"]:

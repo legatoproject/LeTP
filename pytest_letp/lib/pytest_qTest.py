@@ -205,15 +205,26 @@ class QTestAPI:
         """Get test cases and their test scripts."""
         test_run_data = self.get_test_runs(self.parent_id, self.parent_type)
         dict_test_cases = {}
+        empty_list = []
         for test_run in test_run_data["items"]:
+            # L_ReinitTest will be run separately when preparing testbed
+            if test_run["name"] == "L_ReinitTest":
+                continue
             test_id = test_run["testCaseId"]
             tc_data = self.get_test_cases(test_id)
             test_script = ""
             for field in tc_data["properties"]:
                 if field["field_name"] == "Script Name":
-                    test_script = field["field_value"]
+                    if field["field_value"]:
+                        test_script = field["field_value"]
+                    else:
+                        empty_list.append(test_run["name"])
                     break
             dict_test_cases[test_run["name"]] = test_script
+        if empty_list:
+            print(f"PROBLEM: {len(empty_list)} test cases without test script")
+            print(*empty_list, sep="\n")
+            sys.exit()
 
         return dict_test_cases
 
