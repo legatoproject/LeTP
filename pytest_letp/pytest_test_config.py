@@ -648,12 +648,12 @@ class TestConfig:
         TC_json_path = f"{QA_ROOT}/testCampaign/{file}.json"
         try:
             cmd = f"letp run {TC_json_path} --collect-only"
-            swilog.info(cmd)
+            print(cmd)
             rsp = os.popen(cmd).read()
             pattern = re.search(r"test_collected': (?P<number>\d+)", rsp)
             number_TC = int(pattern.group("number"))
         except:
-            swilog.info(f"Cannot open JSON file with the {file}")
+            print(f"Cannot open JSON file with the {file}")
         if number_TC:
             return number_TC + 1  # Add 1 TC L_ReinitTest
         else:
@@ -671,9 +671,12 @@ class TestConfig:
             total_test = 0
             TEST_CHOICE = os.getenv("TEST_CHOICE", None)
             list_campaign = os.getenv("LIST_CAMPAIGN", None)
-            swilog.info(f"List Campaign: {list_campaign}")
+            print(f"List Campaign: {list_campaign}")
             if TEST_CHOICE:
-                number_TC = self.count_test(TEST_CHOICE)
+                # Temporarily get the number of test cases in the source. LETEST-8423
+                file_name = "nightlyTest/" + TEST_CHOICE.split("/")[-1]
+                print(f"Get the number of test cases in the file: {file_name}.json")
+                number_TC = self.count_test(file_name)
                 json_content["test_collected_total"] = number_TC
             if list_campaign:
                 list_campaign = list_campaign.strip("[]")
