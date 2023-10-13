@@ -67,3 +67,5 @@ if __name__ == "__main__":
                 except:
                     print(f"Error: {Exception}")
         print("The previous test results of the test cycle have been reset")
+        # Clean the environment
+        os.unsetenv("QTEST_CAMPAIGN")
