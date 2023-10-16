@@ -215,6 +215,10 @@ def run_qtest(args, pytest_args):
     else:
         print("Invalid command: Please check the qTest information provided")
 
+    # Save qTest information for post-processing
+    # when test case results are available
+    qtest.save_qtest_info(xmlpath)
+
     test_cases = qtest.get_test_script()
     file_path = os.path.join(pytest_root, test_campaign_name)
     pytest_qTest.gen_json_file(test_cases, file_path)
@@ -222,10 +226,6 @@ def run_qtest(args, pytest_args):
     pytest_args = [test_campaign_name] + pytest_args
     print(f"Run the test cases in the {test_campaign_name} file")
     run(args, pytest_args)
-
-    # Save qTest information for post-processing
-    # when test case results are available
-    qtest.save_qtest_info(xmlpath)
 
 
 def main():

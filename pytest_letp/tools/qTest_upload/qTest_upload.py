@@ -203,6 +203,7 @@ if "Nightly-master" in QTEST_INFO:  # Upload Nightly Legato-QA results to qTest
     campaign_id = os.getenv("QTEST_CAMPAIGN")
     if not campaign_id:
         campaign_id = tree.findtext("campaign_id")
+    print(f"campaign_id: {campaign_id}")
     REST_api = UploadNightly(ACCESS_TOKEN)
     list_test_cases = REST_api.get_testRun_ID(campaign_id)
     list_test_case_campaign[campaign_id] = list_test_cases

@@ -188,6 +188,8 @@ class QTestAPI:
                 if (self.check_cycle(info)
                         or self.check_suite(info)
                         or (info == qtest_info[1] and self.check_release(info))):
+                    if info == qtest_info[-1]:
+                        print(f"campaign_id: {self.parent_id}")
                     continue
                 print(f"PROBLEM: Could not find {info}")
                 sys.exit(False)
