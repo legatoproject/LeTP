@@ -657,10 +657,10 @@ class BuildConfiguration:
             if self.pytest_test_name_array[i] == test_name:
                 if pytest_result.get("outcome") == "passed":
                     break
-                pytest_result.update(self.pytest_results[i])
+                pytest_result = self.pytest_results[i]
                 test_result.update_pytest_logs(pytest_result, update_before_log=True)
                 test_result.pytest_json_result.update(pytest_result)
-        return res
+        return pytest_result
 
     @staticmethod
     def get_xfailed_mes(pytest_result):
@@ -714,7 +714,9 @@ class BuildConfiguration:
             if test_name not in verify_duplicate_tcs:
                 test_result.add_pytest_json_result(pytest_result)
             else:
-                self._update_result_of_duplicate_tcs(pytest_result, test_result)
+                pytest_result = self._update_result_of_duplicate_tcs(
+                    pytest_result,
+                    test_result)
 
             outcome = self.get_final_status(pytest_result)
             verify_duplicate_tcs[test_name] = outcome
