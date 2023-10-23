@@ -670,24 +670,36 @@ class TestConfig:
         if "L_ReinitTest" in str(tests_array):
             total_test = 0
             TEST_CHOICE = os.getenv("TEST_CHOICE", None)
-            list_campaign = os.getenv("LIST_CAMPAIGN", None)
-            print(f"List Campaign: {list_campaign}")
-            if TEST_CHOICE:
-                # Temporarily get the number of test cases in the source. LETEST-8423
-                file_name = "nightlyTest/" + TEST_CHOICE.split("/")[-1]
-                print(f"Get the number of test cases in the file: {file_name}.json")
-                number_TC = self.count_test(file_name)
-                json_content["test_collected_total"] = number_TC
-            if list_campaign:
-                list_campaign = list_campaign.strip("[]")
-                list_campaign = list_campaign.split(",")
-                for campaign in list_campaign:
-                    campaign = campaign.strip()
-                    number_TC = self.count_test(campaign)
-                    if number_TC:
-                        total_test += number_TC
-                # Total number of test cases of the system
-                json_content["system_test_num"] = total_test
+            if "Legato/Nightly-master" in TEST_CHOICE:
+                # Get number of test cases from qTest
+                filename = "collected_test.json"
+                path = os.path.join(
+                    os.environ.get("LETP_PATH"),
+                    "pytest_letp",
+                    "config",
+                    filename)
+                assert os.path.exists(path), f"Could not find JSON file: {path}"
+                with open(path, encoding="utf8") as f:
+                    test_num = json.load(f)
+                json_content["test_collected_total"] = test_num["campaign_test_num"]
+                json_content["system_test_num"] = test_num["system_test_num"]
+            else:
+                list_campaign = os.getenv("LIST_CAMPAIGN", None)
+                print(f"List Campaign: {list_campaign}")
+                if TEST_CHOICE:
+                    print(f"Get the number of test cases in {TEST_CHOICE}.json")
+                    number_TC = self.count_test(TEST_CHOICE)
+                    json_content["test_collected_total"] = number_TC
+                if list_campaign:
+                    list_campaign = list_campaign.strip("[]")
+                    list_campaign = list_campaign.split(",")
+                    for campaign in list_campaign:
+                        campaign = campaign.strip()
+                        number_TC = self.count_test(campaign)
+                        if number_TC:
+                            total_test += number_TC
+                    # Total number of test cases of the system
+                    json_content["system_test_num"] = total_test
         # Do not suppress this print
         print(pprint.pformat(json_content))
         self.test_base_reports = json_content

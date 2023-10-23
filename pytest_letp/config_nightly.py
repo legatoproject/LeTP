@@ -2,6 +2,7 @@
 import re
 import os
 import subprocess
+import json
 from lib.pytest_qTest import QTestAPI
 
 
@@ -16,20 +17,21 @@ NIGHTLY_CYCLE = 4076133  # Test Cycle CL-103: Nightly-master
 # ====================================================================================
 # Functions
 # ====================================================================================
-def get_run_day(manifest):
-    """Get date needs to run."""
-    print(f"MANIFEST_PATH: {manifest}")
-    pattern = r"(?P<day>\d{4}\.\d{2}\.\d{2})"
-    run_day = re.search(pattern, manifest).group("day")
-    return run_day
+def get_test_number(nightly, test_num, test_suite, campaign_name):
+    """Get the number of test cases to be run."""
+    test_run_data = nightly.get_test_runs(test_suite["id"], "test-suite")
+    test_num["system_test_num"] += len(test_run_data["items"])
+    if test_suite["name"] == campaign_name:
+        test_num["campaign_test_num"] = len(test_run_data["items"])
 
 
 if __name__ == "__main__":
     access_token = os.getenv("ACCESS_TOKEN")
     pattern = r"(Bearer\s)?(?P<token>.*)"
     access_token = re.search(pattern, access_token).group("token")
-    manifest = os.getenv("MANIFEST_PATH")
-    run_day = get_run_day(manifest)
+    campaign_path = os.getenv("TEST_CHOICE")
+    run_day, target_name, campaign_name = campaign_path.split("/")[-3:]
+    test_num = {"system_test_num": 0, "campaign_test_num": 0}
     path = "Legato/Nightly-master/{}/{}/{}"
     nightly = QTestAPI(access_token, PROJECT_ID)
     print(f"Get test cycle by day: {run_day}")
@@ -37,6 +39,12 @@ if __name__ == "__main__":
     for test_cycle in json_cycle:
         if test_cycle["name"] == run_day:
             print(f"The test cycle - {run_day} has been initiated previously")
+            json_cycle = nightly.get_cycles(test_cycle["id"], "test-cycle")
+            for target_cycle in json_cycle:
+                if target_cycle["name"] == target_name:
+                    target_data = nightly.get_suites(target_cycle["id"], "test-cycle")
+                    for test_suite in target_data:
+                        get_test_number(nightly, test_num, test_suite, campaign_name)
             break
     else:
         test_cycle_list = [test_cycle["name"] for test_cycle in json_cycle]
@@ -52,6 +60,8 @@ if __name__ == "__main__":
         for target_cycle in json_cycle:
             target_data = nightly.get_suites(target_cycle["id"], "test-cycle")
             for test_suite in target_data:
+                if target_cycle["name"] == target_name:
+                    get_test_number(nightly, test_num, test_suite, campaign_name)
                 print("Reset test results of "
                       + path.format(run_day, target_cycle["name"], test_suite["name"]))
                 os.environ["QTEST_CAMPAIGN"] = str(test_suite["id"])
@@ -69,3 +79,13 @@ if __name__ == "__main__":
         print("The previous test results of the test cycle have been reset")
         # Clean the environment
         os.unsetenv("QTEST_CAMPAIGN")
+    print(f"collected_test: {test_num}")
+    filename = "collected_test.json"
+    path = os.path.join(
+        os.environ.get("LETP_PATH"),
+        "pytest_letp",
+        "config",
+        filename)
+    with open(path, "w", encoding="utf8") as f:
+        f.write(json.dumps(test_num, indent=4, separators=(",", ": ")))
+    print(f"File {path} was created!")
