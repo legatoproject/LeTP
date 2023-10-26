@@ -154,6 +154,14 @@ class ModuleLink:
         self.init()
         self.update_alias()
 
+    def init_alt1350(self, dev_tty):
+        """Init the link based on the CLI port for HL79xx."""
+        swilog.info(f"Connect the {self.port_type} port on ALT1350 with {dev_tty}...")
+        self.close()
+        self.info.update_name(dev_tty)
+        self.init()
+        self.update_alias()
+
     def update_alias(self):
         """Update the alias of the link obj."""
         aliases_cpy = copy.deepcopy(self.aliases)
@@ -424,6 +432,12 @@ class SwiModule:
                 link.close()
             except Exception as e:
                 swilog.debug(e)
+        if self.__class__.__name__ == "ALT1350":
+            swilog.step("killall socat dotnet")
+            os.system("killall socat dotnet")
+            time.sleep(2)
+            if self.dotnet_proc:
+                swilog.debug(self.dotnet_proc.stdout.read().decode('utf-8'))
 
     @property
     def before(self):
@@ -490,8 +504,12 @@ class SwiModule:
     def sim_iccid(self):
         """Return the SIM ICCID."""
         if self.sim_ready():
-            rsp = self.run_at_cmd(self.target_at_cmd["CCID?"], 10)
-            return re.search(r"\+CCID:\s*(?P<iccid>[0-9]+)", rsp).group("iccid")
+            if self.__class__.__name__ == "ALT1350":
+                rsp = self.run_at_cmd("AT%CCID", 10)
+                return re.search(r"\%CCID:\s*(?P<iccid>[0-9]+)", rsp).group("iccid")
+            else:
+                rsp = self.run_at_cmd(self.target_at_cmd["CCID?"], 10)
+                return re.search(r"\+CCID:\s*(?P<iccid>[0-9]+)", rsp).group("iccid")
 
         return None
 
@@ -534,7 +552,7 @@ class SwiModule:
 
     def sim_status(self, timeout=20):
         """Get SIM status."""
-        if not self.links[1].info.is_used():
+        if not self.links[1].info.is_used() or self.__class__.__name__ == "ALT1350":
             # bypass checking sim status
             return "0"
         else:
@@ -554,14 +572,19 @@ class SwiModule:
     def get_info(self):
         """Get software/hardware info."""
         self.run_at_cmd("ATI", 60)
-        self.run_at_cmd("ATI8", 60)
+        if self.__class__.__name__ != "ALT1350":
+            self.run_at_cmd("ATI8", 60)
+        else:
+            self.run_at_cmd("ATI1", 60)
+            self.run_at_cmd("ATI3", 60)
         self.run_at_cmd("ATI9", 60)
-        if self.sim_ready():
-            try:
-                self.run_at_cmd(self.target_at_cmd["CIMI"], 60)
-                self.run_at_cmd(self.target_at_cmd["CCID?"], 60)
-            except:
-                pytest.xfail(reason="LE-16671")
+        if self.__class__.__name__ != "ALT1350":
+            if self.sim_ready():
+                try:
+                    self.run_at_cmd(self.target_at_cmd["CIMI"], 60)
+                    self.run_at_cmd(self.target_at_cmd["CCID?"], 60)
+                except:
+                    pytest.xfail(reason="LE-16671")
 
     def wait_for_device_up(self, timeout=180):
         """Check if device is up by testing all ports are responsive."""
@@ -729,6 +752,8 @@ class SlinkInfo:
         if device_name.startswith("usb:"):
             device_name = self.name().replace("usb:", "")
         elif device_name.startswith("COM"):
+            return device_name
+        elif device_name.startswith("/tmp"):
             return device_name
 
         com_port_device = com.ComPortDevice(device_name)
