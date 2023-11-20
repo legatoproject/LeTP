@@ -20,9 +20,9 @@ NIGHTLY_CYCLE = 4076133  # Test Cycle CL-103: Nightly-master
 def get_test_number(nightly, test_num, test_suite, campaign_name):
     """Get the number of test cases to be run."""
     test_run_data = nightly.get_test_runs(test_suite["id"], "test-suite")
-    test_num["system_test_num"] += len(test_run_data["items"])
+    test_num["system_test_num"] += int(test_run_data["total"])
     if test_suite["name"] == campaign_name:
-        test_num["campaign_test_num"] = len(test_run_data["items"])
+        test_num["campaign_test_num"] = int(test_run_data["total"])
 
 
 if __name__ == "__main__":
@@ -57,9 +57,13 @@ if __name__ == "__main__":
 
         print("Get list of test suites")
         json_cycle = nightly.get_cycles(test_cycle_by_day, "test-cycle")
+        exp_tests_for_targets = {}
         for target_cycle in json_cycle:
+            test_number = 0
             target_data = nightly.get_suites(target_cycle["id"], "test-cycle")
             for test_suite in target_data:
+                test_run_data = nightly.get_test_runs(test_suite["id"], "test-suite")
+                test_number += int(test_run_data["total"])
                 if target_cycle["name"] == target_name:
                     get_test_number(nightly, test_num, test_suite, campaign_name)
                 print("Reset test results of "
@@ -76,9 +80,24 @@ if __name__ == "__main__":
                     subprocess.run(command, shell=True, check=True)
                 except:
                     print(f"Error: {Exception}")
+            exp_tests_for_targets[target_cycle["name"]] = test_number
         print("The previous test results of the test cycle have been reset")
+
+        # The number of test cases of targets
+        print(f"exp_tests_for_targets: {exp_tests_for_targets}")
+        filename = "collected_total.json"
+        path = os.path.join(
+            os.environ.get("LETP_PATH"),
+            "pytest_letp",
+            "config",
+            filename)
+        with open(path, "w", encoding="utf8") as f:
+            f.write(json.dumps(exp_tests_for_targets, indent=4, separators=(",", ": ")))
+        print(f"File {path} was created!")
         # Clean the environment
         os.unsetenv("QTEST_CAMPAIGN")
+
+    # The number of test cases the campaign is running
     print(f"collected_test: {test_num}")
     filename = "collected_test.json"
     path = os.path.join(

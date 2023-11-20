@@ -57,7 +57,7 @@
         white-space: nowrap;
         padding: .75rem;
         vertical-align: center;
-        border-top: 1px solid #dee2e6;
+        border: 1px solid #dee2e6;
     }
 
     @media (min-width: 992px) {
@@ -175,6 +175,9 @@
     <div class="list">
         <ul style="margin-top: 60px">
             <a href="#Summary"><li>Summary</li></a>
+            {% if failure %}
+                <a href="#failure"><li>FailureCauses</li></a>
+            {% endif %}
             {% if all_data %}
                 <a href="#Memory Measurement"><li>Memory Measurement</li></a>
             {% endif %}
@@ -275,6 +278,34 @@
             {% endfor %}
             {{ caller() }}
         {%- endmacro %}
+
+        <!-- FailureCauses -->
+        {% if failure %}
+            <div style="margin-top: 50px" id=failure>
+                <h4 class="summary">FailureCauses</h4>
+                <table align="center">
+                    <thead>
+                        <tr class="title">
+                            {% for row in ("Config", "Norun", "Job", "Reason") %}
+                                <th>{{ row }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                <tbody>
+                    {% for config, value in failure.items() %}
+                    <tr>
+                        <td rowspan="{{ value|length }}" style="background: white">{{ config }}</td>
+                        <td rowspan="{{ value|length }}" style="background: white">{{ summary[config]["NoRun"]["count"] }}</td>
+                        {% for job, reason in value.items() %}
+                            <th>{{ job }}</th>
+                            <th>{{ reason[0] }}</th>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+                </table>
+            </div>
+        {% endif %}
 
         <!-- Memory Measurement -->
         {% if all_data %}

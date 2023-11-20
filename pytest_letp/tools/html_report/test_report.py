@@ -118,13 +118,20 @@ class TestSummary:
 
     def merge_total_collected(self):
         """Total cases collected for Nightly master."""
-        total = {}
-        for key, value in self.sub_summary.items():
-            sys_type = str(key).split("_")
-            sys_type = sys_type[0]
-            if sys_type not in total:
-                total[sys_type] = value.total_collected()
-        return self.collected_tests_num + sum(list(total.values()))
+        path = ("/storage/artifacts/legato-qa/nightly/"
+                + f"nightly_{REPORT_DATE}_master/collected_total.json")
+        if os.path.exists(path):
+            with open(path, encoding="utf8") as f:
+                exp_tests_for_targets = json.load(f)
+            return sum(list(exp_tests_for_targets.values()))
+        else:
+            total = {}
+            for key, value in self.sub_summary.items():
+                sys_type = str(key).split("_")
+                sys_type = sys_type[0]
+                if sys_type not in total:
+                    total[sys_type] = value.total_collected()
+            return self.collected_tests_num + sum(list(total.values()))
 
     def total_collected(self):
         """Total collected cases in JSON input."""
@@ -1007,9 +1014,43 @@ class TestReportBuilder:
                 j = json.load(f)
                 self.env_global_list.update(j)
 
+    def simulator_data(self, not_run_sys_type_list):
+        """Simulate results for non-running targets."""
+        path = ("/storage/artifacts/legato-qa/nightly/"
+                + f"nightly_{REPORT_DATE}_master/collected_total.json")
+        if not_run_sys_type_list and os.path.exists(path):
+            keys = ["CollectedTests",
+                    "TestcasesRun",
+                    "Passed",
+                    "Failed",
+                    "xFailed",
+                    "Errors",
+                    "Skipped",
+                    "NoRun"]
+            with open(path, encoding="utf8") as f:
+                exp_tests_for_targets = json.load(f)
+
+            for item in not_run_sys_type_list:
+                total_testcases = exp_tests_for_targets[item.upper()]
+                cache_summary = {"Config": item}
+                cache_summary["Status"] = "FAILED"
+                status = {key: {'count': 0, 'percentage': 0.0} for key in keys}
+                status.update({"CollectedTests": {'count': total_testcases,
+                                                  'percentage': 100.0},
+                               "NoRun": {'count': total_testcases,
+                                         'percentage': 100.0}})
+                cache_summary.update(status)
+                self.summary[item] = cache_summary
+
     def check_status_platform(self, sub_systems_names):
         """Check the status of platform."""
-        sys_type_dict = {}
+        exp_sys_type_list = ["wp76xx",
+                             "wp76xx-onlycap",
+                             "wp77xx",
+                             "hl7812",
+                             "rc76",
+                             "em92xx"]
+        run_sys_type_list = []
         # platforms with multi campaigns
         # {platform: [number of campaigns run, expected quantity], ...}
         count_campaigns = {
@@ -1022,8 +1063,8 @@ class TestReportBuilder:
             sys_type = self._parse_sys_type_name(sys_name)
             if sys_type in count_campaigns:
                 count_campaigns[sys_type][0] += 1
-            if sys_type not in sys_type_dict:
-                sys_type_dict[sys_type] = sys_name
+            if sys_type not in run_sys_type_list:
+                run_sys_type_list.append(sys_type)
                 sub_summary = self.test_summary.sub_summary[sys_name]
                 sub_summary.cfg = sys_type
                 cache_summary = {"Config": sub_summary.cfg}
@@ -1038,6 +1079,10 @@ class TestReportBuilder:
         for sys_type, count in count_campaigns.items():
             if count[0] not in [0, count[1]]:
                 self.summary[sys_type]["Status"] = "FAILED"
+        not_run_sys_type_list = [item for item in exp_sys_type_list
+                                 if item not in run_sys_type_list]
+
+        self.simulator_data(not_run_sys_type_list)
 
     def _add_summary_section(self):
         summary_global = {"Config": self.test_summary.cfg}
@@ -1576,6 +1621,22 @@ class TestReportBuilder:
 class TestReportHTMLBuilder(TestReportBuilder):
     """!Test report HTML format builder."""
 
+    def __init__(self):
+        super().__init__()
+        self.failure = self.get_failure()
+
+    @staticmethod
+    def get_failure():
+        """Get failure reasons from Json file."""
+        path = ("/storage/artifacts/legato-qa/nightly/"
+                + f"nightly_{REPORT_DATE}_master/failureCauses.json")
+        if MERGE_REPORT and os.path.exists(path):
+            with open(path, encoding="utf8") as f:
+                failures = json.load(f)
+            return failures
+        else:
+            return ""
+
     def generate_report(self, results_all, status, other_contents: dict, data=None):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
@@ -1616,6 +1677,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "len_data": len_data,
             "len_date": len_date,
             "targets": targets,
+            "failure": self.failure,
         }
 
         return html_render.render()
