@@ -5,6 +5,7 @@ reference to: https://qtest.dev.tricentis.com/
 import sys
 import xml.etree.ElementTree as ET
 import json
+import time
 import requests
 
 
@@ -33,9 +34,8 @@ class QTestAPI:
         API: /api/v3/projects
         """
         params = {"access_token": self.access_token}
-        response = requests.get(API_V3, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(API_V3, params)
+        return response_json
 
     def get_cycles(self, parentId, parentType):
         """Retrieve Test Cycles.
@@ -48,9 +48,8 @@ class QTestAPI:
             "parentId": parentId,
             "parentType": parentType,
         }
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(api_url, params)
+        return response_json
 
     def get_releases(self):
         """Retrieve Releases in a project.
@@ -59,9 +58,8 @@ class QTestAPI:
         """
         api_url = API_V3 + f"/{self.project_id}/releases"
         params = {"access_token": self.access_token}
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(api_url, params)
+        return response_json
 
     def get_suites(self, parentId, parentType):
         """Retrieve Test Suites.
@@ -76,9 +74,8 @@ class QTestAPI:
             "parentId": parentId,
             "parentType": parentType,
         }
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(api_url, params)
+        return response_json
 
     def get_test_runs(self, parentId, parentType):
         """Retrieve all Test Runs.
@@ -94,31 +91,28 @@ class QTestAPI:
             "parentType": parentType,
             "pageSize": 1000,
         }
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(api_url, params)
+        return response_json
 
     def get_test_cases(self, test_case_id):
         """Retrieve a Test Case.
 
         API: /api/v3/projects/{Project_ID}/test-cases/{testCaseId}
         """
-        api_url = (API_V3 + f"/{self.project_id}/test-cases/{test_case_id}")
+        api_url = API_V3 + f"/{self.project_id}/test-cases/{test_case_id}"
         params = {"access_token": self.access_token}
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(api_url, params)
+        return response_json
 
     def get_data_from_id(self, parent_id, parent_type):
         """Retrieve a Release, Test Cycle.
 
         API: /api/v3/projects/{Project_ID}/{type}/{id}
         """
-        api_url = (API_V3 + f"/{self.project_id}/{parent_type}/{parent_id}")
+        api_url = API_V3 + f"/{self.project_id}/{parent_type}/{parent_id}"
         params = {"access_token": self.access_token}
-        response = requests.get(api_url, params=params)
-        assert response.status_code == 200, f"{response.status_code} - {response.text}"
-        return response.json()
+        response_json = self.get_qTest_info(api_url, params)
+        return response_json
 
     def update_cycle_name(self, testCycleId, data):
         """Update a test cycle.
@@ -127,7 +121,13 @@ class QTestAPI:
         """
         api_url = API_V3 + f"/{self.project_id}/test-cycles/{testCycleId}"
         params = {"access_token": self.access_token}
-        response = requests.put(api_url, params=params, json=data)
+        # Retry 6 times if the 'put' operation is unsuccessful,
+        # with cumulative waiting time gradually increases to 30 minutes.
+        for i in range(6):
+            time.sleep(i * 60 * 2)
+            response = requests.put(api_url, params=params, json=data)
+            if response.status_code == 200:
+                break
         assert response.status_code == 200, f"{response.status_code} - {response.text}"
 
     def check_cycle(self, string):
@@ -185,9 +185,11 @@ class QTestAPI:
             return
         else:
             for info in qtest_info[1:]:
-                if (self.check_cycle(info)
-                        or self.check_suite(info)
-                        or (info == qtest_info[1] and self.check_release(info))):
+                if (
+                    self.check_cycle(info)
+                    or self.check_suite(info)
+                    or (info == qtest_info[1] and self.check_release(info))
+                ):
                     if info == qtest_info[-1]:
                         print(f"campaign_id: {self.parent_id}")
                     continue
@@ -234,12 +236,31 @@ class QTestAPI:
         """Save qTest information."""
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
-        for element in root.iter('qTest'):
-            element.find('token').text = self.access_token
-            element.find('project_id').text = str(self.project_id)
-            element.find('campaign_id').text = str(self.parent_id)
-            element.find('campaign_type').text = self.parent_type
+        for element in root.iter("qTest"):
+            element.find("token").text = self.access_token
+            element.find("project_id").text = str(self.project_id)
+            element.find("campaign_id").text = str(self.parent_id)
+            element.find("campaign_type").text = self.parent_type
         tree.write(xml_file_path)
+
+    @staticmethod
+    def get_qTest_info(url, params):
+        """Retrieve information from qTest, if the process fails, retry it 6 times.
+
+        With the cumulative waiting time gradually increasing to 30 minutes
+        """
+        for i in range(6):
+            if i != 0:
+                print(
+                    f"Try again after {i*2} mins when "
+                    + "retrieving information from qTest fails."
+                )
+            time.sleep(i * 60 * 2)
+            response = requests.get(url, params=params)
+            if response.status_code == 200:
+                break
+        assert response.status_code == 200, f"{response.status_code} - {response.text}"
+        return response.json()
 
 
 def gen_json_file(input_dict, file_path):
