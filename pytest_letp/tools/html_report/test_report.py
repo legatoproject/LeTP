@@ -659,7 +659,7 @@ class BuildConfiguration:
                     break
                 pytest_result = self.pytest_results[i]
                 test_result.update_pytest_logs(pytest_result, update_before_log=True)
-                test_result.pytest_json_result.update(pytest_result)
+                test_result.pytest_json_result = pytest_result
         return pytest_result
 
     @staticmethod
