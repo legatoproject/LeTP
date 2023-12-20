@@ -18,6 +18,7 @@ import pytest
 
 import pexpect
 import pexpect.fdpexpect
+import xml.etree.ElementTree as ET
 
 from pytest_letp import TestConfig
 from pytest_letp.lib import com, com_port_detector, swilog
@@ -27,6 +28,7 @@ from pytest_letp.lib.com import clear_buffer
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
+LETP_PATH = os.environ["LETP_PATH"]
 
 def get_swi_module_namespaces():
     """Return a list of module namespaces.
@@ -438,6 +440,17 @@ class SwiModule:
             time.sleep(2)
             if self.dotnet_proc:
                 swilog.debug(self.dotnet_proc.stdout.read().decode('utf-8'))
+            # Restore the port information of slink1 to its original value
+            # in the XML configuration file.
+            original_cli = self.read_config("target", "module/slink1/name")
+            self.get_link(com.ComPortType.CLI.name).info.update_name(original_cli)
+
+    def read_config(file_name, path):
+        """Read config from xml configuration file."""
+        data = ET.parse("%s/pytest_letp/config/%s.xml" % (LETP_PATH, file_name))
+        root = data.getroot()
+        data_xml = root.findtext(path)
+        return data_xml
 
     @property
     def before(self):
