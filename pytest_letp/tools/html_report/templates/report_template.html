@@ -293,6 +293,7 @@
                     </thead>
                 <tbody>
                     {% for config, value in failure.items() %}
+                    {% if summary[config]["NoRun"]["count"] != 0 %}
                     <tr>
                         <td rowspan="{{ value|length }}" style="background: white">{{ config }}</td>
                         <td rowspan="{{ value|length }}" style="background: white">{{ summary[config]["NoRun"]["count"] }}</td>
@@ -301,6 +302,7 @@
                             <th>{{ reason[0] }}</th>
                         </tr>
                         {% endfor %}
+                    {% endif %}
                     {% endfor %}
                 </tbody>
                 </table>
