@@ -445,6 +445,7 @@ class SwiModule:
             original_cli = self.read_config("target", "module/slink1/name")
             self.get_link(com.ComPortType.CLI.name).info.update_name(original_cli)
 
+    @staticmethod
     def read_config(file_name, path):
         """Read config from xml configuration file."""
         data = ET.parse("%s/pytest_letp/config/%s.xml" % (LETP_PATH, file_name))
