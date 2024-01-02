@@ -73,6 +73,8 @@ class TestSummary:
 
     def total_tcs_of_each_campaign(self):
         """Get total test cases of each campaign."""
+        if self.tests_num_of_each_campaign == 0:
+            return self.total_tcs()
         return self.tests_num_of_each_campaign + sum(
             [s.total_tcs_of_each_campaign() for s in self.sub_summary.values()]
         )
@@ -1049,7 +1051,8 @@ class TestReportBuilder:
                              "wp77xx",
                              "hl7812",
                              "rc76",
-                             "em92xx"]
+                             "em92xx",
+                             "hl7900"]
         run_sys_type_list = []
         # platforms with multi campaigns
         # {platform: [number of campaigns run, expected quantity], ...}
@@ -1623,17 +1626,20 @@ class TestReportHTMLBuilder(TestReportBuilder):
 
     def __init__(self):
         super().__init__()
-        self.failure = self.get_failure()
+        self.failure = None
 
-    @staticmethod
-    def get_failure():
+    def get_failure(self):
         """Get failure reasons from Json file."""
         path = ("/storage/artifacts/legato-qa/nightly/"
                 + f"nightly_{REPORT_DATE}_master/failureCauses.json")
         if MERGE_REPORT and os.path.exists(path):
             with open(path, encoding="utf8") as f:
                 failures = json.load(f)
-            return failures
+                if failures:
+                    for config in list(failures.keys()):
+                        if self.summary[config]["NoRun"]["count"] == 0:
+                            del failures[config]
+                return failures
         else:
             return ""
 
@@ -1653,7 +1659,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             for _, infor in data.items():
                 for key, data_name in infor.items():
                     len_data[key] = len(data_name)
-
+        self.failure = self.get_failure()
         html_render.contents = {
             "title": other_contents.get("title"),
             "basic": other_contents.get("basic"),
