@@ -40,6 +40,8 @@ class TargetVersions:
     def _match_version(match_obj):
         """Return matched version if matched."""
         version = match_obj.group("version").strip() if match_obj else None
+        if "\r\n" in version:
+            version = version.split("\r\n")[0]
         swilog.debug("version: {}".format(version))
         return version
 
@@ -78,6 +80,7 @@ class TargetVersions:
             if target.__class__.__module__.endswith("modules_altair"):
                 console = com.ComPortType.AT
             if target.__class__.__name__ == "EM92":
+                console = com.ComPortType.CLI
                 self.legato_cmd = {
                     com.ComPortType.CLI: "legato version",
                     com.ComPortType.AT: "ATI9",
