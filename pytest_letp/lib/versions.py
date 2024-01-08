@@ -40,7 +40,7 @@ class TargetVersions:
     def _match_version(match_obj):
         """Return matched version if matched."""
         version = match_obj.group("version").strip() if match_obj else None
-        if "\r\n" in version:
+        if (version is not None) and ("\r\n" in version):
             version = version.split("\r\n")[0]
         swilog.debug("version: {}".format(version))
         return version
