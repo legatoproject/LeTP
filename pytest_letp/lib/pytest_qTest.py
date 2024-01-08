@@ -130,6 +130,18 @@ class QTestAPI:
                 break
         assert response.status_code == 200, f"{response.status_code} - {response.text}"
 
+    def get_cycle_id(self, cycle_name):
+        """Get Test Cycles ID which are located directly under root."""
+        cycle_under_root = self.get_cycles(0, "root")
+        for test_cycle in cycle_under_root:
+            if test_cycle["name"] == cycle_name:
+                cycle_id = test_cycle["id"]
+                break
+        else:
+            print(f"PROBLEM: Could not find {cycle_name} cycle")
+            sys.exit(False)
+        return cycle_id
+
     def check_cycle(self, string):
         """Check if string is the name of a test cycle."""
         cycle_data = self.get_cycles(self.parent_id, self.parent_type)

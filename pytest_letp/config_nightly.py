@@ -11,7 +11,6 @@ from lib.pytest_qTest import QTestAPI
 # ====================================================================================
 SERVER_URL = "https://sierrawireless.qtestnet.com/"
 PROJECT_ID = "99501"  # Legato project
-NIGHTLY_CYCLE = 4076133  # Test Cycle CL-103: Nightly-master
 
 
 # ====================================================================================
@@ -30,12 +29,17 @@ if __name__ == "__main__":
     pattern = r"(Bearer\s)?(?P<token>.*)"
     access_token = re.search(pattern, access_token).group("token")
     campaign_path = os.getenv("TEST_CHOICE")
-    run_day, target_name, campaign_name = campaign_path.split("/")[-3:]
+    args = campaign_path.split("/")
+    side = f"{args[0]}/{args[1]}"
+    run_day, target_name, campaign_name = args[-3:]
     test_num = {"system_test_num": 0, "campaign_test_num": 0}
-    path = "Legato/Nightly-master/{}/{}/{}"
     nightly = QTestAPI(access_token, PROJECT_ID)
+    print(f"Get Nightly cycle id named {args[1]}")
+    nightly_cycle_id = nightly.get_cycle_id(args[1])
+    print(f"The Nightly cycle ID: {nightly_cycle_id}")
+
     print(f"Get test cycle by day: {run_day}")
-    json_cycle = nightly.get_cycles(NIGHTLY_CYCLE, "test-cycle")
+    json_cycle = nightly.get_cycles(nightly_cycle_id, "test-cycle")
     for test_cycle in json_cycle:
         if test_cycle["name"] == run_day:
             print(f"The test cycle - {run_day} has been initiated previously")
@@ -66,8 +70,8 @@ if __name__ == "__main__":
                 test_number += int(test_run_data["total"])
                 if target_cycle["name"] == target_name:
                     get_test_number(nightly, test_num, test_suite, campaign_name)
-                print("Reset test results of "
-                      + path.format(run_day, target_cycle["name"], test_suite["name"]))
+                print('Reset test results of '
+                      + f'{side}/{run_day}/{target_cycle["name"]}/{test_suite["name"]}')
                 os.environ["QTEST_CAMPAIGN"] = str(test_suite["id"])
                 qtest_upload_path = os.path.join(
                     os.environ.get("LETP_PATH"),

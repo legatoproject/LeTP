@@ -670,7 +670,8 @@ class TestConfig:
         if "L_ReinitTest" in str(tests_array):
             total_test = 0
             TEST_CHOICE = os.getenv("TEST_CHOICE", "")
-            if "Legato/Nightly-master" in TEST_CHOICE:
+            args = TEST_CHOICE.split("/")
+            if args[0] == "Legato" and "Nightly-master" in args[1]:
                 # Get number of test cases from qTest
                 filename = "collected_test.json"
                 path = os.path.join(
