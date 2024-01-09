@@ -105,7 +105,7 @@ class TargetVersions:
         """
         if target.__class__.__name__ == "EM92":
             self.modem_cmd = {com.ComPortType.CLI: None, com.ComPortType.AT: "ATI9"}
-        elif target.__class__.__name__ == "ALT1350":
+        elif target.__class__.__name__ == "HL79XX":
             self.modem_cmd = {com.ComPortType.CLI: None, com.ComPortType.AT: "ATI3"}
             target.modem_pattern["full"] = r".*?(?P<version>SWI1350L\..+$)"
         return self.get_version(

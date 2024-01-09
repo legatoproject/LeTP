@@ -158,7 +158,7 @@ class ModuleLink:
 
     def init_alt1350(self, dev_tty):
         """Init the link based on the CLI port for HL79xx."""
-        swilog.info(f"Connect the {self.port_type} port on ALT1350 with {dev_tty}...")
+        swilog.info(f"Connect the {self.port_type} port on HL79XX with {dev_tty}...")
         self.close()
         self.info.update_name(dev_tty)
         self.init()
@@ -434,7 +434,7 @@ class SwiModule:
                 link.close()
             except Exception as e:
                 swilog.debug(e)
-        if self.__class__.__name__ == "ALT1350":
+        if self.__class__.__name__ == "HL79XX":
             swilog.step("killall socat dotnet")
             os.system("killall socat dotnet")
             time.sleep(2)
@@ -518,7 +518,7 @@ class SwiModule:
     def sim_iccid(self):
         """Return the SIM ICCID."""
         if self.sim_ready():
-            if self.__class__.__name__ == "ALT1350":
+            if self.__class__.__name__ == "HL79XX":
                 rsp = self.run_at_cmd("AT%CCID", 10)
                 return re.search(r"\%CCID:\s*(?P<iccid>[0-9]+)", rsp).group("iccid")
             else:
@@ -566,7 +566,7 @@ class SwiModule:
 
     def sim_status(self, timeout=20):
         """Get SIM status."""
-        if not self.links[1].info.is_used() or self.__class__.__name__ == "ALT1350":
+        if not self.links[1].info.is_used() or self.__class__.__name__ == "HL79XX":
             # bypass checking sim status
             return "0"
         else:
@@ -586,13 +586,13 @@ class SwiModule:
     def get_info(self):
         """Get software/hardware info."""
         self.run_at_cmd("ATI", 60)
-        if self.__class__.__name__ != "ALT1350":
+        if self.__class__.__name__ != "HL79XX":
             self.run_at_cmd("ATI8", 60)
         else:
             self.run_at_cmd("ATI1", 60)
             self.run_at_cmd("ATI3", 60)
         self.run_at_cmd("ATI9", 60)
-        if self.__class__.__name__ != "ALT1350":
+        if self.__class__.__name__ != "HL79XX":
             if self.sim_ready():
                 try:
                     self.run_at_cmd(self.target_at_cmd["CIMI"], 60)
