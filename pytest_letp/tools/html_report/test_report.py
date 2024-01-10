@@ -3,6 +3,7 @@
 
 Test Report is based on build configuration json results.
 """
+import copy
 import datetime
 import json
 import os
@@ -64,7 +65,7 @@ class TestSummary:
         self.sub_summary = {}
 
     def add_summary(self, name, summary):
-        """Add summary for all tests.."""
+        """Add summary for all tests."""
         self.sub_summary[name] = summary
 
     def total_tcs(self):
@@ -120,8 +121,10 @@ class TestSummary:
 
     def merge_total_collected(self):
         """Total cases collected for Nightly master."""
-        path = ("/storage/artifacts/legato-qa/nightly/"
-                + f"nightly_{REPORT_DATE}_master/collected_total.json")
+        path = (
+            "/storage/artifacts/legato-qa/nightly/"
+            + f"nightly_{REPORT_DATE}_master/collected_total.json"
+        )
         if os.path.exists(path):
             with open(path, encoding="utf8") as f:
                 exp_tests_for_targets = json.load(f)
@@ -350,6 +353,7 @@ class GlobalTestCase:
     def __init__(self, name):
         self.name = name
         self.results = {}
+        self.reinit_status = {}
 
     def is_passed(self):
         """Is this test case passed.
@@ -364,13 +368,59 @@ class GlobalTestCase:
             test_result = res.pytest_json_result.get("outcome", "").lower()
             if "fail" in test_result or "error" in test_result:
                 return False
-
         return True
 
-    def get_create_target_result(self, target_name):
+    def _check_reinit_status(self, test_name, target_name, elmt):
+        """Check status of Re_init test case.
+
+        Return:
+            True: Status of Reinit test case eligible for get flash time
+            False: Status of Reinit test case not eligible for get flash time
+            None: That is not a Reinit test case
+        """
+        if "L_ReinitTest" in test_name:
+            logs = elmt.get("call", [])
+            stdout_content = logs.get("stdout", "")
+            list_target = ["wp76", "wp77", "rc76"]
+            if "hl78" in target_name.lower():
+                pattern = "Download Start"
+                return self._check_warning(stdout_content, pattern)
+            for target in list_target:
+                if target in target_name.lower():
+                    pattern = "INFO swiflash cmd"
+                    return self._check_warning(stdout_content, pattern)
+        return None
+
+    @staticmethod
+    def _check_warning(log, pattern):
+        """Check the status of flash action in Reinit test case."""
+        warnings = ["Device may be at some bad state", "Reboot failed"]
+        start_log = log.rfind(pattern)
+        end_log = log.rfind("Flash Finish") + len("Flash Finish")
+        flash_log = log[start_log:end_log]
+        for warning in warnings:
+            if warning in flash_log:
+                return False
+        return True
+
+    def get_create_target_result(self, target_name, test_name, elmt):
         """Get and create test result for the target."""
+        origin_target_name = TestReportBuilder._parse_sys_type_name(target_name)
+        list_target_name = list(self.results.keys())
+        for target in list_target_name:
+            if origin_target_name in target:
+                if self.reinit_status[target] is False:
+                    del self.results[target]
+                    del self.reinit_status[target]
+                else:
+                    if target_name not in self.results:
+                        self.results[target_name] = TestCaseResult()
+                    return self.results[target_name]
         if target_name not in self.results:
             self.results[target_name] = TestCaseResult()
+            self.reinit_status[target_name] = self._check_reinit_status(
+                test_name, target_name, elmt
+            )
         return self.results[target_name]
 
 
@@ -714,18 +764,19 @@ class BuildConfiguration:
             if not pytest_result:
                 print(f"Unable to get the test result for {pytest_result}")
                 continue
-
             global_test_case = self._get_create_global_test_case(
                 global_test_data, test_name
             )
-            test_result = global_test_case.get_create_target_result(self.name)
+            test_result = global_test_case.get_create_target_result(
+                self.name, test_name, elmt
+            )
 
             if test_name not in verify_duplicate_tcs:
                 test_result.add_pytest_json_result(pytest_result)
             else:
                 pytest_result = self._update_result_of_duplicate_tcs(
-                    pytest_result,
-                    test_result)
+                    pytest_result, test_result
+                )
 
             outcome = self.get_final_status(pytest_result)
             verify_duplicate_tcs[test_name] = outcome
@@ -803,6 +854,7 @@ class TestReportBuilder:
             "test_idle_atip": {},
             "test_cpu_load_idle": {},
             "test_startup": {},
+            "L_ReinitTest": {},
         }
         self.min_list = [
             "Device Up",
@@ -819,7 +871,9 @@ class TestReportBuilder:
             "test_idle_memory",
             "test_idle_atip",
             "test_cpu_load_idle",
-            "test_startup",
+            "test_startup_rtos",
+            "test_startup_linux",
+            "L_ReinitTest",
         ]
         self.key_memory = [
             "Base Heap",
@@ -1018,17 +1072,21 @@ class TestReportBuilder:
 
     def simulator_data(self, not_run_sys_type_list):
         """Simulate results for non-running targets."""
-        path = ("/storage/artifacts/legato-qa/nightly/"
-                + f"nightly_{REPORT_DATE}_master/collected_total.json")
+        path = (
+            "/storage/artifacts/legato-qa/nightly/"
+            + f"nightly_{REPORT_DATE}_master/collected_total.json"
+        )
         if not_run_sys_type_list and os.path.exists(path):
-            keys = ["CollectedTests",
-                    "TestcasesRun",
-                    "Passed",
-                    "Failed",
-                    "xFailed",
-                    "Errors",
-                    "Skipped",
-                    "NoRun"]
+            keys = [
+                "CollectedTests",
+                "TestcasesRun",
+                "Passed",
+                "Failed",
+                "xFailed",
+                "Errors",
+                "Skipped",
+                "NoRun",
+            ]
             with open(path, encoding="utf8") as f:
                 exp_tests_for_targets = json.load(f)
 
@@ -1036,23 +1094,30 @@ class TestReportBuilder:
                 total_testcases = exp_tests_for_targets[item.upper()]
                 cache_summary = {"Config": item}
                 cache_summary["Status"] = "FAILED"
-                status = {key: {'count': 0, 'percentage': 0.0} for key in keys}
-                status.update({"CollectedTests": {'count': total_testcases,
-                                                  'percentage': 100.0},
-                               "NoRun": {'count': total_testcases,
-                                         'percentage': 100.0}})
+                status = {key: {"count": 0, "percentage": 0.0} for key in keys}
+                status.update(
+                    {
+                        "CollectedTests": {
+                            "count": total_testcases,
+                            "percentage": 100.0,
+                        },
+                        "NoRun": {"count": total_testcases, "percentage": 100.0},
+                    }
+                )
                 cache_summary.update(status)
                 self.summary[item] = cache_summary
 
     def check_status_platform(self, sub_systems_names):
         """Check the status of platform."""
-        exp_sys_type_list = ["wp76xx",
-                             "wp76xx-onlycap",
-                             "wp77xx",
-                             "hl7812",
-                             "rc76",
-                             "em92xx",
-                             "hl7900"]
+        exp_sys_type_list = [
+            "wp76xx",
+            "wp76xx-onlycap",
+            "wp77xx",
+            "hl7812",
+            "rc76",
+            "em92xx",
+            "hl7900",
+        ]
         run_sys_type_list = []
         # platforms with multi campaigns
         # {platform: [number of campaigns run, expected quantity], ...}
@@ -1082,8 +1147,9 @@ class TestReportBuilder:
         for sys_type, count in count_campaigns.items():
             if count[0] not in [0, count[1]]:
                 self.summary[sys_type]["Status"] = "FAILED"
-        not_run_sys_type_list = [item for item in exp_sys_type_list
-                                 if item not in run_sys_type_list]
+        not_run_sys_type_list = [
+            item for item in exp_sys_type_list if item not in run_sys_type_list
+        ]
 
         self.simulator_data(not_run_sys_type_list)
 
@@ -1177,7 +1243,6 @@ class TestReportBuilder:
             for test_name, global_test_case in test_cases.items():
                 if filter_fn and not filter_fn(global_test_case):
                     continue
-
                 result = self.collect_test_result(global_test_case, test_name)
                 results.append(result)
                 if not filter_fn:
@@ -1226,7 +1291,6 @@ class TestReportBuilder:
                     build_cfg_names.append(sys_type)
         else:
             build_cfg_names = [build_cfg.name for build_cfg in self.build_cfg_list]
-
         for name in fixed_order:
             if name in build_cfg_names:
                 results_headers.append(name)
@@ -1239,7 +1303,7 @@ class TestReportBuilder:
 
     @staticmethod
     def _get_target_name(tc):
-        """Get target name to support collect data of memory, cpu, boot.
+        """Get target name to support collect data of memory, cpu, boot, flash.
 
         time.
         """
@@ -1367,7 +1431,7 @@ class TestReportBuilder:
         for key in tc_log.keys():
             if key == "stdout":
                 test_log = tc_log["stdout"]
-        if tc.test_name.split(".")[-1] == "test_startup" and test_log is not None:
+        if "test_startup" in tc.test_name.split(".")[-1] and test_log is not None:
             device_up = re.search(
                 r'"device_up":\s(?P<time>\d+\.\d{5})', test_log
             ).group("time")
@@ -1378,17 +1442,144 @@ class TestReportBuilder:
                     boot_time["Device Up"][target_name] = round(float(device_up), 2)
         return boot_time
 
+    def _collect_data_of_flash_time(self, flash_time, tc, platforms):
+        """Collect data of flash time on all target."""
+        test_log = None
+        target_name = self._get_target_name(tc)
+        target = tc.target_name.lower()
+        if target != "wp76xx-onlycap":
+            tc_log = tc.test_case.pytest_json_result["call"]
+            for key in tc_log.keys():
+                if key == "stdout":
+                    test_log = tc_log["stdout"]
+            if tc.test_name.split(".")[-1] == "L_ReinitTest" and test_log is not None:
+
+                flash_time = self._get_flash_time(
+                    tc, flash_time, test_log, target_name, platforms
+                )
+        return flash_time
+
+    @staticmethod
+    def _check_warning(log, target_name):
+        """Check the status of Reinit test case."""
+        if target_name == "RTOS":
+            pattern = "Download Start"
+        else:
+            # ThreadX and Linux
+            pattern = "INFO swiflash cmd"
+        warnings = ["Device may be at some bad state", "Reboot failed"]
+        start_log = log.rfind(pattern)
+        end_log = log.rfind("Flash Finish") + len("Flash Finish")
+        flash_log = log[start_log:end_log]
+        for warning in warnings:
+            if warning in flash_log:
+                return False
+        return True
+
+    def _get_flash_time(self, tc, flash_time, test_log, target_name, platforms):
+        """Get flash time from Reinit test case."""
+        if self._check_warning(test_log, target_name) is False:
+            return flash_time
+        start_time = self.convert_time_to_seconds(
+            self._collect_start_time(test_log, target_name)
+        )
+        end_time = self.convert_time_to_seconds(self._collect_end_time(test_log))
+        flash_time_1 = self.convert_time_to_minutes(end_time - start_time)
+        stdout_call_log = tc.test_case.pytest_json_result["call"]["stdout"]
+        for target in platforms:
+            if target == target_name:
+                self.summary_log["L_ReinitTest"][target_name] = stdout_call_log
+                flash_time["Flash Time"][target_name] = flash_time_1
+        return flash_time
+
+    @staticmethod
+    def _collect_start_time(test_log, target_name):
+        """Get start time of flash action on all target."""
+        all_time = []
+        if target_name == "RTOS":
+            for line in test_log.split("\n"):
+                start_time = re.search(
+                    r"Download Start \("
+                    r"\w{3} \w{3}\s+\d{1,2} "
+                    r"(?P<time>\d{2}:\d{2}:\d{2})",
+                    line,
+                )
+                if start_time:
+                    start_time = start_time.group("time")
+                    all_time.append(start_time)
+        elif "Linux" in target_name or "ThreadX" in target_name:
+            for line in test_log.split("\n"):
+                start_time = re.search(
+                    r"(?P<start_time>\d{2}:\d{2}:\d{2}) INFO swiflash cmd", line
+                )
+                if start_time:
+                    start_time = start_time.group("start_time")
+                    all_time.append(start_time)
+        return all_time[-1]
+
+    @staticmethod
+    def _collect_end_time(test_log):
+        """Get end time of flash action on all target."""
+        end_time = re.search(
+            r"Flash Finish: (\d{4}-\d{2}-\d{2} (?P<end_time>\d{2}:\d{2}:\d{2}))",
+            test_log,
+        ).group("end_time")
+        return end_time
+
+    @staticmethod
+    def convert_time_to_minutes(time_str):
+        """Convert seconds to minutes."""
+        minutes = time_str // 60
+        seconds = time_str % 60
+        total = f"{minutes}:{seconds:02}"
+        return total
+
+    @staticmethod
+    def convert_time_to_seconds(time_str):
+        """Convert hours:minutes:seconds to seconds."""
+        hours, minutes, seconds = map(int, time_str.split(":"))
+        total_seconds = hours * 3600 + minutes * 60 + seconds
+        return total_seconds
+
     def create_data_file(self, results_all, pre_data: dict):
-        """Create data of memory, cpu and boot time on all target.
+        """Create today's data and reference data.
 
         Returns:
-            The json data includes today's data and reference data
-                taken from get_refer_data.
+            The json data includes today's data and reference data.
+        """
+        today_data = self.get_today_data(results_all)
+        if not pre_data:
+            refer_data = copy.deepcopy(today_data)
+        else:
+            refer_data = self.get_refer_data(pre_data)
+        data = {"Data": today_data, "Reference Data": refer_data}
+        data = self.set_default_value(data)
+        return data
+
+    @staticmethod
+    def set_default_value(data):
+        """Set reference data to 'N/A' for targets that don't need comparison.
+
+        Targets like 'Flash Time' and 'Total' do not require comparison
+        with today's data.
+        """
+        targets = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
+        for target in targets:
+            data["Reference Data"]["Flash Time"]["Flash Time"][target] = "N/A"
+            data["Reference Data"]["Memory"]["Total"][target] = "N/A"
+        return data
+
+    def get_today_data(self, results_all):
+        """Get today's data of memory, cpu, boot and flash time on all target.
+
+        Returns:
+            Today's data json file.
         """
         memory = {}
         cpu = {}
         boot_time = {}
-        infor = ["Memory", "CPU", "Boot Time"]
+        flash_time = {}
+        infor = ["Memory", "CPU", "Boot Time", "Flash Time"]
         platforms = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
         val = ["N/A"] * len(platforms)
         for data_name in self.key_memory:
@@ -1396,26 +1587,25 @@ class TestReportBuilder:
         cpu["Total Idle"] = dict(zip(platforms, val))
         cpu["Idle Percentage"] = dict(zip(platforms, val))
         boot_time["Device Up"] = dict(zip(platforms, val))
+        flash_time["Flash Time"] = dict(zip(platforms, val))
         for tcs in results_all:
             for tc in tcs:
                 if (
                     tc.test_name.split(".")[-1] in self.mem_cpu_boottime_tcs_list
                     and tc.test_case is not None
                     and tc.result.lower() == "passed"
+                    and tc.target_name != "em92xx"
                 ):
                     memory = self._collect_data_of_memory(memory, tc, platforms)
                     cpu = self._collect_data_of_cpu(cpu, tc)
                     boot_time = self._collect_data_of_boot_time(
                         boot_time, tc, platforms
                     )
-        today_data = dict(zip(infor, [memory, cpu, boot_time]))
-        if not pre_data:
-            refer_data = today_data
-        else:
-            refer_data = self.get_refer_data(pre_data)
-        data = {"Data": today_data, "Reference Data": refer_data}
-
-        return data
+                    flash_time = self._collect_data_of_flash_time(
+                        flash_time, tc, platforms
+                    )
+        today_data = dict(zip(infor, [memory, cpu, boot_time, flash_time]))
+        return today_data
 
     def check_data(self, data: dict):
         """Check the status of today's data against reference data."""
@@ -1512,7 +1702,7 @@ class TestReportBuilder:
 
         with today's data.
         """
-        # Reference Data is returned from the memory_data.json file
+        # Reference Data is returned from the memory_data.json file.
         # of the previous most recent date.
         refer_data = data["Reference Data"]
         for infor, infor_value in data["Reference Data"].items():
@@ -1527,19 +1717,8 @@ class TestReportBuilder:
                     refer_data[infor][data_name] = self._get_min_max_data(
                         data_value, data2, check_min=False
                     )
-                else:
-                    data3 = data["Data"][infor][data_name]
-                    refer_data[infor][data_name] = self._get_value(data_value, data3)
 
         return refer_data
-
-    @staticmethod
-    def _get_value(data_value, compare_value):
-        """Get the min/max value from today's data."""
-        for target, value in data_value.items():
-            data_value[target] = value if value != "N/A" else compare_value[target]
-
-        return data_value
 
     @staticmethod
     def _get_min_max_data(data_value, compare_value, check_min=True):
@@ -1562,11 +1741,21 @@ class TestReportBuilder:
         """Get all data from memory_data.json to generate report."""
         date = []
         i = 0
+        platforms = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
         for path in mem_data_json_path:
             assert os.path.exists(path), "Could not find JSON file"
             date.append(path.split("_")[1].split(".", 1)[1].replace(".", "/"))
             with open(path, encoding="utf8") as f:
                 sum_data[i] = json.load(f)
+                # Create a temporary dictionary of flash time.
+                if "Flash Time" not in sum_data[i]["Data"]:
+                    sum_data[i]["Data"]["Flash Time"] = {
+                        "Flash Time": {target: "N/A" for target in platforms}
+                    }
+                if "Flash Time" not in sum_data[i]["Reference Data"]:
+                    sum_data[i]["Reference Data"]["Flash Time"] = {
+                        "Flash Time": {target: "N/A" for target in platforms}
+                    }
                 all_data[date[i]] = sum_data[i]["Data"]
             i += 1
 
@@ -1611,7 +1800,6 @@ class TestReportBuilder:
                         "Today": data_check["Data"],
                     }
                 )
-
         output = self.generate_report(
             results_all, status, other_contents, data=all_data
         )
@@ -1630,8 +1818,10 @@ class TestReportHTMLBuilder(TestReportBuilder):
 
     def get_failure(self):
         """Get failure reasons from Json file."""
-        path = ("/storage/artifacts/legato-qa/nightly/"
-                + f"nightly_{REPORT_DATE}_master/failureCauses.json")
+        path = (
+            "/storage/artifacts/legato-qa/nightly/"
+            + f"nightly_{REPORT_DATE}_master/failureCauses.json"
+        )
         if MERGE_REPORT and os.path.exists(path):
             with open(path, encoding="utf8") as f:
                 failures = json.load(f)
@@ -1685,7 +1875,6 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "targets": targets,
             "failure": self.failure,
         }
-
         return html_render.render()
 
     def build(self, title, input_json_file, output_name):

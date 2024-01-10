@@ -343,15 +343,15 @@
                                         <th class="mem2">{{info}} (s)</th>
                                     {% elif info == "Idle Percentage" %}
                                         <th class="mem2">{{info}} (%)</th>
+                                    {% elif info == "Flash Time" %}
+                                        <th class="mem2">{{info}} (m:s)</th>
                                     {% else %}
                                         <th class="mem2">{{info}}</th>
                                     {% endif %}
                                     {% for target, value in info_value.items() %}
                                         {% for day in all_data %}
-                                            {% if day == "Reference Data" and len_date > 2 %}
+                                            {% if day == "Reference Data"%}
                                                 <td class="sample">{{all_data[day][key][info][target]}}</td>
-                                            {% elif day == "Reference Data" and len_date == 2 %}
-                                                <td class="sample">{{all_data[day][key][info][target][0]}}</td>
                                             {% elif day == "Today" %}
                                                 {% if value[1] == "failed" %}
                                                     {% if value[3] == "" %}
