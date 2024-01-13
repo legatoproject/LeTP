@@ -586,11 +586,11 @@ class SwiModule:
     def get_info(self):
         """Get software/hardware info."""
         self.run_at_cmd("ATI", 60)
-        if self.__class__.__name__ != "HL79XX":
-            self.run_at_cmd("ATI8", 60)
-        else:
+        if self.__class__.__name__ == "HL79XX":
             self.run_at_cmd("ATI1", 60)
             self.run_at_cmd("ATI3", 60)
+            self.run_at_cmd("ATI10", 60)
+        self.run_at_cmd("ATI8", 60)
         self.run_at_cmd("ATI9", 60)
         if self.__class__.__name__ != "HL79XX":
             if self.sim_ready():
