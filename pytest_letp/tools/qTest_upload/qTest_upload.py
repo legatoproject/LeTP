@@ -69,7 +69,11 @@ def get_data_from_json():
     print(f"TBiccid: {TBiccid}")
     Build_number = Jenkins_job_info["job.url"]
     print(f"Comments: {Build_number}")
-    Legato_version = Jenkins_job_info["legato"].split("_")[0].split(" ")[0]
+    if "hl79" in TBmodule.lower():
+        # On HL79, there is no legato version
+        Legato_version = "N/A"
+    else:
+        Legato_version = Jenkins_job_info["legato"].split("_")[0].split(" ")[0]
     print(f"Legato_version: {Legato_version}")
     FW_Version = Jenkins_job_info["modem"].split(" ")[0]
     if "HL78" in TBmodule:
