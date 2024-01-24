@@ -284,20 +284,20 @@
                                 {% if row == "Build ID" %}
                                     {% if platform == "Swilib" %}
                                     <td>
-                                        <a href="https://jenkins.legato/job/Swilib-QA-TestEngine/{{ execution[platform][row] }}" target="_blank">
+                                        <a href="https://jenkins.central/job/Swilib-QA-TestEngine/{{ execution[platform][row] }}" target="_blank">
                                             {{ execution[platform][row] }}
                                         </a>
                                     </td>
                                     {% elif platform == "AutoTestPlus" %}
                                     <td>
-                                        <a href="https://jenkins.legato/job/AutoTestPlus-QA-TestEngine-Windows/{{ execution[platform][row] }}" target="_blank">
+                                        <a href="https://jenkins.central/job/AutoTestPlus-QA-TestEngine-Windows/{{ execution[platform][row] }}" target="_blank">
                                             {{ execution[platform][row] }}
                                         </a>
                                     </td>
                                     {% endif %}
                                 {% elif row == "Test Bed" %}
                                 <td>
-                                    <a href="https://farm.legato/testbench/testbeds/{{ execution[platform][row] }}" target="_blank">
+                                    <a href="https://farm.central/testbench/testbeds/{{ execution[platform][row] }}" target="_blank">
                                         {{ execution[platform][row] }}
                                     </a>
                                 </td>

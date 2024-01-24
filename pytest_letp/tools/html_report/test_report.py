@@ -2164,7 +2164,7 @@ class JiraServer:
             data_check = str(data_check) + " kB"
             value = str(value) + " kB"
         description = (
-            f"Nightly report {date_obj.strftime('%B %d, %Y')}: https://get.legato/"
+            f"Nightly report {date_obj.strftime('%B %d, %Y')}: https://get.central/"
             + f"legato-qa/nightly/nightly_{REPORT_DATE}_master/test_report.html"
             + f"\n{title.replace('more than 5', str(percent))}"
             + f"\nReference value: {data_check}"
@@ -2218,7 +2218,7 @@ class JiraServer:
         comment = (
             f"This issue happened again on Nightly on "
             f"{date_obj.strftime('%B %d, %Y')}"
-            + "\nNightly report : https://get.legato/"
+            + "\nNightly report : https://get.central/"
             + f"legato-qa/nightly/nightly_{REPORT_DATE}_master/test_report.html"
             + f"\n{title.replace('more than 5', str(percent))}"
             + f"\nReference value: {data_check}"
@@ -2304,7 +2304,7 @@ class JiraServer:
         text = (
             "This issue happened again on Nightly on "
             + f"{date_obj.strftime('%B %d, %Y')}"
-            + "\nNightly report : https://get.legato/"
+            + "\nNightly report : https://get.central/"
             + f"legato-qa/nightly/nightly_{REPORT_DATE}_master/test_report.html"
         )
         print(

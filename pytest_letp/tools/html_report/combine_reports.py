@@ -319,7 +319,7 @@ if __name__ == "__main__":
     if "TPE-Nightly" in title:
         COMBINE_REPORT = True
         artifact_path = artifact_path.replace(
-            "/storage/artifacts", "https://get.legato"
+            "/storage/artifacts", "https://get.central"
         )
 
     if "QA-TestEngine" in title or "Customize" in title:
