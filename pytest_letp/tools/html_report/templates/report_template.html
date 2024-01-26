@@ -561,6 +561,16 @@
                             {% call render_testcase_content(test_case_views) %}{% endcall %}
                         </tr>
                         {% endfor %}
+                        {% if title == "Test Results (all)" %}
+                            {% for test_case, results in extend_tcs.items() %}
+                                <tr>
+                                    <th scope="row">{{ test_case }}</th>
+                                    {% for result in results.values() %}
+                                        <td class="{{ result }}" style="color:#007bff">{{ result }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
                 {{ caller() }}

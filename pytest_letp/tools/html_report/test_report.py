@@ -848,6 +848,7 @@ class TestReportBuilder:
         self.platform = {}
         self.group_summary = {}
         self.group_len = {}
+        self.collected_test = {}
         self.summary_log = {
             "test_memory_size": {},
             "test_idle_memory": {},
@@ -1153,7 +1154,43 @@ class TestReportBuilder:
 
         self.simulator_data(not_run_sys_type_list)
 
-    def _add_summary_section(self):
+    def _update_percentage(self, entry_name, count):
+        self.summary[entry_name]["Passed"]["count"] += count
+        self.summary[entry_name]["CollectedTests"]["count"] += count
+        self.summary[entry_name]["TestcasesRun"]["count"] += count
+        divider = float(self.summary[entry_name]["CollectedTests"]["count"]) / 100
+        for key, value in self.summary[entry_name].items():
+            if key not in ("Config", "Status"):
+                value["percentage"] = float(value["count"] / divider)
+
+    def _add_collected_test(self, paths):
+        all_targets = self.results_headers[1:]
+        total = 0
+        for entry in paths:
+            count = 0
+            entry_name, entry_path = self._get_entry_path(entry)
+            if entry_name:
+                entry_name = entry_name.split(":")[0]
+            try:
+                with open(entry_path, "r", encoding="utf8") as file:
+                    for line in file:
+                        line = line.strip()
+                        name, result = line.split()
+                        if name not in self.collected_test:
+                            self.collected_test[name] = {
+                                target: "N/A" for target in all_targets
+                            }
+                        self.collected_test[name][entry_name] = result.lower()
+                        # Add passed tcs to report
+                        if result == "PASSED":
+                            count += 1
+                    self._update_percentage(entry_name, count)
+                    total += count
+            except:
+                print(f"[ERROR]: {Exception}")
+        self._update_percentage("global", total)
+
+    def _add_summary_section(self, txt_paths=""):
         summary_global = {"Config": self.test_summary.cfg}
         summary_global["Status"] = self.test_summary.status()
         summary_global.update(self.test_summary.stats())
@@ -1170,6 +1207,8 @@ class TestReportBuilder:
                 cache_summary["Status"] = sub_summary.status()
                 cache_summary.update(sub_summary.stats())
                 self.summary[sub_summary.cfg] = cache_summary
+        if txt_paths:
+            self._add_collected_test(txt_paths)
 
         status = self.test_summary.status()
         return status
@@ -1763,12 +1802,16 @@ class TestReportBuilder:
 
     def run(self, args):
         """!Run the builder to generate report."""
-        self._add_build_cfgs(args.json_path)
+        json_paths = [file_path for file_path in args.json_path
+                      if os.path.splitext(file_path)[1][1:] == "json"]
+        txt_paths = [file_path for file_path in args.json_path
+                     if os.path.splitext(file_path)[1][1:] == "txt"]
+        self._add_build_cfgs(json_paths)
         self._add_env_list_header()
         self._process_all_build_cfgs()
         self._add_env_global_list(args.global_env, args.global_env_path)
         self._add_results_headers()
-        status = self._add_summary_section()
+        status = self._add_summary_section(txt_paths)
         results_all = self.gen_results_table()
         other_contents = {
             "title": args.title,
@@ -1874,6 +1917,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "len_date": len_date,
             "targets": targets,
             "failure": self.failure,
+            "extend_tcs": self.collected_test,
         }
         return html_render.render()
 
