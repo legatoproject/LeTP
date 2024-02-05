@@ -414,7 +414,15 @@ class ModuleLinux(SwiModule):
         """Return versions obj."""
         return LinuxVersions()
 
-    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"):
+    def run_at_cmd(
+        self,
+        at_cmd,
+        timeout=20,
+        expect_rsp=None,
+        check=True,
+        eol="\r",
+        strict=False
+    ):
         """Run and check AT commands."""
         if self.links[2].info.is_used() and self.link2:
             return super().run_at_cmd(at_cmd, timeout, expect_rsp, check, eol)
@@ -424,7 +432,7 @@ class ModuleLinux(SwiModule):
         time.sleep(1)
         try:
             rsp = com.run_at_cmd_and_check(
-                self, at_cmd, timeout, expect_rsp, check, eol
+                self, at_cmd, timeout, expect_rsp, check, eol, strict
             )
         except Exception as e:
             # Exit from microcom if exception

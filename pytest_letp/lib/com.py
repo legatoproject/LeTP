@@ -304,7 +304,7 @@ def clear_buffer(target):
 
 
 def run_at_cmd_and_check(
-    target, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"
+    target, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False
 ):
     r"""Run and check AT commands.
 
@@ -326,12 +326,18 @@ def run_at_cmd_and_check(
     :param eol: Specify the end of lince character.
                 Default \\r but in le_at_GetTextAsync the \\r
                 is not valid and it must be \\x1a
+    :param strict: Check that expected_rsp matches in exact order
+                   with no lines in between.
+
 
     :returns: all the data saved during this command
 
 
     :raises: AssertionError (only if check is True)
     """
+    if expect_rsp and (strict or target.strict_match):
+        swilog.debug("Using strict matching")
+        expect_rsp = ["\r\n".join(expect_rsp)]
     # Clear target buffer before running command.
     clear_buffer(target)
     raw_cmd = at_cmd.replace("\r", "").replace("\n", "")
@@ -1066,6 +1072,20 @@ class target_at:
     def __init__(self, dev_tty=None, baudrate=115200, rtscts=False):
         self.PROMPT = ["OK", "ERROR"]
         self.LOGIN = ""
+        self.__strict_match = False
+
+    @property
+    def strict_match(self):
+        """Return strict match value."""
+        return self.__strict_match
+
+    def enable_strict_compare(self):
+        """Enable expected response matching strict."""
+        self.__strict_match = True
+
+    def disable_strict_compare(self):
+        """Disable expected response matching strict."""
+        self.__strict_match = False
 
     def prompt(self, timeout=-1):
         """Check for target_at prompt."""
@@ -1089,13 +1109,13 @@ class target_at:
         else:
             power_supply.cycle()
 
-    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"):
+    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False):
         """Run an AT command on the target.
 
         It waits for "OK" by default.
         """
         try:
-            rsp = run_at_cmd_and_check(self, at_cmd, timeout, expect_rsp, check, eol)
+            rsp = run_at_cmd_and_check(self, at_cmd, timeout, expect_rsp, check, eol, strict)
         except Exception as e:
             # Try/except to limit the backtrace
             raise ComException(e)

@@ -19,6 +19,7 @@ def test_run_at_cmd_and_check():
     with patch("pytest_letp.lib.com.clear_buffer"):
         target = Mock()
         target.expect = Mock(return_value="OK")
+        target.strict_match = False
         target.before = "ATI"
         target.after = "OK"
         rsp = com.run_at_cmd_and_check(target, "ATI", 1, [r"once", r"twice"])

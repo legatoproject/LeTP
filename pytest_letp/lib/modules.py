@@ -650,9 +650,9 @@ class SwiModule:
         else:
             return False
 
-    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r"):
+    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False):
         """Run a cmd in AT console."""
-        return self.slink2.run_at_cmd(at_cmd, timeout, expect_rsp, check, eol)
+        return self.slink2.run_at_cmd(at_cmd, timeout, expect_rsp, check, eol, strict)
 
 
 def look_for_tty(root_dir, path, prefix, usb_dev):
