@@ -39,11 +39,13 @@ class Networker:
             pass
 
         access = "w+"
+        encoding = "utf-8"
         if is_binary_file:
             access = "wb+"
+            encoding = None
 
         req_obj = self.get()
-        with open(file_path, access, encoding='UTF-8') as file_obj:
+        with open(file_path, access, encoding=encoding) as file_obj:
             file_obj.write(req_obj.content)
 
     def get(self, **extra_args):
