@@ -33,7 +33,7 @@ def _get_python_cmd():
     """Determine the python cmd and return the compatible one."""
     python = "python3"
 
-    if not shutil.which(python):
+    if not shutil.which(python) or not os.system(f"{python} --version") == 0:
         python = "python"
 
     return python
@@ -90,7 +90,7 @@ def install_pkg(letp_path=None):
             )
 
             # Not failing on purpose in case the source folder is read-only
-            os.mkdir(req_cache)
+            os.makedirs(req_cache, exist_ok=True)
             open(req_hash_path, "w").close()
 
 

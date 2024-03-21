@@ -79,7 +79,7 @@ class ComPortDetector:
                     swilog.warning(
                         "Unusual description present in port %s", com_port_name
                     )
-                elif com_port_desc in device_description:
+                elif com_port_desc.lower() in device_description.lower():
                     possible_devices_lst.append(device)
 
         return possible_devices_lst
@@ -127,7 +127,10 @@ class ComPortDetector:
     def close(self):
         """Close self.serial_port."""
         try:
-            os.close(self.serial_port.fd)
+            if os.name == "nt":
+                self.serial_port.close()
+            else:
+                os.close(self.serial_port.fd)
         except:
             pass
 

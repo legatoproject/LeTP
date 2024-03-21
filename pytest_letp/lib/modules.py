@@ -150,6 +150,7 @@ class ModuleLink:
         """Reinit the link based on the port_type."""
         swilog.warning("%s port may be gone!", self.port_type)
         swilog.info("Try to reconnect the %s port...", self.port_type)
+        self.close()
         dev_tty = self.module.port_detector.get_com_port(self.port_type)
         self.info.update_name(dev_tty)
         self.close()
@@ -405,16 +406,16 @@ class SwiModule:
             return False
 
         # if CLI was pre-defined with a valid fd but device name has been changed
-        re_opened_port = com.SerialPort.open(
-            link_obj.dev_tty, link_obj.baudrate, link_obj.rtscts
-        )
-        if not re_opened_port:
-            return False
-
-        try:
-            re_opened_port.close()
-        except Exception as e:
-            swilog.debug(e)
+        if not os.name == "nt":
+            re_opened_port = com.SerialPort.open(
+                link_obj.dev_tty, link_obj.baudrate, link_obj.rtscts
+            )
+            if not re_opened_port:
+                return False
+            try:
+                re_opened_port.close()
+            except Exception as e:
+                swilog.debug(e)
 
         return self.is_port_responsive(port_type, timeout)
 

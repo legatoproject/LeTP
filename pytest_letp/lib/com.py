@@ -738,7 +738,10 @@ class SerialPort:
         """Close the opened fd."""
         if hasattr(self, "fd"):
             try:
-                os.close(self.fd)
+                if os.name == "nt":
+                    self.fd.close()
+                else:
+                    os.close(self.fd)
             except Exception as e:
                 swilog.debug(e)
 
