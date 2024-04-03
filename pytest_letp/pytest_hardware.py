@@ -4,8 +4,16 @@ Pytest fixtures for external test equipments and hardware.
 """
 import pytest
 from pytest_letp.lib import swilog
+from pytest_letp.lib import controller
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
+
+
+@pytest.hookimpl
+def pytest_configure(config):
+    """Register numato and dli and returns controller."""
+    controller.register("numato", controller.numato)
+    config.controller = controller.get_ctrl()
 
 
 # Any operation related to external target hardware should be here.
@@ -30,9 +38,7 @@ def power_supply(request, read_config_default):
         controller_type = xml_pwr_supply.findtext("type")
         ret = request.node.config.controller[controller_type](xml_pwr_supply)
     else:
-        swilog.warning(
-            "No hardware configuration supplied: reboot manually your target!"
-        )
+        swilog.warning("No hardware configuration supplied: reboot target manually!")
     yield ret
 
 

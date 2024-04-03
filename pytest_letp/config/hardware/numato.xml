@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test>
+    <hardware>
+        <!-- Controller identification -->
+        <power_supply>
+            <type>numato</type>
+
+            <!--If the controller controls multiple instances (i.e relays from 0 to 8) -->
+            <port_nb>0</port_nb>
+            <username></username>
+            <password></password>
+
+            <!-- Set 1 if On/Off inverted: if relay/pwr is off then power is on -->
+            <inverted>0</inverted>
+
+            <ports>
+                <!-- Set 1 if On/Off inverted: if relay/pwr is off then power is on -->
+                <power inverted="0">0</power>
+            </ports>
+
+            <!-- UART Port configuration -->
+            <com>
+                <port>/dev/ttyACM0</port>
+                <rtscts>0</rtscts>
+                <speed>115200</speed>
+            </com>
+
+            <!-- GPIO confirguration -->
+            <gpio used="0">
+                <ports>
+                </ports>
+            </gpio>
+        </power_supply>
+    </hardware>
+</test>
