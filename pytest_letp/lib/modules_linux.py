@@ -105,7 +105,8 @@ class ModuleLinux(SwiModule):
         ssh_add,
         ssh_port,
         config_target,
-        inst_name, request
+        inst_name,
+        request,
     ):
         super(ModuleLinux, self).__init__(target_name)
 
@@ -130,7 +131,9 @@ class ModuleLinux(SwiModule):
 
         for idx in [1, 2]:
             self.links[idx].info = SlinkInfo(
-                config_target, self.pathed_slink_template % (inst_name, idx)
+                config_target,
+                self.pathed_slink_template % (inst_name, idx),
+                self.port_detector,
             )
             self.links[idx].add_alias(self.links[idx].info.desc())
             self.links[idx].add_alias(self.slink_template % idx)
@@ -216,6 +219,18 @@ class ModuleLinux(SwiModule):
             inst_name,
             request,
         )
+
+    @property
+    def com_port_info(self):
+        """Initialize com port description."""
+        if not self._com_port_info:
+            self._com_port_info = com.ComPortInfo()
+        self._com_port_info.add_port(com.ComPortType.CLI.name, ["USB Serial Port"])
+        self._com_port_info.add_port(
+            com.ComPortType.AT.name,
+            ["WWAN Modem"],
+        )
+        return self._com_port_info
 
     def login(self):
         """Login to the target using the appropriate link."""
@@ -415,13 +430,7 @@ class ModuleLinux(SwiModule):
         return LinuxVersions()
 
     def run_at_cmd(
-        self,
-        at_cmd,
-        timeout=20,
-        expect_rsp=None,
-        check=True,
-        eol="\r",
-        strict=False
+        self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False
     ):
         """Run and check AT commands."""
         if self.links[2].info.is_used() and self.link2:
@@ -784,8 +793,8 @@ class ModuleLinux(SwiModule):
     def configure_ssh(self, request=None):
         """Config ssh board with IP get from system environment."""
         if request:
-            target_ip = (
-                self.config_read(request=request).findtext("module/ssh/ip_address")
+            target_ip = self.config_read(request=request).findtext(
+                "module/ssh/ip_address"
             )
             test_host_ip = self.config_read(request).findtext("host/ip_address")
             octave_capability = (

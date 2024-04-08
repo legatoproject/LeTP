@@ -15,6 +15,7 @@ pyserial==3.5
 pexpect==4.8.0
 ptyprocess==0.7.0
 colorlog==4.7.2
+six==1.16.0
 
 # For html generation
 future==0.18.2

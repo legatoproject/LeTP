@@ -27,7 +27,7 @@ ECHO LETP_TESTS is set to "%LETP_TESTS%"
 ECHO LETP_INTERNAL_PATH is set to "%LETP_INTERNAL_PATH%"
 ECHO QA_ROOT is set to "%QA_ROOT%"
 
-python --version | findstr -r "3\.[6-9].*" >nul
+python --version | findstr -r "3\.[6-9]\..*" >nul || python --version | findstr -r "3\.[1-9][0-9]\..*" >nul
 IF %errorlevel% neq 0 (
     ECHO ERROR LeTP requires python3.6+ to be installed
     exit /b

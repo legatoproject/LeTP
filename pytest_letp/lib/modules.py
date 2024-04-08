@@ -30,6 +30,7 @@ __copyright__ = "Copyright (C) Sierra Wireless Inc."
 
 LETP_PATH = os.environ["LETP_PATH"]
 
+
 def get_swi_module_namespaces():
     """Return a list of module namespaces.
 
@@ -440,7 +441,7 @@ class SwiModule:
             os.system("killall socat dotnet")
             time.sleep(2)
             if self.dotnet_proc:
-                swilog.debug(self.dotnet_proc.stdout.read().decode('utf-8'))
+                swilog.debug(self.dotnet_proc.stdout.read().decode("utf-8"))
             # Restore the port information of slink1 to its original value
             # in the XML configuration file.
             original_cli = self.read_config("target", "module/slink1/name")
@@ -651,7 +652,9 @@ class SwiModule:
         else:
             return False
 
-    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False):
+    def run_at_cmd(
+        self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False
+    ):
         """Run a cmd in AT console."""
         return self.slink2.run_at_cmd(at_cmd, timeout, expect_rsp, check, eol, strict)
 
@@ -732,6 +735,12 @@ class SlinkInfo:
         """Get the port from the base config."""
         return self.config.findtext(self.base_config + "/port")
 
+    @property
+    def autoconfig(self):
+        """Port is set for autoconfiguration."""
+        slink_d = self.config.find(self.base_config).get("autoconf")
+        return slink_d is not None and slink_d == "1"
+
     def desc(self):
         """Get the description of the port from the base config."""
         desc = self.config.findtext(self.base_config + "/desc")
@@ -763,6 +772,10 @@ class SlinkInfo:
         if device_name is None or not isinstance(device_name, str) or device_name == "":
             swilog.error("Empty module name!")
             return None
+
+        if self.autoconfig:
+            swilog.debug("Ignoring default device path, using port detector...")
+            return self.detect_ports()
 
         if device_name.startswith("usb:"):
             device_name = self.name().replace("usb:", "")
