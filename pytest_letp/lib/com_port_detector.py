@@ -136,9 +136,10 @@ class ComPortDetector:
 
     def identify_port(self, com_port_name=com.ComPortType.CLI.name):
         """Identify the port based on com_port_name and com_port_checklist."""
-        if (
-            com_port_name is not com.ComPortType.CLI.name
-            and com_port_name is not com.ComPortType.AT.name
+        if com_port_name not in (
+            com.ComPortType.CLI.name,
+            com.ComPortType.AT.name,
+            com.ComPortType.RELAY.name,
         ):
             swilog.error("Unknown port type!")
             return False

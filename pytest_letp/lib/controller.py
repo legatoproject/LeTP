@@ -7,6 +7,7 @@ import pexpect.fdpexpect
 
 from pytest_letp.lib import com
 from pytest_letp.lib import swilog
+from pytest_letp.lib import com_port_detector
 
 
 __copyright__ = "Copyright (C) Sierra Wireless Inc."
@@ -28,6 +29,7 @@ class controller:  # noqa: N801
     """Controller base class."""
 
     def __init__(self, config):
+        self.config = config
         self.ip = config.findtext("network/ip")
         # SSH, telnet, ...
         self.ip_protocol = config.findtext("network/protocol")
@@ -46,7 +48,8 @@ class controller:  # noqa: N801
         self.telnet = None
         self.serial = None
         self.ip_port = config.findtext("network/port")
-
+        self._com_port_checklist = {}
+        self._com_port_info = None
         if self.ip is not None and self.ip_protocol.upper() == "SSH":
             self.ssh = com.pxsshext(  # pylint:disable=no-member
                 "controller",
@@ -66,8 +69,34 @@ class controller:  # noqa: N801
             self.telnet = pexpect.spawn(
                 f"telnet {self.ip} {self.ip_port}", logfile=sys.stdout
             )
+        if self.autoconfig:
+            port_detector = com_port_detector.ComPortDetector(
+                self.com_port_checklist, self.com_port_info
+            )
+            self.com_port = port_detector.get_com_port(com.ComPortType.RELAY.name)
         if self.com_port is not None and self.com_port != "":
             self.serial = com.target_serial_at.open(self.com_port, self.com_baudrate)
+
+    @property
+    def autoconfig(self):
+        """Port is set for autoconfiguration."""
+        com_config = self.config.find("com")
+        if not com_config:
+            return False
+        autoconf = com_config.get("autoconf")
+        return autoconf is not None and autoconf == "1"
+
+    @property
+    def com_port_info(self):
+        """Check for com port info."""
+        if not self._com_port_info:
+            self._com_port_info = com.ComPortInfo()
+        return self._com_port_info
+
+    @property
+    def com_port_checklist(self):
+        """Return the information to check different type of com port."""
+        return self._com_port_checklist
 
 
 class power_supply(controller):  # noqa: N801
@@ -145,6 +174,7 @@ class RelayPort:
 
     def state(self):
         """Read port state."""
+        com.clear_buffer(self.io)
         self.io.send(f"{self.object} {self.read_cmd} {self.port_nb}\r")
         self.io.expect(">", 5)
         expected_on_state = "on" if not self.inverted else "off"
@@ -181,6 +211,24 @@ class numato(power_supply):  # noqa: N801
         assert self.io is not None, "No serial or telnet ports opened"
         self.io.send("\r")
         self.__map_ports(config)
+
+    @property
+    def com_port_checklist(self):
+        """Return the information to check different type of com port."""
+        super().com_port_checklist[com.ComPortType.RELAY.name] = [
+            ("relay read 0", r"(on|off)\n\r>")
+        ]
+        return super().com_port_checklist
+
+    @property
+    def com_port_info(self):
+        """Initialize com port description."""
+        if not self._com_port_info:
+            self._com_port_info = com.ComPortInfo()
+        self._com_port_info.add_port(
+            com.ComPortType.RELAY.name, ["Numato", "USB Serial Device"]
+        )
+        return self._com_port_info
 
     @staticmethod
     def __get_ports(config):
@@ -243,6 +291,7 @@ class numato(power_supply):  # noqa: N801
 
     def state(self, nb=-1):  # noqa: D402
         """Read port state."""
+        com.clear_buffer(self.io)
         if nb == -1:
             nb = self.port_nb
         self.io.send(f"relay read {nb}\r")

@@ -19,7 +19,7 @@
             </ports>
 
             <!-- UART Port configuration -->
-            <com>
+            <com autoconf="0">
                 <port>/dev/ttyACM0</port>
                 <rtscts>0</rtscts>
                 <speed>115200</speed>

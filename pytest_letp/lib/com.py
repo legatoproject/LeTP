@@ -81,6 +81,7 @@ class ComPortType(Enum):
 
     CLI = 1
     AT = 2
+    RELAY = 3
 
 
 class ComPort:
@@ -1112,13 +1113,17 @@ class target_at:
         else:
             power_supply.cycle()
 
-    def run_at_cmd(self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False):
+    def run_at_cmd(
+        self, at_cmd, timeout=20, expect_rsp=None, check=True, eol="\r", strict=False
+    ):
         """Run an AT command on the target.
 
         It waits for "OK" by default.
         """
         try:
-            rsp = run_at_cmd_and_check(self, at_cmd, timeout, expect_rsp, check, eol, strict)
+            rsp = run_at_cmd_and_check(
+                self, at_cmd, timeout, expect_rsp, check, eol, strict
+            )
         except Exception as e:
             # Try/except to limit the backtrace
             raise ComException(e)
