@@ -225,10 +225,12 @@ class ModuleLinux(SwiModule):
         """Initialize com port description."""
         if not self._com_port_info:
             self._com_port_info = com.ComPortInfo()
-        self._com_port_info.add_port(com.ComPortType.CLI.name, ["USB Serial Port"])
+        self._com_port_info.add_port(
+            com.ComPortType.CLI.name, ["USB Serial Port", "Basic UART"]
+        )
         self._com_port_info.add_port(
             com.ComPortType.AT.name,
-            ["WWAN Modem"],
+            ["WWAN Modem", "Sierra Wireless"],
         )
         return self._com_port_info
 

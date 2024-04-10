@@ -216,7 +216,7 @@ class numato(power_supply):  # noqa: N801
     def com_port_checklist(self):
         """Return the information to check different type of com port."""
         super().com_port_checklist[com.ComPortType.RELAY.name] = [
-            ("relay read 0", r"(on|off)\n\r>")
+            ("\r\nrelay read 0", r"relay read 0\n\r(on|off)\n\r>")
         ]
         return super().com_port_checklist
 
