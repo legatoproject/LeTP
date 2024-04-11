@@ -163,6 +163,7 @@ def test_numato_map_ports_one_port():
         numato = controller.numato(config)
         assert "power" in dir(numato)
         assert numato.power.inverted is False
+        assert numato.power.debounce == 0
         assert numato.power.port_nb == 0
 
 
@@ -179,7 +180,7 @@ def test_numato_map_ports_two_ports():
     </com>
     <ports>
         <power inverted="0">0</power>
-        <sim inverted="1">1</sim>
+        <sim inverted="1" debounce="150">1</sim>
     </ports>
 </power_supply>
 """
@@ -190,9 +191,11 @@ def test_numato_map_ports_two_ports():
         assert "power" in dir(numato)
         assert numato.power.inverted is False
         assert numato.power.port_nb == 0
+        assert numato.power.debounce == 0
         assert "sim" in dir(numato)
         assert numato.sim.inverted is True
         assert numato.sim.port_nb == 1
+        assert numato.sim.debounce == 150
 
 
 def test_numato_port_on():
@@ -219,6 +222,57 @@ def test_numato_port_on():
         numato.io.expect = Mock(return_value=">")
         numato.power.on()
         assert COMMAND_SENT == "relay on 0\r"
+
+
+def test_numato_port_debounce_set_get():
+    """Test numato port set/get methods."""
+    config_string = """
+<power_supply>
+    <type>numato</type>
+    <port_nb>0</port_nb>
+    <inverted>0</inverted>
+    <com>
+        <port>/dev/ttyACM0</port>
+        <speed>115200</speed>
+    </com>
+    <ports>
+        <power inverted="0" debounce="150">0</power>
+    </ports>
+</power_supply>
+"""
+    with patch("pytest_letp.lib.com.target_serial_at.open"):
+        config = ET.fromstring(config_string)
+        controller.numato.serial = Mock()
+        numato = controller.numato(config)
+        assert numato.power.get_debounce() == 150
+        numato.power.set_debounce(500)
+        assert numato.power.get_debounce() == 500
+
+
+def test_numato_alt_port_debounce_set_get():
+    """Test numato port set/get methods."""
+    config_string = """
+<power_supply>
+    <type>numato</type>
+    <port_nb>0</port_nb>
+    <inverted>0</inverted>
+    <com>
+        <port>/dev/ttyACM0</port>
+        <speed>115200</speed>
+    </com>
+    <ports>
+        <power inverted="0" debounce="150">0</power>
+        <sim inverted="1">1</sim>
+    </ports>
+</power_supply>
+"""
+    with patch("pytest_letp.lib.com.target_serial_at.open"):
+        config = ET.fromstring(config_string)
+        controller.numato.serial = Mock()
+        numato = controller.numato(config)
+        assert numato.sim.get_debounce() == 0
+        numato.sim.set_debounce(500)
+        assert numato.sim.get_debounce() == 500
 
 
 def test_numato_alt_port_on():

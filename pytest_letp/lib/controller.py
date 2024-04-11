@@ -137,6 +137,10 @@ class RelayPort:
         self.io = io
         assert self.io is not None, "No serial or telnet ports opened"
         self.inverted = config.get("inverted") == "1"
+        if config.get("debounce") is not None:
+            self.debounce = int(config.get("debounce"))
+        else:
+            self.debounce = 0
         self.port_nb = int(config.text)
         self.object = "relay"
         self.on_cmd = "on"
@@ -148,6 +152,7 @@ class RelayPort:
         swilog.debug(f"numato {self.object} {self.port_nb} on")
         self.io.send(f"{self.object} {self.on_cmd} {self.port_nb}\r")
         self.io.expect(">", 5)
+        time.sleep(self.debounce / 1000)
         swilog.debug(self.io.before)
         swilog.debug(self.io.after)
 
@@ -156,6 +161,7 @@ class RelayPort:
         swilog.debug(f"numato {self.object} {self.port_nb} off")
         self.io.send(f"{self.object} {self.off_cmd} {self.port_nb}\r")
         self.io.expect(">", 5)
+        time.sleep(self.debounce / 1000)
         swilog.debug(self.io.before)
         swilog.debug(self.io.after)
 
@@ -186,6 +192,14 @@ class RelayPort:
         self.off()
         time.sleep(delay)
         self.on()
+
+    def set_debounce(self, debounce):
+        """Set debounce, debounce unit is ms."""
+        self.debounce = debounce
+
+    def get_debounce(self):
+        """Get debounce, debounce unit is ms."""
+        return self.debounce
 
 
 class GPIOPort(RelayPort):

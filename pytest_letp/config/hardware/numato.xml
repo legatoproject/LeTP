@@ -14,8 +14,9 @@
             <inverted>0</inverted>
 
             <ports>
-                <!-- Set 1 if On/Off inverted: if relay/pwr is off then power is on -->
-                <power inverted="0">0</power>
+                <!-- inverted: Set 1 if On/Off inverted: if relay/pwr is off then power is on -->
+                <!-- debounce: delay in ms after setting relay port on/off. 0ms if omitted -->
+                <power inverted="0" debounce="0">0</power>
             </ports>
 
             <!-- UART Port configuration -->
