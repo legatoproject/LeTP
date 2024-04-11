@@ -1,4 +1,5 @@
 """Controller for external equipment."""
+import os
 import sys
 import time
 
@@ -215,8 +216,11 @@ class numato(power_supply):  # noqa: N801
     @property
     def com_port_checklist(self):
         """Return the information to check different type of com port."""
+        cmd = "relay read 0"
+        if os.name == "posix":
+            cmd = f"\r\n{cmd}"
         super().com_port_checklist[com.ComPortType.RELAY.name] = [
-            ("\r\nrelay read 0", r"relay read 0\n\r(on|off)\n\r>")
+            (cmd, r"relay read 0\n\r(on|off)\n\r>")
         ]
         return super().com_port_checklist
 
