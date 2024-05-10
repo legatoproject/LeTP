@@ -12,6 +12,9 @@ import pytest
 from _pytest.config import Config
 
 
+LOG_DIR = os.path.abspath("log")
+
+
 class Tee:
     """Class to write in 2 different files.
 

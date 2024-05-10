@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import re
+import glob
 import argparse
 from collections import OrderedDict, Counter
 import xml.etree.ElementTree as ET
@@ -310,13 +311,92 @@ class TestCaseResult:
 
     @property
     def system_out(self):
-        """System out from all xml elements.."""
+        """System out from all xml elements."""
         return self._system_out
 
     @system_out.setter
     def system_out(self, logs):
         """Set system out."""
         self._system_out = f"{self._system_out}\n{logs}"
+
+    def get_log_start_index(self):
+        """Get start index for runtime logs."""
+        initialized = False
+        extra_init_lines = 2
+        for i, log_line in enumerate(self.system_out.split("\n")):
+            if not initialized:
+                if "Begin of" in log_line:
+                    initialized = True
+                continue
+            return i + extra_init_lines
+        return 0
+
+    @staticmethod
+    def get_time_from_timestamp(log_match):
+        """Get time object from log timestamp."""
+        if not log_match:
+            return None
+        timestamp = log_match.group(1).split(":")
+        return datetime.time(
+            hour=int(timestamp[0]), minute=int(timestamp[1]), second=int(timestamp[2])
+        )
+
+    def get_time_from_log(self, log):
+        """Get time from log line."""
+        log_match = re.search(r"(\d\d:\d\d:\d\d)", log)
+        if log_match:
+            return self.get_time_from_timestamp(log_match)
+        return None
+
+    def insert_image(self, image, image_time, timestamp):
+        """Insert image into runtime logs."""
+        log_start = self.get_log_start_index()
+        prev_log_time = None
+        for i, log_line in enumerate(self.system_out.split("\n")[log_start:]):
+            log_time = self.get_time_from_log(log_line)
+            if not log_time:
+                continue
+            if prev_log_time and prev_log_time <= image_time <= log_time:
+                image = os.path.relpath(image, "log")
+                image_tag = f'<img src="{image}" alt="{timestamp}"></br>'
+                logs = self.system_out.split("\n")
+                logs.insert(i + log_start, image_tag)
+                self._system_out = "\n".join(logs)
+                return True
+            prev_log_time = log_time
+        return False
+
+    def add_images(self, test_id):
+        """Add images from image directory to report."""
+        img_dir = os.path.join("log", "images")
+        if not os.path.exists(img_dir):
+            return
+        test_name = test_id.split(":")[-1]
+        test_name_glob = test_name.replace("[", "(").replace("]", ")")
+        test_name = test_name.replace("[", r"\[").replace("]", r"\]")
+        images = glob.glob(os.path.join(img_dir, rf"{test_name_glob}-*.png"))
+        if not images:
+            return
+        start_time = self.get_time_from_timestamp(
+            re.search(
+                rf"(\d\d:\d\d:\d\d) INFO .* Begin of {test_name}", self.system_out
+            )
+        )
+        end_time = self.get_time_from_timestamp(
+            re.search(rf"(\d\d:\d\d:\d\d) INFO .* End of {test_name}", self.system_out)
+        )
+        if not start_time or not end_time:
+            return
+        for image in images:
+            timestamp = image.split("-")[-1].strip(".png")
+            timestamp = datetime.datetime.fromtimestamp(float(timestamp))
+            image_time = datetime.time(
+                hour=timestamp.hour, minute=timestamp.minute, second=timestamp.second
+            )
+            # Check if image timestamp is within test execution
+            if start_time <= image_time <= end_time:
+                if not self.insert_image(image, image_time, timestamp):
+                    print(f"Unable to insert image into runtime logs: {image}")
 
     @property
     def system_err(self):
@@ -330,7 +410,7 @@ class TestCaseResult:
 
     def update_pytest_logs(self, pytest_result, update_before_log=False):
         """Update tcs pytest log."""
-        for run_phase in ["setup", "call", "teardown"]:
+        for run_phase in ["setup", "call", "teardown", "images"]:
             if pytest_result.get(run_phase):
                 pytest_log = [
                     pytest_result[run_phase].get("stdout", ""),
@@ -342,6 +422,8 @@ class TestCaseResult:
                 else:
                     self.system_out = pytest_log[0]
                     self.system_err = pytest_log[1]
+            elif run_phase == "images":
+                self.add_images(pytest_result.get("nodeid", ""))
 
 
 class GlobalTestCase:
@@ -1915,8 +1997,6 @@ class TestReportHTMLBuilder(TestReportBuilder):
     def generate_report(self, results_all, status, other_contents: dict, data=None):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
-        results_failed = self.gen_results_table(lambda x: x.is_failed())
-        results_xfailed = self.gen_results_table(lambda x: x.is_xfailed())
         summary_headers = ["Config", "Status"]
         targets = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
         summary_headers.extend(TestSummary.stat_keys())
@@ -1942,8 +2022,8 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "testing_env_infos": self.testing_env_infos,
             "environment_dict": self.environment_dict,
             "results_headers": self.results_headers,
-            "results_failed": results_failed,
-            "results_xfailed": results_xfailed,
+            "results_failed": self.gen_results_table(lambda x: x.is_failed()),
+            "results_xfailed": self.gen_results_table(lambda x: x.is_xfailed()),
             "test_groups": self.groups,
             "group_len": self.group_len,
             "platform_info": self.platform,

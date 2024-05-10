@@ -38,7 +38,11 @@ get all errors and check if the test is passed.
       assert 0, "Some tests failed:/\n%s"% "/\n".join(failed_testcases_list)
 
 """
+import os
 import sys
+import shutil
+from datetime import datetime
+from pytest_letp.pytest_letp_log import LOG_DIR
 
 try:
     import logging
@@ -180,3 +184,25 @@ def get_error_list():
     """Get the list of errors reported."""
     global error_list
     return error_list
+
+
+def image(img_path):
+    """Save png image for use in report."""
+    img_path = os.path.expandvars(img_path)
+    if not os.path.exists(img_path):
+        warning(f"Image does not exist: {img_path}")
+        return
+    if not img_path.endswith(".png"):
+        warning(f"Image is not type png: {img_path}")
+        return
+    img_dir = os.path.join(LOG_DIR, "images")
+    os.makedirs(img_dir, exist_ok=True)
+    test_name = (
+        os.environ["PYTEST_CURRENT_TEST"]
+        .split(":")[-1]
+        .split(" ")[0]
+        .replace("[", "(")
+        .replace("]", ")")
+    )
+    img = os.path.join(img_dir, f"{test_name}-{datetime.now().timestamp()}.png")
+    shutil.copyfile(img_path, img)

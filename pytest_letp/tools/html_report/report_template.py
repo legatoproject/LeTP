@@ -44,6 +44,8 @@ class HTMLRender(TemplateRender):
     @staticmethod
     def _convert_special_character(msg):
         """!Replace special characters with HTML encoded characters."""
+        if "<img" in msg or "</img" in msg:
+            return msg
         msg = msg.replace("&", '&amp;')
         msg = msg.replace("<", '&lt;')
         msg = msg.replace(">", '&gt;')
