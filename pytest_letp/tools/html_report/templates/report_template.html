@@ -186,6 +186,7 @@
             {% endif %}
             <a href="#Environment"><li>Environment</li></a>
             <a href="#Test Results (failed)"><li>Test Results (failed)</li></a>
+            <a href="#Test Results (xfailed)"><li>Test Results (xfailed)</li></a>
             <a href="#Test Results (all)"><li>Test Results (all)</li></a>
         </ul>
     </div>
@@ -646,6 +647,11 @@
         <!-- Results (failed) -->
         {% call render_results('Test Results (failed)', results_headers,
             results_failed) %}
+        {% endcall %}
+
+        <!-- Results (failed) -->
+        {% call render_results('Test Results (xfailed)', results_headers,
+            results_xfailed) %}
         {% endcall %}
 
         <!-- Results (all) -->

@@ -370,6 +370,36 @@ class GlobalTestCase:
                 return False
         return True
 
+    def is_failed(self):
+        """Is this test case failed.
+
+        Qualify as failed if any of the results contain error or failed.
+        """
+        if len(self.results) == 0:
+            return False
+
+        for res in self.results.values():
+            test_result = res.pytest_json_result.get("outcome", "").lower()
+            if (
+                "error" in test_result or "failed" in test_result
+            ) and "xfailed" not in test_result:
+                return True
+        return False
+
+    def is_xfailed(self):
+        """Is this test case xfailed.
+
+        Check if the test is xfailed or not.
+        """
+        if len(self.results) == 0:
+            return False
+
+        for res in self.results.values():
+            test_result = res.pytest_json_result.get("outcome", "").lower()
+            if "xfailed" in test_result:
+                return True
+        return False
+
     def _check_reinit_status(self, test_name, target_name, elmt):
         """Check status of Re_init test case.
 
@@ -1802,10 +1832,16 @@ class TestReportBuilder:
 
     def run(self, args):
         """!Run the builder to generate report."""
-        json_paths = [file_path for file_path in args.json_path
-                      if os.path.splitext(file_path)[1][1:] == "json"]
-        txt_paths = [file_path for file_path in args.json_path
-                     if os.path.splitext(file_path)[1][1:] == "txt"]
+        json_paths = [
+            file_path
+            for file_path in args.json_path
+            if os.path.splitext(file_path)[1][1:] == "json"
+        ]
+        txt_paths = [
+            file_path
+            for file_path in args.json_path
+            if os.path.splitext(file_path)[1][1:] == "txt"
+        ]
         self._add_build_cfgs(json_paths)
         self._add_env_list_header()
         self._process_all_build_cfgs()
@@ -1879,7 +1915,8 @@ class TestReportHTMLBuilder(TestReportBuilder):
     def generate_report(self, results_all, status, other_contents: dict, data=None):
         """!Generate report in HTML."""
         html_render = HTMLRender("report_template.html")
-        results_failed = self.gen_results_table(lambda x: not x.is_passed())
+        results_failed = self.gen_results_table(lambda x: x.is_failed())
+        results_xfailed = self.gen_results_table(lambda x: x.is_xfailed())
         summary_headers = ["Config", "Status"]
         targets = ["RTOS", "ThreadX", "Linux(WP76xx)", "Linux(WP77xx)"]
         summary_headers.extend(TestSummary.stat_keys())
@@ -1906,6 +1943,7 @@ class TestReportHTMLBuilder(TestReportBuilder):
             "environment_dict": self.environment_dict,
             "results_headers": self.results_headers,
             "results_failed": results_failed,
+            "results_xfailed": results_xfailed,
             "test_groups": self.groups,
             "group_len": self.group_len,
             "platform_info": self.platform,
