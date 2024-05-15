@@ -25,13 +25,13 @@ class Networker:
 
     def is_URL_reachable(self):
         """Return true if the URL is reachable; false otherwise."""
-        req_obj = self.get()
+        req_obj = self.get(verify=False)
         swilog.debug(
             f"Server returns: {req_obj.status_code} with the message: {req_obj.reason}"
         )
         return req_obj.status_code == 200
 
-    def download(self, file_path, is_binary_file=True):
+    def download(self, file_path, is_binary_file=True, **extra_args):
         """Download the URL's contents using the get request object."""
         try:
             os.remove(file_path)
@@ -44,7 +44,7 @@ class Networker:
             access = "wb+"
             encoding = None
 
-        req_obj = self.get()
+        req_obj = self.get(**extra_args)
         with open(file_path, access, encoding=encoding) as file_obj:
             file_obj.write(req_obj.content)
 
