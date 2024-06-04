@@ -738,11 +738,17 @@ class BuildConfiguration:
         env_name = self.get_runtime_env_name(environment_type)
         if env_name:
             env_val = None
-            for name, version in self.json_data["environment"][env_name].items():
-                consolidate_val = f"{name}:{version}"
-                env_val = (
-                    consolidate_val if not env_val else f"{env_val}, {consolidate_val}"
-                )
+            env = self.json_data["environment"][env_name]
+            if isinstance(env, dict):
+                for name, version in env.items():
+                    consolidate_val = f"{name}:{version}"
+                    env_val = (
+                        consolidate_val
+                        if not env_val
+                        else f"{env_val}, {consolidate_val}"
+                    )
+            else:
+                env_val = env
 
             env_dict.update({environment_type.name: env_val})
 

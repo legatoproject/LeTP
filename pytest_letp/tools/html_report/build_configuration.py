@@ -37,6 +37,7 @@ class Components(enum.Enum):
 class Environment(enum.Enum):
     """!Metadata of testing environment."""
 
+    Platform = enum.auto()
     Plugins = enum.auto()
     Packages = enum.auto()
 
